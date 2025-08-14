@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+html {
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+body {
+  -ms-overflow-style: none;
+}
+/* Add to your main CSS file */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
