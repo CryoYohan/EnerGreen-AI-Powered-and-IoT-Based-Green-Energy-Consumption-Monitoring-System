@@ -1,7 +1,31 @@
-// Import the functions you need from the SDKs you need
+// This imports modules from the installed 'firebase' package.
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 
+// Import all necessary Auth functions from the 'firebase/auth' module
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendEmailVerification,
+    updateProfile,
+    onAuthStateChanged,
+    signOut
+} from "firebase/auth";
+
+// Import all necessary Firestore functions from the 'firebase/firestore' module
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    query,
+    orderBy,
+    limit,
+    addDoc,
+    doc,
+    setDoc
+} from "firebase/firestore";
+
+// Firebase configuration.
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -11,7 +35,34 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+
+// Initialize Firebase with your config.
 const app = initializeApp(firebaseConfig);
+
+// Get a reference to the Auth and Firestore services.
+const auth = getAuth(app);
 const db = getFirestore(app);
 
-export { db, collection, onSnapshot, query, orderBy, limit };
+// Export the initialized services and all the specific functions
+// that your components will need.
+export {
+    app,
+    auth,
+    db,
+    // Auth Functions
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendEmailVerification,
+    updateProfile,
+    onAuthStateChanged,
+    signOut,
+    // Firestore Functions
+    collection,
+    onSnapshot,
+    query,
+    orderBy,
+    limit,
+    addDoc,
+    doc,
+    setDoc
+};
