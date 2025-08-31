@@ -4,13 +4,25 @@
     <!-- Binds the fetched user's full name to the Heading component title -->
     <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview" />
     <MetricsCard :metrics="dailyMetrics" size="base" />
-    
+
     <Dashboard />
 
-    <ReusableBarChart title="Electricity Usage" :activePeriod="activePeriod"
-      @update:activePeriod="activePeriod = $event" :periods="['Daily', 'Weekly', 'Monthly', 'Yearly']"
-      :dailyData="dailyData" :weeklyData="weeklyData" :monthlyData="monthlyData" :yearlyData="yearlyData"
-      xAxisLabel="Time" tooltipUnit="kWh" />
+    <!--
+      The ReusableBarChart component is now bound to data
+      that is fetched and processed from Firestore.
+    -->
+    <ReusableBarChart
+      title="Electricity Usage"
+      :activePeriod="activePeriod"
+      @update:activePeriod="activePeriod = $event"
+      :periods="['Daily', 'Weekly', 'Monthly', 'Yearly']"
+      :dailyData="dailyData"
+      :weeklyData="weeklyData"
+      :monthlyData="monthlyData"
+      :yearlyData="yearlyData"
+      xAxisLabel="Time"
+      tooltipUnit="kWh"
+    />
     <SourcesChart />
     <Tips />
 
@@ -32,15 +44,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
-// We only need to import the services, not initialize the app again.
-import { 
-  auth, 
-  db, 
-  doc, 
+import { ref, onMounted, computed, watch } from "vue";
+import {
+  auth,
+  db,
+  doc,
   onAuthStateChanged,
-  onSnapshot
-} from "../../firebase.js"; 
+  onSnapshot,
+  collection,
+  query,
+  orderBy,
+} from "../../firebase.js";
 
 // Import your components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
@@ -50,7 +64,7 @@ import SourcesChart from "@/components/UserComponents/Home/SourcesChart.vue";
 import Tips from "@/components/UserComponents/Home/Tips.vue";
 import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
-import Dashboard from "@/components/ReusableComponents/Dashboard.vue";
+import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";
 
 // The global app ID is provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -61,29 +75,13 @@ const userFirstName = computed(() => {
   return userName.value.split(' ')[0] || 'Guest';
 });
 
-// Fetch user profile from Firestore using onSnapshot for real-time updates
-const fetchUserProfile = (userId) => {
-  try {
-    const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-    
-    // Listen for real-time updates to the user profile
-    onSnapshot(userProfileRef, (userProfileSnap) => {
-      if (userProfileSnap.exists()) {
-        const profileData = userProfileSnap.data();
-        userName.value = profileData.fullName || 'Guest';
-      } else {
-        console.log("No user profile found!");
-        userName.value = 'Guest';
-      }
-    }, (error) => {
-      console.error("Error listening to user profile:", error);
-      userName.value = 'Guest';
-    });
-  } catch (error) {
-    console.error("Error setting up user profile listener:", error);
-    userName.value = 'Guest';
-  }
-};
+// Reactive state for chart data
+const activePeriod = ref("Weekly");
+const dailyData = ref([]);
+const weeklyData = ref([]);
+const monthlyData = ref([]);
+const yearlyData = ref([]);
+const deviceId = ref(null);
 
 // Metrics data (used for MetricsCard)
 const dailyMetrics = [
@@ -119,63 +117,128 @@ const dailyMetrics = [
   },
 ];
 
-
-const activePeriod = ref("Weekly");
-
-const dailyData = [
-  { label: "12AM", value: 5 },
-  { label: "2AM", value: 3 },
-  { label: "4AM", value: 2 },
-  { label: "6AM", value: 8 },
-  { label: "8AM", value: 15 },
-  { label: "10AM", value: 20 },
-  { label: "12PM", value: 25 },
-  { label: "2PM", value: 28 },
-  { label: "4PM", value: 30 },
-  { label: "6PM", value: 35 },
-  { label: "8PM", value: 25 },
-  { label: "10PM", value: 15 },
-];
-
-const weeklyData = [
-  { label: "Mon", value: 20 },
-  { label: "Tue", value: 25 },
-  { label: "Wed", value: 22 },
-  { label: "Thu", value: 18 },
-  { label: "Fri", value: 24 },
-  { label: "Sat", value: 27 },
-  { label: "Sun", value: 19 },
-];
-
-const monthlyData = [
-  { label: "Jan", value: 420 },
-  { label: "Feb", value: 380 },
-  { label: "Mar", value: 410 },
-  { label: "Apr", value: 350 },
-  { label: "May", value: 480 },
-  { label: "Jun", value: 520 },
-  { label: "Jul", value: 600 },
-  { label: "Aug", value: 580 },
-  { label: "Sep", value: 450 },
-  { label: "Oct", value: 400 },
-  { label: "Nov", value: 370 },
-  { label: "Dec", value: 430 },
-];
-
-const yearlyData = [
-  { label: "2025", value: 1450 },
-  { label: "2026", value: 1520 },
-  { label: "2027", value: 1390 },
-  { label: "2028", value: 1500 },
-];
 const showOnboarding = ref(false);
+
+/**
+ * Fetches the user's device ID from their profile document.
+ * @param {string} userId The current user's ID.
+ */
+const fetchDeviceId = (userId) => {
+  const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
+  onSnapshot(userProfileRef, (userProfileSnap) => {
+    if (userProfileSnap.exists()) {
+      const profileData = userProfileSnap.data();
+      deviceId.value = profileData.deviceId || null;
+      userName.value = profileData.fullName || 'Guest';
+    } else {
+      console.log("No user profile found!");
+      deviceId.value = null;
+      userName.value = 'Guest';
+    }
+  }, (error) => {
+    console.error("Error listening to user profile:", error);
+  });
+};
+
+/**
+ * Aggregates raw data into daily, weekly, monthly, and yearly usage.
+ * @param {Array<object>} rawData The raw usage data from Firestore.
+ */
+const aggregateData = (rawData) => {
+  if (!rawData || rawData.length === 0) {
+    dailyData.value = [];
+    weeklyData.value = [];
+    monthlyData.value = [];
+    yearlyData.value = [];
+    return;
+  }
+
+  // Aggregate daily data (by hour)
+  const hourly = {};
+  rawData.forEach(item => {
+    const hour = item.timestamp.getHours();
+    hourly[hour] = (hourly[hour] || 0) + item.kwhConsumed;
+  });
+  dailyData.value = Array.from({ length: 24 }, (_, i) => ({
+    label: `${i}:00`,
+    value: hourly[i] || 0,
+  }));
+
+  // Aggregate weekly data (by day of the week)
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dailyTotal = {};
+  rawData.forEach(item => {
+    const day = item.timestamp.toDateString();
+    dailyTotal[day] = (dailyTotal[day] || 0) + item.kwhConsumed;
+  });
+  weeklyData.value = weekday.map((label, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (date.getDay() - index + 7) % 7);
+    const total = dailyTotal[date.toDateString()] || 0;
+    return { label, value: total };
+  });
+
+  // Aggregate monthly data (by month)
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyTotal = {};
+  rawData.forEach(item => {
+    const month = item.timestamp.getMonth();
+    const year = item.timestamp.getFullYear();
+    const key = `${monthNames[month]}-${year}`;
+    monthlyTotal[key] = (monthlyTotal[key] || 0) + item.kwhConsumed;
+  });
+  monthlyData.value = Object.keys(monthlyTotal).map(key => ({
+    label: key.split('-')[0],
+    value: monthlyTotal[key],
+  }));
+
+  // Aggregate yearly data (by year)
+  const yearlyTotal = {};
+  rawData.forEach(item => {
+    const year = item.timestamp.getFullYear();
+    yearlyTotal[year] = (yearlyTotal[year] || 0) + item.kwhConsumed;
+  });
+  yearlyData.value = Object.keys(yearlyTotal).map(year => ({
+    label: year,
+    value: yearlyTotal[year],
+  }));
+};
+
+// Listen for device ID changes to fetch and process data
+watch(deviceId, (newDeviceId) => {
+  if (newDeviceId) {
+    // Set up a real-time listener for electricity readings
+    const readingsQuery = query(
+      collection(db, `devices/${newDeviceId}/realtime_readings`),
+      orderBy("timestamp", "desc")
+    );
+
+    onSnapshot(readingsQuery, (querySnapshot) => {
+      const rawReadings = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        rawReadings.push({
+          ...data,
+          timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
+        });
+      });
+      // The Firestore data is processed into the correct format for the chart.
+      aggregateData(rawReadings);
+    }, (error) => {
+      console.error("Error fetching electricity data:", error);
+    });
+  } else {
+    // Clear data if no device is connected
+    aggregateData([]);
+  }
+}, { immediate: true });
 
 onMounted(async () => {
   // Set up the authentication state listener
   onAuthStateChanged(auth, (user) => {
     if (user) {
       // If a user is logged in, fetch their profile
-      fetchUserProfile(user.uid);
+      fetchDeviceId(user.uid);
     } else {
       // If no user is logged in, reset the name
       userName.value = 'Guest';
