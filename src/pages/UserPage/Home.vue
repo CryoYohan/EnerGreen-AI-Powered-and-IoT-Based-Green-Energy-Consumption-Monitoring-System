@@ -1,7 +1,8 @@
 <template>
   <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
     <UserHeader />
-    <Heading title="Welcome Back, John!" subtitle="Here's your energy consumption overview" />
+    <!-- Binds the fetched user's full name to the Heading component title -->
+    <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview" />
     <MetricsCard :metrics="dailyMetrics" size="base" />
     
     <Dashboard />
@@ -16,7 +17,8 @@
     <Footer />
     <div v-if="showOnboarding" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full text-center">
-        <h2 class="text-xl font-semibold mb-4 text-green-600">Welcome, John!</h2>
+        <!-- Binds the fetched user's first name to the onboarding message -->
+        <h2 class="text-xl font-semibold mb-4 text-green-600">Welcome, {{ userFirstName }}!</h2>
         <p class="text-gray-700 mb-4">This dashboard helps you track your energy usage and savings. Explore each section
           to get insights on your consumption.</p>
         <button @click="showOnboarding = false"
@@ -30,8 +32,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
+// We only need to import the services, not initialize the app again.
+import { 
+  auth, 
+  db, 
+  doc, 
+  onAuthStateChanged,
+  onSnapshot
+} from "../../firebase.js"; 
 
+// Import your components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
@@ -40,6 +51,40 @@ import Tips from "@/components/UserComponents/Home/Tips.vue";
 import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import Dashboard from "@/components/ReusableComponents/Dashboard.vue";
+
+// The global app ID is provided by the canvas environment.
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Reactive state for user data
+const userName = ref('Guest');
+const userFirstName = computed(() => {
+  return userName.value.split(' ')[0] || 'Guest';
+});
+
+// Fetch user profile from Firestore using onSnapshot for real-time updates
+const fetchUserProfile = (userId) => {
+  try {
+    const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
+    
+    // Listen for real-time updates to the user profile
+    onSnapshot(userProfileRef, (userProfileSnap) => {
+      if (userProfileSnap.exists()) {
+        const profileData = userProfileSnap.data();
+        userName.value = profileData.fullName || 'Guest';
+      } else {
+        console.log("No user profile found!");
+        userName.value = 'Guest';
+      }
+    }, (error) => {
+      console.error("Error listening to user profile:", error);
+      userName.value = 'Guest';
+    });
+  } catch (error) {
+    console.error("Error setting up user profile listener:", error);
+    userName.value = 'Guest';
+  }
+};
+
 // Metrics data (used for MetricsCard)
 const dailyMetrics = [
   {
@@ -125,7 +170,18 @@ const yearlyData = [
 ];
 const showOnboarding = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
+  // Set up the authentication state listener
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // If a user is logged in, fetch their profile
+      fetchUserProfile(user.uid);
+    } else {
+      // If no user is logged in, reset the name
+      userName.value = 'Guest';
+    }
+  });
+
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
 
   if (!hasSeenOnboarding) {
@@ -135,3 +191,8 @@ onMounted(() => {
 });
 
 </script>
+
+
+<style scoped>
+/* Scoped styles remain unchanged */
+</style>
