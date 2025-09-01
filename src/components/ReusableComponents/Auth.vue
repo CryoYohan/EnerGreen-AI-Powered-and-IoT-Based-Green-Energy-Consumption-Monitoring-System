@@ -5,7 +5,8 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  sendPasswordResetEmail // New Import
 } from './../../firebase.js';
 
 // Reactive data
@@ -59,6 +60,22 @@ const logout = async () => {
     message.value = { text: 'Logged out successfully', type: 'success' };
   } catch (error) {
     console.error("Logout error:", error.message);
+    message.value = { text: error.message, type: 'error' };
+  }
+};
+
+// New: Method to send a password reset email
+const forgotPassword = async () => {
+  try {
+    if (!email.value) {
+      message.value = { text: 'Please enter your email address to reset the password.', type: 'error' };
+      return;
+    }
+    await sendPasswordResetEmail(auth, email.value);
+    console.log("Password reset email sent to:", email.value);
+    message.value = { text: 'A password reset link has been sent to your email.', type: 'success' };
+  } catch (error) {
+    console.error("Password reset error:", error.message);
     message.value = { text: error.message, type: 'error' };
   }
 };
