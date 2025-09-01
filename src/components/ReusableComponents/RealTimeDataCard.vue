@@ -8,7 +8,8 @@
     <div v-else-if="deviceId" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
       <!-- Graph Cards -->
-      <div v-for="(chartData, key) in chartConfigurations" :key="key" class="p-6 bg-white shadow-lg rounded-xl border border-gray-100 flex flex-col relative">
+      <div v-for="(chartData, key) in chartConfigurations" :key="key"
+        class="p-6 bg-white shadow-lg rounded-xl border border-gray-100 flex flex-col relative">
         <div class="flex justify-between items-start mb-2">
           <div class="flex items-center space-x-3">
             <!-- Icon for each card -->
@@ -19,15 +20,19 @@
               <p class="text-sm text-gray-500 truncate w-full">{{ deviceId }}</p>
             </div>
           </div>
-          <button @click="expandChart(key)" class="p-2 text-gray-400 hover:text-green-600 transition-colors duration-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5" />
+          <button @click="expandChart(key)"
+            class="p-2 text-gray-400 hover:text-green-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5" />
             </svg>
           </button>
         </div>
-        
+
         <!-- Real-time Value -->
-        <p class="text-4xl font-bold text-green-600 mb-4">{{ latestValues[key] || 'N/A' }} <span class="text-xl font-normal text-gray-500">{{ chartData.unit }}</span></p>
+        <p class="text-4xl font-bold text-green-600 mb-4">{{ latestValues[key] || 'N/A' }} <span
+            class="text-xl font-normal text-gray-500">{{ chartData.unit }}</span></p>
 
         <div class="flex-grow">
           <canvas :id="key + 'Chart'"></canvas>
@@ -38,18 +43,22 @@
     <div v-else class="text-center text-gray-500 space-y-4 my-8">
       <p class="text-lg font-semibold text-gray-800">No device linked yet.</p>
       <p>Please enter your device ID to start seeing real-time data.</p>
-      <button @click="handleSetDeviceId" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+      <button @click="handleSetDeviceId"
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
         Set Device ID
       </button>
     </div>
 
     <!-- Full-screen Modal -->
-    <div v-if="expandedChart" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 p-4" @click.self="closeExpandedChart">
+    <div v-if="expandedChart" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 p-4"
+      @click.self="closeExpandedChart">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-full max-h-5xl flex flex-col">
         <div class="p-4 border-b border-gray-200 flex justify-between items-center">
           <h3 class="text-2xl font-bold text-gray-800">{{ chartConfigurations[expandedChart].title }}</h3>
-          <button @click="closeExpandedChart" class="p-2 text-gray-400 hover:text-red-500 transition-colors duration-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button @click="closeExpandedChart"
+            class="p-2 text-gray-400 hover:text-red-500 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -120,7 +129,7 @@ export default {
     fetchDeviceId(userId) {
       const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
       const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-      
+
       onSnapshot(userProfileRef, (userProfileSnap) => {
         if (userProfileSnap.exists()) {
           const profileData = userProfileSnap.data();
@@ -150,7 +159,7 @@ export default {
         this.loading = false;
         return;
       }
-      
+
       const q = query(
         collection(db, `devices/${this.deviceId}/realtime_readings`),
         orderBy('timestamp', 'desc'),
@@ -195,7 +204,7 @@ export default {
     },
     createCharts() {
       const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
-      
+
       for (const key in this.chartConfigurations) {
         const config = this.chartConfigurations[key];
         const ctx = document.getElementById(key + 'Chart')?.getContext('2d');
@@ -287,7 +296,7 @@ export default {
         if (chart) {
           chart.data.labels = labels;
           chart.data.datasets[0].data = this.readings.map(r => r[config.dataKey]);
-          
+
           if (key === 'voltage') {
             chart.data.datasets[1].data = Array(labels.length).fill(230);
             chart.data.datasets[2].data = Array(labels.length).fill(253);
@@ -297,7 +306,7 @@ export default {
           if (key === 'powerFactor') {
             chart.data.datasets[1].data = Array(labels.length).fill(0.9);
           }
-          
+
           chart.update();
         }
       }
@@ -361,16 +370,16 @@ export default {
         }
 
         if (key === 'powerFactor') {
-            datasets.push({
-              data: Array(labels.length).fill(0.9),
-              borderColor: '#dc2626', // Red
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              label: 'Threshold (0.9)'
-            });
-          }
-        
+          datasets.push({
+            data: Array(labels.length).fill(0.9),
+            borderColor: '#dc2626', // Red
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            label: 'Threshold (0.9)'
+          });
+        }
+
         this.charts.expanded = new Chart(ctx, {
           type: 'line',
           data: {
