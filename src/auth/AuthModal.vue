@@ -159,11 +159,55 @@
               <input type="text" v-model="deviceId" required 
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
-            <div class="mb-2">
-              <label class="block text-white">Password</label>
-              <input type="password" v-model="password" required 
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+ <div class="mb-4 relative">
+              <label for="password" class="block text-gray-300 mb-1">Password</label>
+              
+              <!-- Input with toggle -->
+              <input 
+                :type="showPassword ? 'text' : 'password'" 
+                id="password" 
+                v-model="password"
+                required 
+                class="w-full px-4 py-2 pr-12 text-black placeholder-gray-500 bg-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2"
+              >
+
+              <!-- Toggle button -->
+              <button 
+                type="button" 
+                @click="showPassword = !showPassword"
+                class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none"
+              >
+                <!-- Eye open -->
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" 
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" 
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
+                      8.268 2.943 9.542 7-1.274 4.057-5.064 
+                      7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+
+                <!-- Eye with slash -->
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" 
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
+                      0-8.268-2.943-9.542-7a9.956 9.956 
+                      0 012.38-3.882m3.184-2.3A9.956 9.956 
+                      0 0112 5c4.478 0 8.268 2.943 
+                      9.542 7a9.956 9.956 0 01-4.338 
+                      5.223M15 12a3 3 0 11-6 0 3 3 
+                      0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" 
+                    d="M3 3l18 18" />
+                </svg>
+              </button>
             </div>
+
+
+
+
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Confirm Password</label>
               <input type="password" v-model="confirmPassword" required 
@@ -216,6 +260,7 @@ const props = defineProps({
   }
 });
 
+const showPassword = ref(false);
 const emit = defineEmits(['close']);
 const router = useRouter();
 
