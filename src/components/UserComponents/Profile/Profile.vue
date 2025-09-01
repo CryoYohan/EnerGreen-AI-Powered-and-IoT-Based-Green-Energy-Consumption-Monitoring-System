@@ -98,6 +98,7 @@
           <input 
             type="password" 
             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#059669] focus:border-[#059669]"
+            v-model="currentPassword"
           >
         </div>
 
@@ -106,6 +107,7 @@
           <input 
             type="password" 
             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#059669] focus:border-[#059669]"
+            v-model="newPassword"
           >
         </div>
 
@@ -114,7 +116,13 @@
           <input 
             type="password" 
             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#059669] focus:border-[#059669]"
+            v-model="confirmNewPassword"
           >
+        </div>
+        
+        <!-- Password Error Message -->
+        <div v-if="passwordError" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+          <p>{{ passwordError }}</p>
         </div>
       </div>
 
@@ -139,7 +147,7 @@
 </template>
 
 <script>
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db } from '../../../firebase.js';
@@ -156,6 +164,10 @@ export default {
       phoneNumber: '',
       address: '',
       photoFile: null,
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+      passwordError: '',
       initialState: {} // To store the initial state for comparison and cancellation
     };
   },
@@ -184,9 +196,10 @@ export default {
         this.userProfile.photoURL = tempURL;
       }
     },
-    // Saves the changes to Firestore and Firebase Storage
+    // Saves the changes to Firestore and Firebase Storage, and handles password update
     async saveChanges() {
       this.isSaving = true;
+      this.passwordError = '';
       const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
       const userId = auth.currentUser?.uid;
 
@@ -194,6 +207,40 @@ export default {
         console.error("User not authenticated.");
         this.isSaving = false;
         return;
+      }
+
+      // Check if password fields are filled out for an update
+      if (this.currentPassword || this.newPassword || this.confirmNewPassword) {
+        if (!this.currentPassword || !this.newPassword || !this.confirmNewPassword) {
+          this.passwordError = "Please fill in all password fields to update your password.";
+          this.isSaving = false;
+          return;
+        }
+
+        if (this.newPassword !== this.confirmNewPassword) {
+          this.passwordError = "New password and confirm password do not match.";
+          this.isSaving = false;
+          return;
+        }
+
+        try {
+          const credential = EmailAuthProvider.credential(auth.currentUser.email, this.currentPassword);
+          await reauthenticateWithCredential(auth.currentUser, credential);
+          await updatePassword(auth.currentUser, this.newPassword);
+          console.log("Password updated successfully!");
+          this.currentPassword = '';
+          this.newPassword = '';
+          this.confirmNewPassword = '';
+        } catch (error) {
+          if (error.code === 'auth/wrong-password') {
+            this.passwordError = "The current password you entered is incorrect.";
+          } else {
+            this.passwordError = "Error updating password. Please try again.";
+            console.error("Error updating password:", error);
+          }
+          this.isSaving = false;
+          return;
+        }
       }
 
       // Merge first and last name back into a single fullName for the database
@@ -208,19 +255,6 @@ export default {
       try {
         // Upload photo to Firebase Storage if a new one was selected
         if (this.photoFile) {
-          // NOTE: If you are seeing a CORS error (Access-Control-Allow-Origin), you need to configure your Firebase Storage bucket.
-          // This is a one-time setup on your Firebase project, not a code issue.
-          // To fix this, create a cors.json file:
-          // [
-          //   {
-          //     "origin": ["*"],
-          //     "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
-          //     "responseHeader": ["Content-Type"],
-          //     "maxAgeSeconds": 3600
-          //   }
-          // ]
-          // And run the following command in your terminal, replacing your-bucket-name:
-          // gsutil cors set cors.json gs://your-bucket-name
           const storage = getStorage();
           const storageRef = ref(storage, `profile_pictures/${userId}/${this.photoFile.name}`);
           await uploadBytes(storageRef, this.photoFile);
@@ -242,7 +276,7 @@ export default {
           fullName: updatedFullName,
           phoneNumber: this.phoneNumber,
           address: this.address,
-          photoURL: updatedData.photoURL || this.userProfile.photoURL // Ensure photoURL is updated in initial state
+          photoURL: updatedData.photoURL || this.userProfile.photoURL
         };
 
       } catch (error) {
@@ -258,8 +292,12 @@ export default {
       this.lastName = lastName;
       this.phoneNumber = this.initialState.phoneNumber;
       this.address = this.initialState.address;
-      this.userProfile.photoURL = this.initialState.photoURL; // Reset temp photo URL
-      this.photoFile = null; // Clear the selected file
+      this.userProfile.photoURL = this.initialState.photoURL;
+      this.photoFile = null;
+      this.currentPassword = '';
+      this.newPassword = '';
+      this.confirmNewPassword = '';
+      this.passwordError = '';
     }
   },
   mounted() {

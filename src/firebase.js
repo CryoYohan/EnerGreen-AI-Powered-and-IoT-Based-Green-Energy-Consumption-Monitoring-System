@@ -9,7 +9,8 @@ import {
     sendEmailVerification,
     updateProfile,
     onAuthStateChanged,
-    signOut
+    signOut,
+    sendPasswordResetEmail // Added for password recovery
 } from "firebase/auth";
 
 // Import all necessary Firestore functions from the 'firebase/firestore' module
@@ -56,6 +57,7 @@ export {
     updateProfile,
     onAuthStateChanged,
     signOut,
+    sendPasswordResetEmail, // Added for password recovery
     // Firestore Functions
     collection,
     onSnapshot,

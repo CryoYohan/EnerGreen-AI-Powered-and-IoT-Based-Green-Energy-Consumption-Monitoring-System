@@ -25,8 +25,13 @@
           </div>
 
           <!-- Centered header for Success State -->
-          <div class="w-full text-center" v-else-if="isEmailVerifiedSuccess">
+          <div class="w-full text-center" v-else-if="isEmailVerifiedSuccess || isPasswordResetSuccess">
             <h3 class="text-3xl font-bold">Success!</h3>
+          </div>
+
+          <!-- Centered header for Password Recovery -->
+          <div class="w-full text-center" v-else-if="isForgotPasswordMode">
+            <h3 class="text-3xl font-bold">Password Recovery</h3>
           </div>
 
           <!-- Fallback for other modes -->
@@ -73,6 +78,57 @@
             {{ isResendDisabled ? `Resend in ${resendTimer}s` : 'Resend Verification Email' }}
           </button>
         </template>
+        
+        <!-- New: Password Recovery Success State -->
+        <template v-else-if="isForgotPasswordMode && isPasswordResetSuccess">
+          <div class="flex flex-col items-center text-center">
+            <!-- Checkmark Animation -->
+            <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
+              <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
+              <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+            </svg>
+            <p class="mb-4 text-gray-200 text-lg">Password reset link sent!</p>
+            <p class="mb-6 text-gray-200">Check your email and sign in with your new password.</p>
+            <button
+              @click="switchToLogin"
+              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200"
+            >
+              Go to Login
+            </button>
+          </div>
+        </template>
+
+        <!-- Password Recovery Form -->
+        <template v-else-if="isForgotPasswordMode">
+          <p class="mb-6 text-gray-200">
+            Enter your email to receive a password reset link.
+          </p>
+          <form @submit.prevent="handleForgotPassword">
+            <div class="mb-2">
+              <label class="block text-white">Email</label>
+              <input type="email" v-model="email" required
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+            </div>
+            <button type="submit" 
+              :disabled="passwordResetCountdown > 0"
+              class="w-full py-2 mt-2 font-bold text-black transition rounded-lg"
+              :class="{
+                'bg-white hover:bg-gray-200': passwordResetCountdown === 0,
+                'bg-gray-400 cursor-not-allowed text-gray-700': passwordResetCountdown > 0
+              }">
+              <span v-if="passwordResetCountdown === 0">Send Reset Link</span>
+              <span v-else>Resend in {{ passwordResetCountdown }}s</span>
+            </button>
+            <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
+              {{ error }}
+            </div>
+          </form>
+          <div class="mt-6 text-center">
+            <button @click="switchToLogin" class="text-white hover:underline">
+              Back to Login
+            </button>
+          </div>
+        </template>
 
         <!-- Login/Register Forms -->
         <template v-else>
@@ -81,37 +137,37 @@
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Full Name</label>
               <input type="text" v-model="fullName" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div class="mb-2">
               <label class="block text-white">Email</label>
               <input type="text" v-model="email" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Phone Number</label>
               <input type="tel" v-model="phoneNumber" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Address</label>
               <input type="text" v-model="address" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Device ID</label>
               <input type="text" v-model="deviceId" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div class="mb-2">
               <label class="block text-white">Password</label>
               <input type="password" v-model="password" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Confirm Password</label>
               <input type="password" v-model="confirmPassword" required 
-                     class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <button type="submit" class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
               {{ isLoginMode ? 'Log in' : 'Sign up' }}
@@ -123,6 +179,12 @@
           <div class="mt-6 text-center">
             <button @click="toggleMode" class="text-white hover:underline">
               {{ isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Log in" }}
+            </button>
+          </div>
+          <!-- New: Forgot password button -->
+          <div v-if="isLoginMode" class="mt-2 text-center">
+            <button @click="toggleToForgotPassword" class="text-white hover:underline text-sm">
+              Forgot Password?
             </button>
           </div>
         </template>
@@ -139,6 +201,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   sendEmailVerification,
+  sendPasswordResetEmail
 } from '../firebase.js';
 import { db, doc, setDoc } from '../firebase.js';
 
@@ -160,11 +223,15 @@ const router = useRouter();
 const isLoginMode = ref(props.initialMode === 'login');
 const isVerifyingEmail = ref(false);
 const isEmailVerifiedSuccess = ref(false);
+const isForgotPasswordMode = ref(false);
+const isPasswordResetSuccess = ref(false); // New state for success message
+const passwordResetCountdown = ref(0); // New state for countdown timer
+
 const fullName = ref('');
 const email = ref('');
 const phoneNumber = ref('');
 const address = ref('');
-const deviceId = ref(''); // New state for the device ID
+const deviceId = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const error = ref('');
@@ -174,6 +241,7 @@ const isResendDisabled = ref(false);
 const resendTimer = ref(0);
 let timerInterval = null;
 let verificationPollInterval = null;
+let passwordResetTimerInterval = null;
 
 // Mask the email address
 const maskedEmail = computed(() => {
@@ -205,13 +273,23 @@ const closeModal = () => {
 
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value;
+  isForgotPasswordMode.value = false;
   resetForm();
 };
 
 const switchToLogin = () => {
   isEmailVerifiedSuccess.value = false;
   isLoginMode.value = true;
+  isForgotPasswordMode.value = false;
+  isPasswordResetSuccess.value = false;
   closeModal();
+};
+
+// New method to switch to the forgot password view
+const toggleToForgotPassword = () => {
+  isForgotPasswordMode.value = true;
+  isLoginMode.value = false;
+  resetForm();
 };
 
 const resetForm = () => {
@@ -222,9 +300,10 @@ const resetForm = () => {
   fullName.value = '';
   phoneNumber.value = '';
   address.value = '';
-  deviceId.value = ''; // Reset device ID
+  deviceId.value = '';
   isVerifyingEmail.value = false;
   isEmailVerifiedSuccess.value = false;
+  isPasswordResetSuccess.value = false;
   clearTimers();
 };
 
@@ -237,8 +316,13 @@ const clearTimers = () => {
     clearInterval(verificationPollInterval);
     verificationPollInterval = null;
   }
+  if (passwordResetTimerInterval) {
+    clearInterval(passwordResetTimerInterval);
+    passwordResetTimerInterval = null;
+  }
   isResendDisabled.value = false;
   resendTimer.value = 0;
+  passwordResetCountdown.value = 0;
 };
 
 // Polling function to check verification status
@@ -350,6 +434,38 @@ const handleResendVerification = async () => {
   }
 };
 
+// New: Handle password reset email
+const handleForgotPassword = async () => {
+  error.value = '';
+  try {
+    await sendPasswordResetEmail(auth, email.value);
+    console.log('Password reset email sent.');
+    // Set the success state and start the countdown
+    isPasswordResetSuccess.value = true;
+    startPasswordResetCountdown();
+  } catch (err) {
+    console.error('Password reset error:', err.message);
+    error.value = err.message;
+  }
+};
+
+const startPasswordResetCountdown = () => {
+  // Clear any existing timer
+  if (passwordResetTimerInterval) {
+    clearInterval(passwordResetTimerInterval);
+  }
+  
+  passwordResetCountdown.value = 60;
+  
+  passwordResetTimerInterval = setInterval(() => {
+    if (passwordResetCountdown.value > 0) {
+      passwordResetCountdown.value--;
+    } else {
+      clearInterval(passwordResetTimerInterval);
+    }
+  }, 1000);
+};
+
 // Clean up the timers when the component is unmounted to prevent memory leaks
 onUnmounted(() => {
   clearTimers();
@@ -357,16 +473,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Checkmark animation styles */
+/* Checkmark animation styles for both verification and password reset */
 .checkmark {
   width: 56px;
   height: 56px;
   border-radius: 50%;
   display: block;
   stroke-width: 2;
-  stroke: #4caf50;
+  stroke: #fff; /* White stroke for visibility on green background */
   stroke-miterlimit: 10;
-  box-shadow: inset 0px 0px 0px #4caf50;
+  box-shadow: inset 0px 0px 0px #059669; /* EnerGreen color for the fill effect */
   animation: fill .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) 1s forwards;
 }
 
@@ -375,7 +491,7 @@ onUnmounted(() => {
   stroke-dashoffset: 166;
   stroke-width: 2;
   stroke-miterlimit: 10;
-  stroke: #fff;
+  stroke: #fff; /* White circle */
   fill: none;
   animation: stroke 0.6s cubic-bezier(0.650, 0.000, 0.450, 1.000) forwards;
 }
@@ -385,7 +501,7 @@ onUnmounted(() => {
   stroke-dasharray: 48;
   stroke-dashoffset: 48;
   animation: stroke 0.3s cubic-bezier(0.650, 0.000, 0.450, 1.000) 0.8s forwards;
-  stroke: #fff;
+  stroke: #fff; /* White checkmark */
 }
 
 @keyframes stroke {
@@ -396,7 +512,7 @@ onUnmounted(() => {
 
 @keyframes fill {
   100% {
-    box-shadow: inset 0px 0px 0px 30px #4caf50;
+    box-shadow: inset 0px 0px 0px 30px #059669; /* Fills with EnerGreen color */
   }
 }
 </style>
