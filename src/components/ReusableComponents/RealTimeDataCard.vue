@@ -5,7 +5,7 @@
       <p class="text-lg">Loading real-time data...</p>
     </div>
 
-    <div v-else-if="deviceId" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div v-else-if="deviceId" class="grid sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-4">
 
       <!-- Graph Cards -->
       <div v-for="(chartData, key) in chartConfigurations" :key="key"

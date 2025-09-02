@@ -168,7 +168,7 @@
                 id="password" 
                 v-model="password"
                 required 
-                class="w-full px-4 py-2 pr-12 text-black placeholder-gray-500 bg-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2"
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black"
               >
 
               <!-- Toggle button -->
