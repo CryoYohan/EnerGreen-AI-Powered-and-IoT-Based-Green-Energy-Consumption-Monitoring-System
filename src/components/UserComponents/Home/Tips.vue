@@ -1,12 +1,12 @@
 <template>
   <div class="container max-w-full p-4 mx-auto lg:pr-12 lg:pl-12 font-poppins">
-    <div class="w-full p-6 bg-white rounded-md shadow">
-      <h2 class="mb-4 text-xl font-bold text-gray-800">
+    <div class="w-full p-6 bg-white rounded-md shadow dark:bg-gray-800 dark:shadow-gray-700">
+      <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">
         Energy Saving Tip
       </h2>
       <div v-if="loading" class="flex flex-col items-center justify-center p-8 text-center">
         <svg
-          class="w-8 h-8 text-gray-400 animate-spin"
+          class="w-8 h-8 text-gray-400 animate-spin dark:text-gray-500"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -25,15 +25,15 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           ></path>
         </svg>
-        <p class="mt-4 text-gray-500">Generating personalized tip...</p>
+        <p class="mt-4 text-gray-500 dark:text-gray-400">Generating personalized tip...</p>
       </div>
-      <div v-else-if="error" class="p-8 text-center text-red-500">
+      <div v-else-if="error" class="p-8 text-center text-red-500 dark:text-red-400">
         <p>Error generating tip. Please try again later.</p>
-        <p class="text-xs text-red-400">{{ error }}</p>
+        <p class="text-xs text-red-400 dark:text-red-500">{{ error }}</p>
       </div>
-      <div v-else class="flex items-center gap-4 p-4 bg-[#F9FAFB] rounded-lg">
+      <div v-else class="flex items-center gap-4 p-4 bg-[#F9FAFB] rounded-lg dark:bg-gray-900">
         <div>
-          <svg class="w-10 h-10 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-10 h-10 text-yellow-500 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -43,7 +43,7 @@
           </svg>
         </div>
         <div>
-          <p class="text-sm text-gray-700">
+          <p class="text-sm text-gray-700 dark:text-gray-300">
             {{ tip }}
           </p>
         </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 lg:p-10 bg-gray-50">
+  <div class="p-5 lg:p-10 bg-gray-50 dark:bg-gray-900">
     <div v-if="loading" class="text-center text-gray-500 my-8">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
@@ -9,13 +9,13 @@
 
       <!-- Graph Cards -->
       <div v-for="(chartData, key) in chartConfigurations" :key="key"
-        class="p-6 bg-white shadow-lg rounded-xl border border-gray-100 flex flex-col relative">
+        class="p-6 bg-white shadow-lg rounded-xl dark:bg-gray-800  flex flex-col relative">
         <div class="flex justify-between items-start mb-2">
           <div class="flex items-center space-x-3">
             <!-- Icon for each card -->
             <span v-html="chartData.icon" class="text-green-500 text-3xl"></span>
             <div>
-              <h3 class="text-xl font-semibold text-gray-800">{{ chartData.title }}</h3>
+              <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-300">{{ chartData.title }}</h3>
               <!-- Display Device ID on each card -->
               <p class="text-sm text-gray-500 truncate w-full">{{ deviceId }}</p>
             </div>
@@ -74,6 +74,7 @@
 <script>
 import { auth, db, doc, onAuthStateChanged, collection, onSnapshot, query, orderBy, limit } from '../../firebase';
 import { Timestamp } from 'firebase/firestore';
+
 
 // A promise to ensure Chart.js is loaded
 const chartJsPromise = new Promise((resolve, reject) => {

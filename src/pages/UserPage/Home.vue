@@ -1,10 +1,7 @@
 <template>
   <div :class="{'dark': isDarkMode}" class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
-    <UserHeader 
-      :is-dark-mode="isDarkMode"
-      @toggle-dark-mode="toggleDarkMode"
-    />
-    <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview" />
+    <UserHeader />
+    <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview"/>
     <MetricsCard :metrics="dailyMetrics" size="base" />
 
     <Dashboard />
@@ -62,18 +59,12 @@ import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";
 
-// Reactive state for dark mode
-const isDarkMode = ref(false);
+// 1. Import the composable
+import { useDarkMode } from "@/composables/useDarkMode.js";
 
-const toggleDarkMode = () => {
-  isDarkMode.value = !isDarkMode.value;
-  // Add or remove the 'dark' class on the HTML element
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-};
+// 2. Use the composable to get the shared state
+const { isDarkMode } = useDarkMode();
+
 // The global app ID is provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -241,6 +232,10 @@ watch(deviceId, (newDeviceId) => {
   }
 }, { immediate: true });
 
+// 3. Remove the dark mode watch and onMounted hooks
+// watch(isDarkMode, (newValue) => { ... });
+// onMounted(async () => { ... });
+
 onMounted(async () => {
   // Set up the authentication state listener
   onAuthStateChanged(auth, (user) => {
@@ -260,9 +255,7 @@ onMounted(async () => {
     localStorage.setItem("hasSeenOnboarding", "true");
   }
 });
-
 </script>
-
 
 <style scoped>
 /* Scoped styles remain unchanged */

@@ -7,21 +7,28 @@
       v-for="(metric, index) in metrics" 
       :key="index"
       :class="cardSizeClass"
-      class="flex flex-col bg-white rounded-lg shadow"
+      class="flex flex-col bg-white rounded-lg shadow dark:bg-gray-800 dark:shadow-md dark:shadow-gray-700"
     >
       <div class="flex items-start justify-between mb-4">
-        <h3 :class="titleSizeClass">{{ metric.title }}</h3>
-        <img :class="iconSizeClass" :src="metric.icon" :alt="metric.title + ' Icon'">
+        <h3 :class="['text-gray-600', titleSizeClass, { 'dark:text-[#F8F8FF]': isDarkMode }]">{{ metric.title }}</h3>
+        <img 
+          :class="['dark:invert', iconSizeClass]" 
+          :src="metric.icon" 
+          :alt="metric.title + ' Icon'"
+        >
       </div>
       <div>
-        <p :class="costSizeClass">{{ metric.cost }}</p>
-        <p :class="definitionSizeClass">{{ metric.definition }}</p>
+        <p :class="['text-gray-800', costSizeClass, { 'dark:text-blue-400': isDarkMode }]">{{ metric.cost }}</p>
+        <p :class="['text-gray-500', definitionSizeClass, { 'dark:text-[#F8F8FF]': isDarkMode }]">{{ metric.definition }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+// 1. Import the useDarkMode composable.
+import { useDarkMode } from "@/composables/useDarkMode.js";
+
 export default {
   name: 'MetricsCard',
   props: {
@@ -33,6 +40,13 @@ export default {
       type: String,
       default: 'base' // or 'large', 'small'
     }
+  },
+  setup() {
+    // 2. Use the composable to get the reactive state.
+    const { isDarkMode } = useDarkMode();
+
+    // 3. Return the state so it can be used in the template and computed properties.
+    return { isDarkMode };
   },
   computed: {
     cardSizeClass() {
@@ -46,11 +60,11 @@ export default {
     },
     titleSizeClass() {
       return {
-        small: 'text-sm font-medium text-gray-600',
-        base: 'text-base font-medium text-gray-600',
-        large: 'text-lg font-semibold text-gray-600',
-        extra: 'text-lg font-semibold text-gray-600',
-        special: 'text-lg font-semibold text-gray-600'
+        small: 'text-sm font-medium',
+        base: 'text-base font-medium',
+        large: 'text-lg font-semibold',
+        extra: 'text-lg font-semibold',
+        special: 'text-lg font-semibold'
       }[this.size];
     },
     iconSizeClass() {
@@ -64,18 +78,18 @@ export default {
     },
     costSizeClass() {
       return {
-        small: 'text-xl font-bold text-gray-800',
-        base: 'text-2xl font-bold text-gray-800',
-        large: 'text-3xl font-extrabold text-gray-800',
-        extra: 'text-3xl font-extrabold text-gray-800',
-        special: 'text-3xl font-extrabold text-gray-800'
+        small: 'text-xl font-bold',
+        base: 'text-2xl font-bold',
+        large: 'text-3xl font-extrabold',
+        extra: 'text-3xl font-extrabold',
+        special: 'text-3xl font-extrabold'
       }[this.size];
     },
     definitionSizeClass() {
       return {
-        small: 'text-xs text-gray-500',
-        base: 'text-sm text-gray-500',
-        large: 'text-base text-gray-500',
+        small: 'text-xs',
+        base: 'text-sm',
+        large: 'text-base',
         extra: 'text-base text-[#059669] mt-2',
         special: 'text-base text-[#059669] mt-2',
       }[this.size];
