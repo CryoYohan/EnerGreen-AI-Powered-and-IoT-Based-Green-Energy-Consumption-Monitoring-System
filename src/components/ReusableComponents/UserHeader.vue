@@ -133,23 +133,36 @@
               leave-from-class="transform scale-100 opacity-100"
               leave-to-class="transform scale-95 opacity-0"
             >
-              <div v-if="isProfileDropdownOpen" class="absolute flex flex-col items-start top-full right-0 mt-2 w-32 bg-white shadow-lg rounded-md text-sm z-50">
-                <!-- New Settings button -->
-                <button @click="navigateTo('Profile')" class="flex items-center gap-2 w-full px-3 py-2 text-gray-800 hover:bg-gray-100 rounded">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
-                    <path fill-rule="evenodd" d="M11.078 2.378a.75.75 0 0 1 .844 0 24.313 24.313 0 0 1 5.86.666c.153.033.284.116.375.245.243.332.353.766.276 1.218a.75.75 0 0 1-.375.584c-.4.225-.797.472-1.196.723a3.39 3.39 0 0 0-.498.15l-.01.004c-.31.096-.628.17-.945.234a.75.75 0 0 1-.774-.277L9.58 3.51a.75.75 0 0 1-.165-.486c-.039-.569.213-1.139.75-1.466Z" clip-rule="evenodd" />
-                    <path d="m14.938 3.27-2.986 2.986a.75.75 0 0 1-.58.217h-2.12c-.22.016-.437.072-.647.164a3.368 3.368 0 0 0-1.077.728l-2.008 2.008a.75.75 0 0 1-1.06 0l-1.06-1.06a.75.75 0 0 1 0-1.06l2.008-2.008c.553-.553.94-.954 1.258-1.296.26-.282.466-.46.602-.556a3.352 3.352 0 0 0 .741-.422 2.25 2.25 0 0 0-.256-3.896c-.655-.453-1.253-1.03-1.846-1.616l-.009-.009A2.25 2.25 0 0 0 2.25 2.25v2.247L5.594 7.595a4.838 4.838 0 0 1-.95 1.127l-3.328 3.328a.75.75 0 0 0 0 1.06l1.06 1.06a.75.75 0 0 0 1.06 0l3.328-3.328c.31-.31.6-.607.868-.888l1.01-1.01c.21-.21.439-.38.683-.518.232-.128.472-.216.712-.262a.75.75 0 0 1 .453.111l2.986 2.986a.75.75 0 0 0 1.06 0l1.06-1.06a.75.75 0 0 0 0-1.06l-2.986-2.986a.75.75 0 0 0-1.06 0Z" />
-                    <path d="M18.89 12.016a24.625 24.625 0 0 1-2.176 4.793l-1.657 2.072a.75.75 0 0 1-1.129.083l-1.554-1.553a.75.75 0 0 0-1.104-.083l-1.552 1.553a.75.75 0 0 0-1.104.083L9.123 20.3c-.66.825-1.552 1.437-2.585 1.776a.75.75 0 0 1-.774-.277l-1.553-1.552c-.628.273-1.265.513-1.898.71a.75.75 0 0 1-.622-1.352l.02-.012c.389-.247.781-.497 1.177-.751a3.46 3.46 0 0 0 .524-.153l.01-.003c.338-.106.67-.233.996-.381a.75.75 0 0 1 .807.135l2.986 2.986a.75.75 0 0 0 1.06 0l1.06-1.06a.75.75 0 0 0 0-1.06l-2.986-2.986a.75.75 0 0 1 .277-.774c.29-.11.583-.223.875-.34.254-.102.508-.207.756-.312.22-.093.435-.18.647-.257a3.344 3.344 0 0 0 1.08-.727l2.008-2.008a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-2.008 2.008a3.398 3.398 0 0 0-.728 1.077c-.092.21-.148.428-.164.647-.034.46.223.906.75 1.171Z" />
-                  </svg>
-                  Settings
-                </button>
+          <div v-if="isProfileDropdownOpen" class="absolute flex flex-col items-start top-full right-0 mt-2 w-32 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-700 rounded-md text-sm z-50">
+              <button @click="navigateTo('Profile')" class="flex items-center gap-2 w-full px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-gray-800 dark:text-gray-100">
+                  <path fill-rule="evenodd" d="M11.078 2.378a.75.75 0 0 1 .844 0 24.313 24.313 0 0 1 5.86.666c.153.033.284.116.375.245.243.332.353.766.276 1.218a.75.75 0 0 1-.375.584c-.4.225-.797.472-1.196.723a3.39 3.39 0 0 0-.498.15l-.01.004c-.31.096-.628.17-.945.234a.75.75 0 0 1-.774-.277L9.58 3.51a.75.75 0 0 1-.165-.486c-.039-.569.213-1.139.75-1.466Z" clip-rule="evenodd" />
+                  <path d="m14.938 3.27-2.986 2.986a.75.75 0 0 1-.58.217h-2.12c-.22.016-.437.072-.647.164a3.368 3.368 0 0 0-1.077.728l-2.008 2.008a.75.75 0 0 1-1.06 0l-1.06-1.06a.75.75 0 0 1 0-1.06l2.008-2.008c.553-.553.94-.954 1.258-1.296.26-.282.466-.46.602-.556a3.352 3.352 0 0 0 .741-.422 2.25 2.25 0 0 0-.256-3.896c-.655-.453-1.253-1.03-1.846-1.616l-.009-.009A2.25 2.25 0 0 0 2.25 2.25v2.247L5.594 7.595a4.838 4.838 0 0 1-.95 1.127l-3.328 3.328a.75.75 0 0 0 0 1.06l1.06 1.06a.75.75 0 0 0 1.06 0l3.328-3.328c.31-.31.6-.607.868-.888l1.01-1.01c.21-.21.439-.38.683-.518.232-.128.472-.216.712-.262a.75.75 0 0 1 .453.111l2.986 2.986a.75.75 0 0 0 1.06 0l1.06-1.06a.75.75 0 0 0 0-1.06l-2.986-2.986a.75.75 0 0 1 .277-.774c.29-.11.583-.223.875-.34.254-.102.508-.207.756-.312.22-.093.435-.18.647-.257a3.344 3.344 0 0 0 1.08-.727l2.008-2.008a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-2.008 2.008a3.398 3.398 0 0 0-.728 1.077c-.092.21-.148.428-.164.647-.034.46.223.906.75 1.171Z" />
+                  <path d="M18.89 12.016a24.625 24.625 0 0 1-2.176 4.793l-1.657 2.072a.75.75 0 0 1-1.129.083l-1.554-1.553a.75.75 0 0 0-1.104-.083l-1.552 1.553a.75.75 0 0 0-1.104.083L9.123 20.3c-.66.825-1.552 1.437-2.585 1.776a.75.75 0 0 1-.774-.277l-1.553-1.552c-.628.273-1.265.513-1.898.71a.75.75 0 0 1-.622-1.352l.02-.012c.389-.247.781-.497 1.177-.751a3.46 3.46 0 0 0 .524-.153l.01-.003c.338-.106.67-.233.996-.381a.75.75 0 0 1 .807.135l2.986 2.986a.75.75 0 0 0 1.06 0l1.06-1.06a.75.75 0 0 0 0-1.06l-2.986-2.986a.75.75 0 0 1 .277-.774c.29-.11.583-.223.875-.34.254-.102.508-.207.756-.312.22-.093.435-.18.647-.257a3.344 3.344 0 0 0 1.08-.727l2.008-2.008a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-2.008 2.008a3.398 3.398 0 0 0-.728 1.077c-.092.21-.148.428-.164.647-.034.46.223.906.75 1.171Z" />
+                </svg>
+                Settings
+              </button>
+              
 
-                <!-- Sign Out button -->
-                <button @click="signOutUser" class="flex items-center gap-2 w-full px-3 py-2 text-[#DB2626] hover:bg-gray-100 rounded">
-                  <img src="/src/Images/icons/redlog.svg" class="w-4 h-4" alt="Sign Out icon">
-                  Sign Out
-                </button>
-              </div>
+              <button @click="signOutUser" class="flex items-center gap-2 w-full px-3 py-2 text-[#DB2626] hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <img src="/src/Images/icons/redlog.svg" class="w-4 h-4" alt="Sign Out icon">
+                Sign Out
+              </button>
+
+            <button 
+              @click="$emit('toggle-dark-mode')" 
+              class="flex items-center space-x-2 py-2 px-3 rounded-md transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+            <img src="/src/Images/icons/moon.svg" alt="moon" class="dark:filter dark:invert">
+              <span class="font-poppins text-gray-800 dark:text-gray-100">
+                DarkMode
+              </span>
+              <MoonIcon
+                :class="{'text-gray-800 dark:text-yellow-400': !isDarkMode, 'text-yellow-400 dark:text-gray-100': isDarkMode}"
+                class="w-5 h-5 transition-colors duration-300"
+              />
+            </button>
+            </div>
             </transition>
           </div>
         </div>
@@ -276,6 +289,13 @@ export default {
   components: {
     Notification
   },
+  props: {
+    isDarkMode: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['open-login-modal', 'toggle-dark-mode'],
   data() {
     return {
       isMobileMenuOpen: false,
@@ -286,6 +306,10 @@ export default {
     }
   },
   methods: {
+    toggleDarkMode() {
+      // Logic for toggling dark mode is handled by the parent component
+      this.$emit('toggle-dark-mode');
+    },
     toggleMobileMenu() {
       this.isMobileMenuOpen = !this.isMobileMenuOpen
     },

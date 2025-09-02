@@ -17,7 +17,7 @@
       </div>
 
       <!-- Right Side: Content Switch -->
-      <div class="w-full md:w-1/2 bg-[#059669] p-8 flex flex-col justify-center text-white">
+      <div class="w-full md:w-1/2 bg-[#059669] dark:bg-[#0D2535] p-8 flex flex-col justify-center text-white">
         <div class="flex items-center justify-between mb-8">
           <!-- Centered header for Verify Email -->
           <div class="w-full text-center" v-if="isVerifyingEmail">

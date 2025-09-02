@@ -1,16 +1,16 @@
 <template>
   <!-- Full viewport height section -->
-  <div id="features" class="w-full min-h-screen flex flex-col items-center justify-center py-12 md:py-24 gap-8 md:gap-20 bg-[#F1F6FA]">
+  <div id="features" class="w-full min-h-screen flex flex-col items-center justify-center py-12 md:py-24 gap-8 md:gap-20 bg-[#F1F6FA] dark:bg-[#0D2535] ">
     <!-- Heading group -->
     <div class="w-full max-w-4xl px-4 text-center">
       <h1 
-        class="font-bold font-poppins text-[#0D2535]"
+        class="font-bold font-poppins text-[#0D2535] dark:text-white"
         style="font-size: clamp(1.75rem, 4vw, 3rem);"
       >
         Transform Your Energy Management
       </h1>
       <p 
-        class="mt-4 text-gray-500 font-poppins"
+        class="mt-4 text-gray-500 font-poppins dark:text-white"
         style="font-size: clamp(1rem, 2.5vw, 1.5rem);"
       >
         Our real-time monitoring dashboards provide you with instant insights into your energy
@@ -23,17 +23,21 @@
       <div 
         v-for="(feature, index) in features"
         :key="index"
-        class="rounded-lg shadow-lg bg-white p-8 w-full min-w-[300px] md:w-auto md:min-w-0 hover:shadow-xl transition-shadow"
+        class="rounded-lg dark:bg-gray-700 shadow-lg dark:shadow-gray-900 bg-white p-8 w-full min-w-[300px] md:w-auto md:min-w-0 hover:shadow-xl transition-shadow"
       >
-        <img :src="feature.icon" :alt="feature.title" class="w-12 h-12 mb-4"/>
+        <img 
+          :src="feature.icon" 
+          :alt="feature.title" 
+          class="w-12 h-12 mb-4 dark:brightness-0 dark:invert dark:sepia dark:hue-rotate-180"
+        />        
         <h2 
-          class="font-bold mb-2 text-[#0D2535]"
-          style="font-size: clamp(1.25rem, 3vw, 1.75rem);"
-        >
-          {{ feature.title }}
+            class="font-bold mb-2 text-[#0D2535] dark:text-[#F8F8FF]"
+            style="font-size: clamp(1.25rem, 3vw, 1.75rem);"
+          >
+            {{ feature.title }}
         </h2>
         <p 
-          class="text-gray-600"
+          class="text-gray-600 dark:text-[#F8F8FF]"
           style="font-size: clamp(0.875rem, 2vw, 1.125rem);"
         >
           {{ feature.desc }}

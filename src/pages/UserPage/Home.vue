@@ -1,16 +1,14 @@
 <template>
-  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
-    <UserHeader />
-    <!-- Binds the fetched user's full name to the Heading component title -->
+  <div :class="{'dark': isDarkMode}" class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
+    <UserHeader 
+      :is-dark-mode="isDarkMode"
+      @toggle-dark-mode="toggleDarkMode"
+    />
     <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview" />
     <MetricsCard :metrics="dailyMetrics" size="base" />
 
     <Dashboard />
 
-    <!--
-      The ReusableBarChart component is now bound to data
-      that is fetched and processed from Firestore.
-    -->
     <ReusableBarChart
       title="Electricity Usage"
       :activePeriod="activePeriod"
@@ -28,10 +26,9 @@
 
     <Footer />
     <div v-if="showOnboarding" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full text-center">
-        <!-- Binds the fetched user's first name to the onboarding message -->
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full text-center">
         <h2 class="text-xl font-semibold mb-4 text-green-600">Welcome, {{ userFirstName }}!</h2>
-        <p class="text-gray-700 mb-4">This dashboard helps you track your energy usage and savings. Explore each section
+        <p class="text-gray-700 dark:text-gray-200 mb-4">This dashboard helps you track your energy usage and savings. Explore each section
           to get insights on your consumption.</p>
         <button @click="showOnboarding = false"
           class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -39,7 +36,6 @@
         </button>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -66,6 +62,18 @@ import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";
 
+// Reactive state for dark mode
+const isDarkMode = ref(false);
+
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value;
+  // Add or remove the 'dark' class on the HTML element
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
 // The global app ID is provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
