@@ -1,7 +1,10 @@
-<template>
+<template class="dark:bg-[#0D2535]" >
   <Header class="sticky top-0 z-50 shadow-sm" ref="header" />
   <div>
-    <HeroSection @open-login-modal="showLoginModal = true" />
+    <HeroSection 
+      @open-login-modal="showLoginModal = true"
+      @toggle-dark-mode="toggleDarkMode" 
+    />
     <FloatSection class="w-full" />
     <UpperMidSection class="w-full" />
     <MidSection class="w-full" />
@@ -43,9 +46,28 @@ export default {
   },
   data() {
     return {
-      showLoginModal: false // Add this data property
+      showLoginModal: false
+    }
+  },
+  methods: {
+    toggleDarkMode() {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+
+      if (html.classList.contains('dark')) {
+        localStorage.theme = 'dark';
+      } else {
+        localStorage.theme = 'light';
+      }
+    }
+  },
+  mounted() {
+    const html = document.documentElement;
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
     }
   }
-  // Remove the openLoginModal method since we're using direct assignment
 }
 </script>
