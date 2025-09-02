@@ -1,5 +1,5 @@
 <template>
-  <header class="sticky top-0 z-50 bg-white shadow">
+  <header class="sticky p-4 top-0 z-50 bg-white shadow">
     <div class="container px-4 mx-auto">
       <div class="flex items-center justify-between lg:gap-[10em] sm:gap-[8em]">
         <!-- Logo Section -->

@@ -1,11 +1,11 @@
 <template>
-  <div class="p-6 bg-gray-50 min-h-screen">
+  <div class="p-5 lg:p-10 bg-gray-50">
     <div v-if="loading" class="text-center text-gray-500 my-8">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
     </div>
 
-    <div v-else-if="deviceId" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div v-else-if="deviceId" class="grid sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-4">
 
       <!-- Graph Cards -->
       <div v-for="(chartData, key) in chartConfigurations" :key="key"
