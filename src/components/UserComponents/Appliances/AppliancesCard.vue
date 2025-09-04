@@ -6,7 +6,7 @@
         v-for="(device) in devices"
         :key="device.id"
         @click="$emit('view-details', device)"
-        class="relative p-6 bg-white rounded-lg shadow cursor-pointer"
+        class="relative p-6 bg-white rounded-lg shadow  dark:bg-gray-800 cursor-pointer"
       >
         <!-- Delete Icon (top-right corner) -->
         <button
@@ -17,10 +17,10 @@
         </button>
 
         <div class="space-y-2">
-          <img :src="device.icon" :alt="device.name" class="w-12 h-12" />
-          <h3 class="text-lg font-bold text-gray-800">{{ device.name }}</h3>
+          <img :src="device.icon" :alt="device.name" class="w-12 h-12 dark:invert" />
+          <h3 class="text-lg dark:text-gray-200 font-bold text-gray-800">{{ device.name }}</h3>
           <div class="flex items-center justify-between gap-2">
-            <p class="text-sm text-gray-600">{{ device.location }}</p>
+            <p class="text-sm text-gray- dark:text-gray-200">{{ device.location }}</p>
             <div class="mt-2">
               <span
                 class="inline-block px-2 py-1 text-xs rounded-full"
@@ -37,8 +37,8 @@
         </div>
 
         <div class="flex items-center justify-between mt-2 mb-4">
-          <span class="text-sm text-gray-600">Today's Usage:</span>
-          <span class="text-sm font-semibold">{{ device.usage }} kWh</span>
+          <span class="text-sm dark:text-gray-200 text-gray-600">Today's Usage:</span>
+          <span class="text-sm ark:text-gray-200 font-semibold">{{ device.usage }} kWh</span>
         </div>
 
         <!-- Progress Bar -->

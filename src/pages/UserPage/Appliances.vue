@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
+  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <!-- Main Appliance List View -->
     <div v-if="!selectedAppliance">
       <UserHeader />
@@ -34,18 +34,18 @@
               <input
                 type="text"
                 placeholder="Search"
-                class="w-full py-2 pl-10 pr-4 text-sm border border-gray-200 rounded-full shadow-sm focus:ring-2 focus:outline-none focus:ring-[#A7F3D0]"
+                class="w-full py-2 pl-10 pr-4 text-sm border border-gray-200 rounded-full shadow-sm focus:ring-2 dark:bg-gray-900 focus:outline-none focus:ring-[#A7F3D0]"
               />
             </div>
             <div class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <img src="/src/Images/icons/filter.svg" alt="Filter Icon" class="w-5 h-5" />
+              <img src="/src/Images/icons/filter.svg" alt="Filter Icon" class="w-5 h-5 dar:filter dark:invert" />
               <span>Filter</span>
             </div>
           </div>
           <div class="w-full sm:w-auto">
             <button
               @click="startScanning"
-              class="w-full sm:w-auto bg-[#2C993A] text-white px-4 py-2 rounded-full text-sm"
+              class="w-full sm:w-auto bg-[#059669] text-white px-4 py-2 rounded-full text-sm"
             >
               + Add Appliance
             </button>
@@ -57,7 +57,7 @@
       <div v-if="loading" class="flex flex-col items-center justify-center p-10 text-center text-gray-500">
         <p>Loading appliances...</p>
       </div>
-      <div v-else-if="labeledDevices.length === 0" class="flex flex-col items-center justify-center p-10 text-center text-gray-500">
+      <div v-else-if="labeledDevices.length === 0" class="flex flex-col items-center dark:bg-gray-900 justify-center p-10 text-center text-gray-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="w-20 h-20 mb-4 text-gray-400"
@@ -89,8 +89,8 @@
     <ApplianceDetails v-if="selectedAppliance" :device="selectedAppliance" @go-back="selectedAppliance = null" />
 
     <!-- Appliance Labeling Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-30  flex justify-center items-center z-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md dark:bg-gray-900">
         <div v-if="loadingSignatures" class="text-center py-10">
           <div class="relative w-24 h-24 mx-auto flex justify-center items-center mb-4">
             <div class="absolute inset-0 rounded-full bg-[#A7F3D0] opacity-30 wave-1"></div>
@@ -107,13 +107,13 @@
           </div>
           <p class="text-lg font-semibold text-gray-700">Scanning for new appliance signatures...</p>
         </div>
-        <div v-else>
+        <div v-else class="dark:bg-gray">
           <h2 class="text-xl font-bold mb-2">Label New Appliances</h2>
           <p class="text-gray-600 mb-4">Please label the following signatures with their appliance name.</p>
           <div v-if="unlabeledSignatures.length === 0" class="text-center text-gray-500 py-4">
             No new signatures to label.
           </div>
-          <div v-else class="space-y-4 max-h-96 overflow-y-auto">
+          <div v-else class="space-y-4 max-h-96 overflow-y-auto  ">
             <div v-for="signature in unlabeledSignatures" :key="signature.id" class="p-3 border border-gray-200 rounded">
               <p class="text-sm font-semibold break-all mb-2">ID: {{ signature.id }}</p>
               <form @submit.prevent="updateLabel(signature.id)">
@@ -140,7 +140,7 @@
         <div class="mt-6 text-right">
           <button 
             @click="showModal = false" 
-            class="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+            class="px-4 py-2 text-white text-sm bg-[#2C993A] rounded"
           >
             Close
           </button>

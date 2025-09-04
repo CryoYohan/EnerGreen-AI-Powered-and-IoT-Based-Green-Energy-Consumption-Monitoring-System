@@ -1,27 +1,24 @@
 <template>
-  <div class="p-5 lg:p-10 bg-gray-50">
-    <div v-if="loading" class="text-center text-gray-500 my-8">
+  <div class="p-5 lg:p-10 bg-gray-50 dark:bg-gray-900">
+    <div v-if="loading" class="text-center text-gray-500 my-8 dark:text-gray-400">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
     </div>
 
     <div v-else-if="deviceId" class="grid sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-4">
 
-      <!-- Graph Cards -->
       <div v-for="(chartData, key) in chartConfigurations" :key="key"
-        class="p-6 bg-white shadow-lg rounded-xl border border-gray-100 flex flex-col relative">
+        class="p-6 bg-white shadow-lg rounded-xl dark:bg-gray-800 flex flex-col relative">
         <div class="flex justify-between items-start mb-2">
           <div class="flex items-center space-x-3">
-            <!-- Icon for each card -->
             <span v-html="chartData.icon" class="text-green-500 text-3xl"></span>
             <div>
-              <h3 class="text-xl font-semibold text-gray-800">{{ chartData.title }}</h3>
-              <!-- Display Device ID on each card -->
-              <p class="text-sm text-gray-500 truncate w-full">{{ deviceId }}</p>
+              <h3 class="text-xl font-semibold text-gray-800 dark:text-white">{{ chartData.title }}</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 truncate w-full">{{ deviceId }}</p>
             </div>
           </div>
           <button @click="expandChart(key)"
-            class="p-2 text-gray-400 hover:text-green-600 transition-colors duration-200">
+            class="p-2 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -30,9 +27,8 @@
           </button>
         </div>
 
-        <!-- Real-time Value -->
-        <p class="text-4xl font-bold text-green-600 mb-4">{{ latestValues[key] || 'N/A' }} <span
-            class="text-xl font-normal text-gray-500">{{ chartData.unit }}</span></p>
+        <p class="text-4xl font-bold text-green-600 dark:text-green-400 mb-4">{{ latestValues[key] || 'N/A' }} <span
+            class="text-xl font-normal text-gray-500 dark:text-gray-400">{{ chartData.unit }}</span></p>
 
         <div class="flex-grow">
           <canvas :id="key + 'Chart'"></canvas>
@@ -40,8 +36,8 @@
       </div>
     </div>
 
-    <div v-else class="text-center text-gray-500 space-y-4 my-8">
-      <p class="text-lg font-semibold text-gray-800">No device linked yet.</p>
+    <div v-else class="text-center text-gray-500 space-y-4 my-8 dark:text-gray-400">
+      <p class="text-lg font-semibold text-gray-800 dark:text-white">No device linked yet.</p>
       <p>Please enter your device ID to start seeing real-time data.</p>
       <button @click="handleSetDeviceId"
         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
@@ -49,21 +45,20 @@
       </button>
     </div>
 
-    <!-- Full-screen Modal -->
     <div v-if="expandedChart" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 p-4"
       @click.self="closeExpandedChart">
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-full max-h-5xl flex flex-col">
-        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 class="text-2xl font-bold text-gray-800">{{ chartConfigurations[expandedChart].title }}</h3>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl h-full max-h-5xl flex flex-col">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">{{ chartConfigurations[expandedChart].title }}</h3>
           <button @click="closeExpandedChart"
-            class="p-2 text-gray-400 hover:text-red-500 transition-colors duration-200">
+            class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div class="p-6 flex-grow flex items-center justify-center">
+        <div class="p-6 flex-grow dark:bg-gray-800 flex items-center justify-center">
           <canvas id="expandedChartCanvas"></canvas>
         </div>
       </div>
@@ -74,6 +69,7 @@
 <script>
 import { auth, db, doc, onAuthStateChanged, collection, onSnapshot, query, orderBy, limit } from '../../firebase';
 import { Timestamp } from 'firebase/firestore';
+
 
 // A promise to ensure Chart.js is loaded
 const chartJsPromise = new Promise((resolve, reject) => {
@@ -114,6 +110,14 @@ export default {
     });
   },
   methods: {
+    getChartColors() {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      return {
+        tickColor: isDarkMode ? '#9CA3AF' : '#6B7280', // gray-400 / gray-500
+        gridColor: isDarkMode ? '#374151' : '#E5E7EB', // gray-700 / gray-200
+        labelColor: isDarkMode ? '#D1D5DB' : '#6B7280' // gray-300 / gray-500
+      };
+    },
     setupListeners() {
       onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -204,6 +208,7 @@ export default {
     },
     createCharts() {
       const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
+      const colors = this.getChartColors();
 
       for (const key in this.chartConfigurations) {
         const config = this.chartConfigurations[key];
@@ -268,11 +273,11 @@ export default {
               responsive: true,
               maintainAspectRatio: false,
               scales: {
-                x: { display: false },
+                x: { display: false, ticks: { color: colors.tickColor }, grid: { color: colors.gridColor } },
                 y: {
                   beginAtZero: true,
-                  ticks: { color: '#6B7280' },
-                  grid: { color: '#E5E7EB' }
+                  ticks: { color: colors.tickColor },
+                  grid: { color: colors.gridColor }
                 }
               },
               plugins: {
@@ -290,6 +295,7 @@ export default {
     },
     updateCharts() {
       const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
+      const colors = this.getChartColors();
       for (const key in this.charts) {
         const chart = this.charts[key];
         const config = this.chartConfigurations[key];
@@ -306,6 +312,9 @@ export default {
           if (key === 'powerFactor') {
             chart.data.datasets[1].data = Array(labels.length).fill(0.9);
           }
+
+          chart.options.scales.y.ticks.color = colors.tickColor;
+          chart.options.scales.y.grid.color = colors.gridColor;
 
           chart.update();
         }
@@ -327,6 +336,7 @@ export default {
       const config = this.chartConfigurations[key];
       const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
       const ctx = document.getElementById('expandedChartCanvas')?.getContext('2d');
+      const colors = this.getChartColors();
 
       if (ctx) {
         if (this.charts.expanded) {
@@ -391,19 +401,24 @@ export default {
             maintainAspectRatio: false,
             scales: {
               x: {
-                title: { display: true, text: 'Time' },
-                ticks: { color: '#6B7280' },
-                grid: { color: '#E5E7EB' }
+                title: { display: true, text: 'Time', color: colors.labelColor },
+                ticks: { color: colors.tickColor },
+                grid: { color: colors.gridColor }
               },
               y: {
-                title: { display: true, text: config.title + ' (' + config.unit + ')' },
+                title: { display: true, text: config.title + ' (' + config.unit + ')', color: colors.labelColor },
                 beginAtZero: true,
-                ticks: { color: '#6B7280' },
-                grid: { color: '#E5E7EB' }
+                ticks: { color: colors.tickColor },
+                grid: { color: colors.gridColor }
               }
             },
             plugins: {
-              legend: { display: true },
+              legend: { 
+                display: true,
+                labels: {
+                  color: colors.labelColor // Add color to legend labels
+                }
+              },
               tooltip: {
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 titleColor: '#fff',
@@ -421,6 +436,3 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Scoped styles can be added here if needed, but Tailwind CSS is used for all styling */
-</style>
