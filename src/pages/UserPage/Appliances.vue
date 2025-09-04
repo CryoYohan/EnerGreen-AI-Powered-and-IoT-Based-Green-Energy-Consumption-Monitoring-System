@@ -94,7 +94,7 @@
         <div v-if="loadingSignatures" class="text-center py-10">
           <div class="relative w-24 h-24 mx-auto flex justify-center items-center mb-4">
             <div class="absolute inset-0 rounded-full bg-[#A7F3D0] opacity-30 wave-1"></div>
-            <div class="absolute inset-0 rounded-full bg-[#A7F3D0] opacity: 0.3; wave-2"></div>
+            <div class="absolute inset-0 rounded-full bg-[#A7F3D0] opacity-30 wave-2"></div>
             <div class="absolute inset-0 rounded-full bg-[#A7F3D0] opacity: 0.3; wave-3"></div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -181,7 +181,7 @@
 import { ref, onMounted } from 'vue';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/firebase.js';
-import { collection, query, where, getDocs, updateDoc, doc, addDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
 
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
@@ -302,38 +302,26 @@ const startScanning = async () => {
   loadingSignatures.value = true;
 
   try {
-    // Step 1: Get the user's deviceId from their profile document
-    const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-    const userProfileDoc = await getDoc(userProfileRef);
+    // Placeholder data to simulate a real-world NILM scan.
+    // All new signatures are initially unlabeled.
+    const newSignatures = [
+      { label: null, signature_data: '456-unknown-device' },
+      { label: null, signature_data: '012-another-unknown' },
+      { label: null, signature_data: '345-device-c' },
+      { label: null, signature_data: '678-device-d' }
+    ];
 
-    if (!userProfileDoc.exists() || !userProfileDoc.data().deviceId) {
-      console.error("User profile or deviceId not found.");
-      showModal.value = false;
-      return;
-    }
-    const deviceId = userProfileDoc.data().deviceId;
-
-    // Step 2: Fetch the simulated appliance data using the dynamic deviceId
-    const externalDeviceDocRef = doc(db, `devices/${deviceId}/appliance_signatures/2025-09-01T16-22-16Z`);
-    const externalDeviceDoc = await getDoc(externalDeviceDocRef);
-
-    if (externalDeviceDoc.exists()) {
-      const externalData = externalDeviceDoc.data();
-      const signatures = externalData.signature_data || [];
-      const applianceCollectionRef = getApplianceCollectionRef();
-
-      if (applianceCollectionRef) {
-        for (const signature of signatures) {
-          await addDoc(applianceCollectionRef, {
-            label: null,
-            signature_data: signature
-          });
-        }
+    const applianceCollectionRef = getApplianceCollectionRef();
+    if (applianceCollectionRef) {
+      for (const signature of newSignatures) {
+        await addDoc(applianceCollectionRef, {
+          label: signature.label,
+          signature_data: signature.signature_data
+        });
       }
-    } else {
-      console.log(`No external device document exists for deviceId: ${deviceId}`);
     }
     
+    // After adding the new signatures, re-fetch all signatures to update the lists.
     await fetchApplianceSignatures();
 
   } catch (error) {
@@ -352,6 +340,7 @@ const updateLabel = async (signatureId) => {
       label: signatureToUpdate.tempLabel
     });
     
+    // Remove from unlabeled list and add to labeled list
     unlabeledSignatures.value = unlabeledSignatures.value.filter(s => s.id !== signatureId);
     labeledDevices.value.push({
       id: signatureId,
@@ -370,6 +359,7 @@ const updateLabel = async (signatureId) => {
 
 // --- New Delete Logic ---
 const promptDelete = (device) => {
+  // Ensure we get the ID, whether the event passed a string or an object
   const deviceId = typeof device === 'string' ? device : device.id;
   deviceToDelete.value = deviceId;
   showDeleteModal.value = true;
@@ -409,13 +399,14 @@ const viewApplianceDetails = (device) => {
 
 // --- Lifecycle Hook ---
 onMounted(() => {
+  // Wait for Firebase Auth to be ready before proceeding
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
     if (user) {
       userId = user.uid;
       authReady.value = true;
       console.log(`User authenticated: ${userId}`);
       await fetchApplianceSignatures();
-      unsubscribe();
+      unsubscribe(); // Stop listening after the first state change
     }
   });
 });
