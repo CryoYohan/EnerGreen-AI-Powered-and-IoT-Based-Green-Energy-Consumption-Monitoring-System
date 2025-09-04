@@ -62,22 +62,35 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 export default {
   setup() {
-    const tip = ref('');
+    const tips = ref([]);
     const loading = ref(true);
     const error = ref(null);
 
     const generateTip = async (energyData, userProfileRef) => {
-      let prompt = `Act as an energy efficiency expert. Provide a concise, single-paragraph tip to a homeowner to help them save energy. The tip must be personalized based on the following data:\n\n`;
+      let prompt = `Act as an energy efficiency expert. Provide a list of three concise, short tips to a homeowner to help them save energy. The tips must be personalized based on the following data:\n\n`;
       prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
       prompt += `- Energy Source Breakdown: ${energyData.solarPercentage.toFixed(0)}% Solar, ${energyData.gridPercentage.toFixed(0)}% Grid\n`;
       prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
-      prompt += `Do not use any greetings or sign-offs. Just provide the tip.`;
+      prompt += `Do not use any greetings or sign-offs. Provide the tips in a JSON array format with a 'description' property for each tip.`;
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                "description": { "type": "STRING" }
+              },
+              "propertyOrdering": ["description"]
+            }
+          }
+        }
       };
 
       try {
@@ -92,19 +105,22 @@ export default {
         }
 
         const result = await response.json();
-        const generatedTip = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Could not generate a tip based on current data.";
-        tip.value = generatedTip;
-        
-        // Save the new tip and timestamp to Firestore
-        await setDoc(userProfileRef, {
-            tip: generatedTip,
-            tipTimestamp: Date.now()
-        }, { merge: true });
+        const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (jsonText) {
+          const generatedTips = JSON.parse(jsonText);
+          tips.value = generatedTips;
 
+          await setDoc(userProfileRef, {
+              tips: generatedTips,
+              tipTimestamp: Date.now()
+          }, { merge: true });
+        } else {
+          tips.value = [{ description: "Could not generate a tip based on current data." }];
+        }
       } catch (e) {
         console.error("Error generating tip:", e);
         error.value = e.message;
-        tip.value = "An error occurred while generating the tip.";
+        tips.value = [{ description: "An error occurred while generating the tips." }];
       } finally {
         loading.value = false;
       }
@@ -119,15 +135,13 @@ export default {
         const profileSnap = await getDoc(userProfileRef);
         const profileData = profileSnap.data();
 
-        // Check if a recent tip exists
         const oneDayInMs = 24 * 60 * 60 * 1000;
-        if (profileData && profileData.tip && profileData.tipTimestamp && (Date.now() - profileData.tipTimestamp < oneDayInMs)) {
-            tip.value = profileData.tip;
+        if (profileData && profileData.tips && profileData.tipTimestamp && (Date.now() - profileData.tipTimestamp < oneDayInMs)) {
+            tips.value = profileData.tips;
             loading.value = false;
             return;
         }
 
-        // Fetch top consumers data
         const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/appliances`);
         const querySnapshot = await getDocs(consumersRef);
         
@@ -147,7 +161,6 @@ export default {
           }
         }
 
-        // Fetch energy source data
         const readingsRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/realtime_readings`);
         const readingsSnapshot = await getDocs(readingsRef);
         
@@ -190,18 +203,18 @@ export default {
           if (profileSnap.exists() && profileSnap.data().deviceId) {
             await fetchAndGenerate(user.uid, profileSnap.data().deviceId);
           } else {
-            tip.value = "Monitor your devices to get personalized energy-saving tips!";
+            tips.value = [{ description: "Monitor your devices to get personalized energy-saving tips!" }];
             loading.value = false;
           }
         } else {
-          tip.value = "Sign in to get personalized energy-saving tips!";
+          tips.value = [{ description: "Sign in to get personalized energy-saving tips!" }];
           loading.value = false;
         }
       });
     });
 
     return {
-      tip,
+      tips,
       loading,
       error,
     };

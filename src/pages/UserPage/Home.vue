@@ -2,10 +2,15 @@
   <div :class="{'dark': isDarkMode}" class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <UserHeader />
     <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview"/>
+
     <MetricsCard :metrics="dailyMetrics" size="base" />
 
     <Dashboard />
 
+    <!--
+      The ReusableBarChart component is now bound to data
+      that is fetched and processed from Firestore.
+    -->
     <ReusableBarChart
       title="Electricity Usage"
       :activePeriod="activePeriod"
@@ -64,6 +69,7 @@ import { useDarkMode } from "@/composables/useDarkMode.js";
 
 // 2. Use the composable to get the shared state
 const { isDarkMode } = useDarkMode();
+
 
 // The global app ID is provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
