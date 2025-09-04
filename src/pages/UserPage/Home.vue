@@ -1,5 +1,5 @@
 <template>
-  <div :class="{'dark': isDarkMode}" class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
+  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <UserHeader />
     <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview"/>
 
@@ -7,10 +7,6 @@
 
     <Dashboard />
 
-    <!--
-      The ReusableBarChart component is now bound to data
-      that is fetched and processed from Firestore.
-    -->
     <ReusableBarChart
       title="Electricity Usage"
       :activePeriod="activePeriod"
@@ -238,9 +234,6 @@ watch(deviceId, (newDeviceId) => {
   }
 }, { immediate: true });
 
-// 3. Remove the dark mode watch and onMounted hooks
-// watch(isDarkMode, (newValue) => { ... });
-// onMounted(async () => { ... });
 
 onMounted(async () => {
   // Set up the authentication state listener

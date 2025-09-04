@@ -28,24 +28,26 @@
         <p class="mt-4 text-gray-500 dark:text-gray-400">Generating personalized tip...</p>
       </div>
       <div v-else-if="error" class="p-8 text-center text-red-500 dark:text-red-400">
-        <p>Error generating tip. Please try again later.</p>
-        <p class="text-xs text-red-400 dark:text-red-500">{{ error }}</p>
+        <p>Error generating tips. Please try again later.</p>
+        <p class="text-xs text-red-400">{{ error }}</p>
       </div>
-      <div v-else class="flex items-center gap-4 p-4 bg-[#F9FAFB] rounded-lg dark:bg-gray-900">
-        <div>
-          <svg class="w-10 h-10 text-yellow-500 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343 5.343l-.707.707m-4.243-4.243l.707-.707M12 21v-1m-6.364-1.636l.707-.707M3 12h1m1.636-6.364l.707.707"
-            />
-          </svg>
-        </div>
-        <div>
+      <div v-else class="flex flex-col gap-4 ">
+        <div v-for="(tip, index) in tips" :key="index" class="flex items-start gap-4 p-4 bg-[#F9FAFB] dark:bg-gray-900 rounded-lg">
+          <div>
+            <svg class="w-10 h-10 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343 5.343l-.707.707m-4.243-4.243l.707-.707M12 21v-1m-6.364-1.636l.707-.707M3 12h1m1.636-6.364l.707.707"
+              />
+            </svg>
+          </div>
+          <div>
           <p class="text-sm text-gray-700 dark:text-gray-300">
-            {{ tip }}
-          </p>
+              {{ tip.description }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
