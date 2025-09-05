@@ -52,7 +52,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Appliance Cards Section -->
       <div v-if="loading" class="flex flex-col items-center justify-center p-10 text-center text-gray-500">
         <p>Loading appliances...</p>
@@ -110,12 +110,26 @@
         <div v-else class="dark:bg-gray">
           <h2 class="text-xl font-bold mb-2">Label New Appliances</h2>
           <p class="text-gray-600 mb-4">Please label the following signatures with their appliance name.</p>
-          <div v-if="unlabeledSignatures.length === 0" class="text-center text-gray-500 py-4">
+
+          <!-- If no device configured, show brief notice (no hardcoded device id) -->
+          <div v-if="!deviceId" class="text-center text-gray-500 py-4">
+            No device configured for this account. Please add/register your ESP32 device in the Dashboard first.
+          </div>
+
+          <div v-if="deviceId && unlabeledSignatures.length === 0" class="text-center text-gray-500 py-4">
             No new signatures to label.
           </div>
+
           <div v-else class="space-y-4 max-h-96 overflow-y-auto  ">
             <div v-for="signature in unlabeledSignatures" :key="signature.id" class="p-3 border border-gray-200 rounded">
               <p class="text-sm font-semibold break-all mb-2">ID: {{ signature.id }}</p>
+
+              <!-- AI suggestion -->
+              <p v-if="signature.ai_prediction" class="text-xs text-gray-500 mb-2">
+                AI Suggestion: {{ signature.ai_prediction }}
+                <span v-if="signature.confidence"> ({{ Math.round(signature.confidence * 100) }}%)</span>
+              </p>
+
               <form @submit.prevent="updateLabel(signature.id)">
                 <input
                   type="text"
@@ -136,10 +150,10 @@
             </div>
           </div>
         </div>
-        
+
         <div class="mt-6 text-right">
-          <button 
-            @click="showModal = false" 
+          <button
+            @click="showModal = false"
             class="px-4 py-2 text-white text-sm bg-[#2C993A] rounded"
           >
             Close
@@ -181,7 +195,17 @@
 import { ref, onMounted } from 'vue';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/firebase.js';
-import { collection, query, where, getDocs, updateDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  updateDoc,
+  doc,
+  addDoc,
+  deleteDoc
+} from 'firebase/firestore';
 
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
@@ -192,8 +216,8 @@ import ApplianceDetails from "@/components/UserComponents/Appliances/ApplianceDe
 
 // --- Global Variables ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 let userId = null;
+const deviceId = ref(null); // <-- will be discovered from user's profile
 
 // --- Reactive State ---
 const labeledDevices = ref([]);
@@ -251,34 +275,42 @@ const yearlyData = [
 ];
 const activePeriod = ref("Weekly");
 
-// --- Firestore Methods ---
-const getApplianceCollectionRef = () => {
-  if (!userId) {
-    console.error("User ID is not available.");
-    return null;
-  }
-  return collection(db, `artifacts/${appId}/users/${userId}/appliance_signatures`);
+// --- Helpers: dynamic references based on discovered deviceId ---
+const getAppliancePredictionsRef = () => {
+  if (!deviceId.value) return null;
+  return collection(db, `devices/${deviceId.value}/appliance_predictions`);
 };
 
+// Fetch signatures (confirmed => labeledDevices, unidentified => unlabeledSignatures)
 const fetchApplianceSignatures = async () => {
-  if (!authReady.value || !userId) {
-    return;
-  }
-  
+  if (!authReady.value || !userId) return;
+
   loading.value = true;
   unlabeledSignatures.value = [];
   labeledDevices.value = [];
 
   try {
-    const q = query(getApplianceCollectionRef());
+    if (!deviceId.value) {
+      console.warn("No deviceId found for user; fetchApplianceSignatures skipped.");
+      return;
+    }
+
+    const predictionsRef = getAppliancePredictionsRef();
+    if (!predictionsRef) return;
+
+    const q = query(predictionsRef);
     const querySnapshot = await getDocs(q);
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.label) {
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+
+      // Accept both 'confirmed_label' (preferred) or 'label' (legacy) fields
+      const confirmedLabel = data.confirmed_label || data.label || null;
+
+      if (data.status === "confirmed" && confirmedLabel) {
         labeledDevices.value.push({
-          id: doc.id,
-          name: data.label,
+          id: docSnap.id,
+          name: confirmedLabel,
           location: "N/A",
           status: "Active",
           usage: 0,
@@ -286,7 +318,13 @@ const fetchApplianceSignatures = async () => {
           icon: "/src/images/icons/ref.svg",
         });
       } else {
-        unlabeledSignatures.value.push({ id: doc.id, tempLabel: '' });
+        // Unidentified / unlabeled signature - show AI suggestion if present
+        unlabeledSignatures.value.push({
+          id: docSnap.id,
+          tempLabel: "",
+          ai_prediction: data.predicted_label || "Unknown",
+          confidence: data.confidence || null,
+        });
       }
     });
 
@@ -297,33 +335,35 @@ const fetchApplianceSignatures = async () => {
   }
 };
 
+// --- startScanning: load unlabeled predictions for this device (no hardcoded device id) ---
 const startScanning = async () => {
   showModal.value = true;
   loadingSignatures.value = true;
 
   try {
-    // Placeholder data to simulate a real-world NILM scan.
-    // All new signatures are initially unlabeled.
-    const newSignatures = [
-      { label: null, signature_data: '456-unknown-device' },
-      { label: null, signature_data: '012-another-unknown' },
-      { label: null, signature_data: '345-device-c' },
-      { label: null, signature_data: '678-device-d' }
-    ];
-
-    const applianceCollectionRef = getApplianceCollectionRef();
-    if (applianceCollectionRef) {
-      for (const signature of newSignatures) {
-        await addDoc(applianceCollectionRef, {
-          label: signature.label,
-          signature_data: signature.signature_data
-        });
-      }
+    if (!deviceId.value) {
+      // Nothing to scan — device not configured for this account
+      unlabeledSignatures.value = [];
+      return;
     }
-    
-    // After adding the new signatures, re-fetch all signatures to update the lists.
-    await fetchApplianceSignatures();
 
+    const predictionsRef = getAppliancePredictionsRef();
+    if (!predictionsRef) return;
+
+    // Query only "unidentified" signatures (status === "unidentified")
+    const q = query(predictionsRef, where("status", "==", "unidentified"));
+    const snapshot = await getDocs(q);
+
+    unlabeledSignatures.value = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      unlabeledSignatures.value.push({
+        id: docSnap.id,
+        tempLabel: "",
+        ai_prediction: data.predicted_label || "Unknown",
+        confidence: data.confidence || null,
+      });
+    });
   } catch (error) {
     console.error("Scanning failed:", error);
   } finally {
@@ -331,16 +371,25 @@ const startScanning = async () => {
   }
 };
 
+// --- updateLabel: mark prediction as confirmed + add confirmed_label (no hardcoded user/device) ---
 const updateLabel = async (signatureId) => {
   const signatureToUpdate = unlabeledSignatures.value.find(s => s.id === signatureId);
   if (!signatureToUpdate || !signatureToUpdate.tempLabel) return;
-  
+
   try {
-    await updateDoc(doc(getApplianceCollectionRef(), signatureId), {
-      label: signatureToUpdate.tempLabel
+    const predictionsRef = getAppliancePredictionsRef();
+    if (!predictionsRef) {
+      console.error("No device configured; cannot update label.");
+      return;
+    }
+
+    await updateDoc(doc(predictionsRef, signatureId), {
+      status: "confirmed",
+      confirmed_label: signatureToUpdate.tempLabel,
+      confirmed_at: new Date()
     });
-    
-    // Remove from unlabeled list and add to labeled list
+
+    // Update UI lists
     unlabeledSignatures.value = unlabeledSignatures.value.filter(s => s.id !== signatureId);
     labeledDevices.value.push({
       id: signatureId,
@@ -357,34 +406,32 @@ const updateLabel = async (signatureId) => {
   }
 };
 
-// --- New Delete Logic ---
+// --- Delete logic (uses discovered device path) ---
 const promptDelete = (device) => {
-  // Ensure we get the ID, whether the event passed a string or an object
-  const deviceId = typeof device === 'string' ? device : device.id;
-  deviceToDelete.value = deviceId;
+  const deviceIdLocal = typeof device === 'string' ? device : device.id;
+  deviceToDelete.value = deviceIdLocal;
   showDeleteModal.value = true;
 };
 
-const confirmDelete = async (deviceId) => {
-  if (!deviceId || !userId) {
+const confirmDelete = async (deviceIdLocal) => {
+  if (!deviceIdLocal || !userId) {
     console.error("User ID or device ID is not available. Aborting delete operation.");
-    showDeleteModal.value = false;
-    deviceToDelete.value = null;
-    return;
-  }
-  
-  const applianceCollectionRef = getApplianceCollectionRef();
-  if (!applianceCollectionRef) {
-    console.error("Firestore collection reference is not available. Aborting delete operation.");
     showDeleteModal.value = false;
     deviceToDelete.value = null;
     return;
   }
 
   try {
-    await deleteDoc(doc(applianceCollectionRef, deviceId));
-    labeledDevices.value = labeledDevices.value.filter(d => d.id !== deviceId);
-    console.log(`Device ${deviceId} successfully deleted.`);
+    if (!deviceId.value) {
+      console.error("No configured device for this account; cannot delete signature.");
+      return;
+    }
+    const predictionsRef = getAppliancePredictionsRef();
+    if (!predictionsRef) return;
+
+    await deleteDoc(doc(predictionsRef, deviceIdLocal));
+    labeledDevices.value = labeledDevices.value.filter(d => d.id !== deviceIdLocal);
+    console.log(`Device ${deviceIdLocal} successfully deleted.`);
   } catch (error) {
     console.error("Failed to remove device:", error);
   } finally {
@@ -397,16 +444,67 @@ const viewApplianceDetails = (device) => {
   selectedAppliance.value = device;
 };
 
+// --- discover deviceId for the signed-in user ---
+// tries multiple likely locations for deviceId in user's Firestore record
+const fetchUserDeviceId = async () => {
+  if (!userId) return;
+
+  try {
+    // 1) try doc: artifacts/{appId}/users/{userId}
+    const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userProfile', 'profile');
+    const userSnap = await getDoc(userDocRef);
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      // common field names: deviceId, primaryDeviceId, devices (array), devices_map, namedDevices
+      if (data.deviceId) {
+        deviceId.value = data.deviceId;
+        return;
+      }
+      if (data.primaryDeviceId) {
+        deviceId.value = data.primaryDeviceId;
+        return;
+      }
+      if (Array.isArray(data.devices) && data.devices.length > 0) {
+        // devices might be array of ids or objects with id
+        const first = data.devices[0];
+        deviceId.value = (typeof first === 'string') ? first : (first.deviceId || first.id || null);
+        if (deviceId.value) return;
+      }
+    }
+
+    // 2) try subcollection: artifacts/{appId}/users/{userId}/devices (pick first doc id or deviceId field)
+    const devicesCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'devices');
+    const devicesSnapshot = await getDocs(devicesCollectionRef);
+    if (!devicesSnapshot.empty) {
+      const firstDoc = devicesSnapshot.docs[0];
+      const d = firstDoc.data();
+      deviceId.value = d.deviceId || firstDoc.id || null;
+      if (deviceId.value) return;
+    }
+
+    // 3) fallback - try to find any device doc in /devices that references this user (optional)
+    // (omitted for now - keep minimal and non-intrusive)
+    console.warn("No deviceId found in user profile. Please register device in Dashboard.");
+  } catch (err) {
+    console.error("Error fetching user deviceId:", err);
+  }
+};
+
 // --- Lifecycle Hook ---
 onMounted(() => {
-  // Wait for Firebase Auth to be ready before proceeding
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
     if (user) {
       userId = user.uid;
       authReady.value = true;
       console.log(`User authenticated: ${userId}`);
+
+      // attempt to find this user's deviceId from Firestore
+      await fetchUserDeviceId();
+
+      // once deviceId discovery attempted, fetch existing signatures (if deviceId found)
       await fetchApplianceSignatures();
-      unsubscribe(); // Stop listening after the first state change
+
+      unsubscribe(); // stop listening once setup is done
     }
   });
 });
