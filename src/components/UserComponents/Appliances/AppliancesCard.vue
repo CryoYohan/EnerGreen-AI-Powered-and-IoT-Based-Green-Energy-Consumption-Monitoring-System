@@ -1,6 +1,10 @@
 <template>
   <div class="container max-w-full p-10 mx-auto font-poppins">
+    <div class="container max-w-full p-4 mx-auto lg:px-12 mb-6">
+        <TrainModelButton />
+      </div>
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  
       <!-- Device Cards -->
       <div
         v-for="(device) in devices"
@@ -56,6 +60,8 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue';
+import TrainModelButton from "@/components/UserComponents/Appliances/TrainModelButton.vue";
+
 
 const props = defineProps({
   devices: {
