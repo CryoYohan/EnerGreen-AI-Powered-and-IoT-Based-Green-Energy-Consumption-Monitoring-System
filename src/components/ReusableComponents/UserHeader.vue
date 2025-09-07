@@ -1,5 +1,5 @@
 <template>
-  <header class="sticky p-4 top-0 z-50 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700">
+  <header class="sticky p-4 top-0 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700">
     <div class="container px-4 space-x-4 mx-auto dark:bg-gray-800">
       <div class="flex items-center justify-between lg:gap-[10em] sm:gap-[8em]">
         <div class="relative flex items-center lg:right-40">
@@ -167,32 +167,20 @@
     >
       <div
         v-if="isMobileMenuOpen"
-        class="fixed inset-0 z-40 bg-black bg-opacity-40 md:hidden"
+        class="fixed inset-0 z-[100] bg-black bg-opacity-40 md:hidden"
         @click.self="toggleMobileMenu"
       >
-        <div class="bg-white dark:bg-gray-800 shadow-lg w-full absolute top-[40px] left-0">
+        <div class="bg-white dark:bg-gray-800 shadow-lg w-full absolute top-[80px] left-0">
           <div class="px-4 py-4 border-t dark:border-gray-700">
             <ul class="flex flex-col space-y-4 font-poppins">
-              <li>
-                <button
-                  @click="toggleDarkMode"
-                  class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500"
-                >
-                  <img
-                    :src="isDarkMode ? '/src/Images/icons/sun.svg' : '/src/Images/icons/moon.svg'"
-                    :alt="isDarkMode ? 'sun' : 'moon'"
-                    class="w-4 h-4"
-                  >
-                  {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
-                </button>
-              </li>
+
               <li>
                 <button
                   @click="navigateTo('Profile')"
                   class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
                   :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Profile' }"
                 >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/profile1.svg" alt="">
+                  <img class="w-4 h-4 dark:invert" src="/src/Images/icons/profile1.svg" alt="">
                   <span class="text-gray-800 dark:text-gray-100">Profile</span>
                 </button>
               </li>
@@ -254,6 +242,19 @@
                 >
                   <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/resources.svg" alt="">
                   <span class="text-gray-800 dark:text-gray-100">Resources</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  @click="toggleDarkMode"
+                  class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500"
+                >
+                  <img
+                    :src="isDarkMode ? '/src/Images/icons/sun.svg' : '/src/Images/icons/moon.svg'"
+                    :alt="isDarkMode ? 'sun' : 'moon'"
+                    class="w-4 h-4"
+                  >
+                  {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
                 </button>
               </li>
               <li>

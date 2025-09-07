@@ -1,10 +1,10 @@
 <template>
   <div
-    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
+    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins"
   >
     <AdminHeader />
     <Heading title="Admin Dashboard"/>
-    <MetricsCard :metrics="dailyMetrics" size="large"  />
+    <MetricsCard :metrics="dailyMetrics" size="large" />
     <FirmwareEchoHeroes />
     <ReusableBarChart
       title="Electricity Usage - Trends"
@@ -37,29 +37,29 @@ import OverviewStatus from "@/components/AdminComponents/Home/OverviewStatus.vue
 // Metrics data (used for MetricsCard)
 const dailyMetrics = [
   {
-          title: 'Total devices',
-          icon: '/src/Images/Icons/devices.svg',
-          cost: '1,270',
-          definition: 'All Registered Units'
-        },
-        {
-          title: 'Active Users',
-          icon: '/src/Images/Icons/users.svg',
-          cost: '241',
-          definition: 'Users Currently Active'
-        },
-        {
-          title: 'Energy Saved',
-          icon: '/src/Images/Icons/tricity.svg',
-          cost: '24.8 MWh',
-          definition: 'Reduced Consumption'
-        },
-        {
-          title: 'System Health',
-          icon: '/src/Images/Icons/health.svg',
-          cost: '98.5%',
-          definition: 'System Running Smoothly'
-        },
+      title: 'Total devices',
+      icon: '/src/Images/Icons/devices.svg',
+      cost: '1,270',
+      definition: 'All Registered Units'
+    },
+    {
+      title: 'Active Users',
+      icon: '/src/Images/Icons/users.svg',
+      cost: '241',
+      definition: 'Users Currently Active'
+    },
+    {
+      title: 'Energy Saved',
+      icon: '/src/Images/Icons/tricity.svg',
+      cost: '24.8 MWh',
+      definition: 'Reduced Consumption'
+    },
+    {
+      title: 'System Health',
+      icon: '/src/Images/Icons/health.svg',
+      cost: '98.5%',
+      definition: 'System Running Smoothly'
+    },
 
 ];
 

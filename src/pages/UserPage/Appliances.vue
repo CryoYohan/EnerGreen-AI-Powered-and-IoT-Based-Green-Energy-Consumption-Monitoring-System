@@ -108,7 +108,7 @@
           <p class="text-lg font-semibold text-gray-700">Scanning for new appliance signatures...</p>
         </div>
         <div v-else class="dark:bg-gray">
-          <h2 class="text-xl font-bold mb-2">Label New Appliances</h2>
+          <h2 class="text-xl font-bold mb-2 dark:text-gray-300">Label New Appliances</h2>
           <p class="text-gray-600 mb-4">Please label the following signatures with their appliance name.</p>
 
           <!-- If no device configured, show brief notice (no hardcoded device id) -->
@@ -121,7 +121,7 @@
           </div>
           <div v-else class="space-y-4 max-h-96 overflow-y-auto">
             <div v-for="signature in unlabeledSignatures" :key="signature.id" class="p-3 border border-gray-200 rounded">
-              <p class="text-sm font-semibold break-all mb-2">ID: {{ signature.id }}</p>
+              <p class="text-sm font-semibold break-all dark:text-gray-300 mb-2">ID: {{ signature.id }}</p>
 
               <!-- AI suggestion -->
               <p v-if="signature.ai_prediction" class="text-xs text-gray-500 mb-2">
@@ -134,7 +134,7 @@
                   type="text"
                   v-model="signature.tempLabel"
                   placeholder="e.g., Coffee Maker"
-                  class="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg"
+                  class="w-full py-2 px-3 text-sm dark:text-gray-900 border border-gray-300 rounded-lg"
                   required
                 />
                 <div class="mt-3 text-right">
@@ -153,7 +153,7 @@
         <div class="mt-6 text-right">
           <button 
             @click="showModal = false" 
-            class="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+            class="px-4 py-2 text-sm dark:bg-gray-800 bg-gray-200 rounded hover:bg-gray-300"
           >
             Close
           </button>
@@ -163,13 +163,13 @@
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 class="text-xl font-bold mb-2 text-gray-800">Confirm Deletion</h2>
-        <p class="text-gray-600 mb-4">Are you sure you want to remove this appliance?</p>
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full dark:bg-gray-800 max-w-sm">
+        <h2 class="text-xl font-bold mb-2 dark:text-white text-gray-800">Confirm Deletion</h2>
+        <p class="text-gray-600 mb-4 dark:text-white">Are you sure you want to remove this appliance?</p>
         <div class="flex justify-end gap-4">
           <button
             @click="showDeleteModal = false"
-            class="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+            class="px-4 py-2 text-sm dark:text-white dark:bg-blue-400 bg-gray-200 rounded hover:bg-gray-300"
           >
             Cancel
           </button>
