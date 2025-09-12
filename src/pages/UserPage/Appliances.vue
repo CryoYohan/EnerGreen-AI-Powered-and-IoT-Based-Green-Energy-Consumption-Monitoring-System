@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
-    <!-- Main Appliance List View -->
     <div v-if="!selectedAppliance">
       <UserHeader />
       <Heading
@@ -20,9 +19,7 @@
         tooltipUnit="kWh"
       />
 
-      <!-- Appliance Management Content -->
       <div class="container max-w-full p-4 mx-auto lg:px-12">
-        <!-- Search and Add Section -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
           <div class="flex items-center gap-3 w-full sm:w-[70%]">
             <div class="relative flex-grow">
@@ -42,21 +39,40 @@
               <span>Filter</span>
             </div>
           </div>
-          <div class="w-full sm:w-auto">
+          <div class="w-full sm:w-auto flex gap-2">
             <button
               @click="startScanning"
               class="w-full sm:w-auto bg-[#059669] text-white px-4 py-2 rounded-full text-sm"
             >
               + Add Appliance
             </button>
+
+            <button
+              @click="clusterSignatures"
+              class="w-full sm:w-auto bg-[#2563EB] text-white px-4 py-2 rounded-full text-sm"
+              :disabled="clustering"
+            >
+              <span v-if="clustering">Clustering...</span>
+              <span v-else>Cluster Now</span>
+            </button>
+
+            <!-- Display cluster status message -->
+            <div v-if="clusterMessage" class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              {{ clusterMessage }}
+            </div>
+
           </div>
         </div>
       </div>
 
-      <!-- Appliance Cards Section -->
+      <div class="container max-w-full mx-auto mt-8 flex justify-center">
+        <TrainModelButton />
+      </div>
+
       <div v-if="loading" class="flex flex-col items-center justify-center p-10 text-center text-gray-500">
         <p>Loading appliances...</p>
       </div>
+      
       <div v-else-if="labeledDevices.length === 0" class="flex flex-col items-center dark:bg-gray-900 justify-center p-10 text-center text-gray-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -75,6 +91,7 @@
         <h2 class="text-xl font-bold text-gray-800">No Appliances Found</h2>
         <p class="mt-2">It looks like you haven't added any appliances yet. Click "Add Appliance" to get started.</p>
       </div>
+      
       <AppliancesCard
         v-else
         :devices="labeledDevices"
@@ -82,13 +99,64 @@
         @view-details="viewApplianceDetails"
       />
 
+      <div class="container max-w-full p-4 mx-auto lg:px-12 mt-8">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold">Suggested Appliances</h2>
+          <button
+            v-if="clusters.length > 0"
+            @click="addAllSuggested"
+            class="px-4 py-2 text-sm font-semibold bg-[#059669] text-white rounded-full transition-colors hover:bg-[#047857]"
+          >
+            Add All Suggested
+          </button>
+        </div>
+
+        <div v-if="clusters.length === 0" class="text-gray-500 text-sm">
+          No suggested appliances at the moment.
+        </div>
+
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            v-for="cluster in clusters"
+            :key="cluster.id"
+            class="p-4 border rounded-lg shadow-sm bg-white dark:bg-gray-800"
+          >
+            <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">
+              {{ cluster.user_label || "Unnamed Appliance" }}
+            </h3>
+
+            <p class="text-sm text-gray-500 mb-2">
+              Avg Power: {{ cluster.summary?.avg_power?.toFixed(1) || 0 }} W
+            </p>
+            <p class="text-sm text-gray-500 mb-4">
+              {{ cluster.summary?.count || 0 }} signatures grouped
+            </p>
+
+            <div v-if="cluster.status === 'unlabeled'">
+              <input
+                v-model="cluster.tempLabel"
+                placeholder="Enter appliance name"
+                class="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg mb-2"
+              />
+              <button
+                @click="confirmClusterLabel(cluster)"
+                class="px-4 py-2 text-sm bg-[#2C993A] text-white rounded hover:bg-[#248232] w-full"
+              >
+                Save Name
+              </button>
+            </div>
+
+            <div v-else class="text-sm text-green-600 font-medium">
+              ✔ Confirmed as {{ cluster.user_label }}
+            </div>
+          </div>
+        </div>
+      </div>
       <Footer />
     </div>
 
-    <!-- Appliance Details View -->
     <ApplianceDetails v-if="selectedAppliance" :device="selectedAppliance" @go-back="selectedAppliance = null" />
 
-    <!-- Appliance Labeling Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-30  flex justify-center items-center z-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md dark:bg-gray-900">
         <div v-if="loadingSignatures" class="text-center py-10">
@@ -111,7 +179,6 @@
           <h2 class="text-xl font-bold mb-2">Label New Appliances</h2>
           <p class="text-gray-600 mb-4">Please label the following signatures with their appliance name.</p>
 
-          <!-- If no device configured, show brief notice (no hardcoded device id) -->
           <div v-if="!deviceId" class="text-center text-gray-500 py-4">
             No device configured for this account. Please add/register your ESP32 device in the Dashboard first.
           </div>
@@ -124,7 +191,6 @@
             <div v-for="signature in unlabeledSignatures" :key="signature.id" class="p-3 border border-gray-200 rounded">
               <p class="text-sm font-semibold break-all mb-2">ID: {{ signature.id }}</p>
 
-              <!-- AI suggestion -->
               <p v-if="signature.ai_prediction" class="text-xs text-gray-500 mb-2">
                 AI Suggestion: {{ signature.ai_prediction }}
                 <span v-if="signature.confidence"> ({{ Math.round(signature.confidence * 100) }}%)</span>
@@ -162,7 +228,6 @@
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
         <h2 class="text-xl font-bold mb-2 text-gray-800">Confirm Deletion</h2>
@@ -204,7 +269,9 @@ import {
   updateDoc,
   doc,
   addDoc,
-  deleteDoc
+  setDoc,              
+  serverTimestamp,      
+  deleteDoc,
 } from 'firebase/firestore';
 
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
@@ -213,6 +280,7 @@ import Footer from "@/components/ReusableComponents/Footer.vue";
 import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import AppliancesCard from "@/components/UserComponents/Appliances/AppliancesCard.vue";
 import ApplianceDetails from "@/components/UserComponents/Appliances/ApplianceDetails.vue";
+import TrainModelButton from "@/components/UserComponents/Appliances/TrainModelButton.vue";
 
 // --- Global Variables ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -229,6 +297,32 @@ const loading = ref(true);
 const loadingSignatures = ref(false);
 const authReady = ref(false);
 const selectedAppliance = ref(null);
+const clusters = ref([]); // new for suggested appliances
+const clustering = ref(false); // <-- NEW: track clustering state
+const clusterMessage = ref(""); // <-- NEW: status message
+
+// --- Fetch clusters ---
+const fetchClusters = async () => {
+  if (!deviceId.value) return;
+  try {
+    const clustersRef = collection(db, `devices/${deviceId.value}/clusters`);
+    const snapshot = await getDocs(clustersRef);
+
+    clusters.value = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        user_label: data.user_label || "",
+        status: data.status || "unlabeled",
+        summary: data.summary || {},
+        tempLabel: data.user_label || data.ai_suggestion || "", // Pre-fill with AI suggestion
+      };
+    });
+  } catch (err) {
+    console.error("Error fetching clusters:", err);
+  }
+};
+
 
 const dailyData = [
   { label: "12AM", value: 5 },
@@ -335,14 +429,77 @@ const fetchApplianceSignatures = async () => {
   }
 };
 
-// --- startScanning: load unlabeled predictions for this device (no hardcoded device id) ---
+// --- Confirm appliance doc creation ---
+const confirmApplianceFromCluster = async (cluster, deviceId) => {
+  try {
+    const confirmedRef = doc(
+      db,
+      `devices/${deviceId}/confirmed_appliances/${cluster.id}`
+    );
+
+    await setDoc(confirmedRef, {
+      cluster_id: cluster.id,
+      user_label: cluster.user_label,
+      centroid: cluster.centroid || [],
+      summary: cluster.summary || {},
+      created_at: cluster.created_at || serverTimestamp(),
+      confirmed_at: serverTimestamp(),
+    });
+
+    console.log(`✅ Confirmed appliance created: ${cluster.user_label}`);
+  } catch (err) {
+    console.error("Error creating confirmed appliance:", err);
+  }
+};
+
+// --- Confirm cluster label (also create confirmed appliance) ---
+const confirmClusterLabel = async (cluster) => {
+  if (!cluster.tempLabel) return;
+  try {
+    const clusterRef = doc(db, `devices/${deviceId.value}/clusters`, cluster.id);
+    await updateDoc(clusterRef, {
+      user_label: cluster.tempLabel,
+      status: "labeled",
+    });
+
+    cluster.user_label = cluster.tempLabel;
+    cluster.status = "labeled";
+
+    // ✅ Immediately create confirmed appliance document
+    await confirmApplianceFromCluster(cluster, deviceId.value);
+
+  } catch (err) {
+    console.error("Failed to label cluster:", err);
+  }
+};
+
+// --- Confirm all suggested clusters (bulk) ---
+const addAllSuggested = async () => {
+  if (!deviceId.value) return;
+
+  const confirmPromises = clusters.value.map(async (cluster) => {
+    // Only process clusters that are unlabeled and have a temporary label
+    if (cluster.status === 'unlabeled' && cluster.tempLabel) {
+      await confirmClusterLabel(cluster);                 // ✅ updates cluster + creates confirmed appliance
+      await confirmApplianceFromCluster(cluster, deviceId.value); // ✅ redundant safety, ensures doc exists
+    }
+  });
+
+  await Promise.all(confirmPromises);
+
+  // Re-fetch appliances so main list updates
+  await fetchApplianceSignatures();
+};
+
+
+const PREDICT_URL = import.meta.env.VITE_PREDICT_URL; 
+
 const startScanning = async () => {
   showModal.value = true;
   loadingSignatures.value = true;
 
   try {
     if (!deviceId.value) {
-      // Nothing to scan — device not configured for this account
       unlabeledSignatures.value = [];
       return;
     }
@@ -355,21 +512,101 @@ const startScanning = async () => {
     const snapshot = await getDocs(q);
 
     unlabeledSignatures.value = [];
-    snapshot.forEach((docSnap) => {
+
+    const predictionPromises = snapshot.docs.map(async (docSnap) => {
       const data = docSnap.data();
-      unlabeledSignatures.value.push({
+
+      // Initialize the signature object
+      const signatureObj = {
         id: docSnap.id,
         tempLabel: "",
-        ai_prediction: data.predicted_label || "Unknown",
-        confidence: data.confidence || null,
-      });
+        ai_prediction: null,
+        confidence: null,
+        readings: data.signature || [],
+      };
+
+      // Push immediately for Vue reactivity
+      unlabeledSignatures.value.push(signatureObj);
+
+      // Always call the prediction API
+      try {
+        const resp = await fetch(PREDICT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            device_id: deviceId.value,
+            signature: signatureObj.readings,
+          }),
+        });
+
+        const result = await resp.json();
+
+        // Update signature object in-place (reactive)
+        signatureObj.ai_prediction = result.predicted_label;
+        signatureObj.confidence =
+          result.predicted_probabilities?.[result.predicted_label] || null;
+
+        // Update Firestore with new prediction and confidence
+        await updateDoc(doc(predictionsRef, signatureObj.id), {
+          predicted_label: signatureObj.ai_prediction,
+          confidence: signatureObj.confidence,
+        });
+      } catch (apiError) {
+        console.error("Prediction API failed for signature:", signatureObj.id, apiError);
+      }
     });
+
+    // Wait for all predictions to finish
+    await Promise.all(predictionPromises);
   } catch (error) {
     console.error("Scanning failed:", error);
   } finally {
     loadingSignatures.value = false;
   }
 };
+
+const CLUSTER_URL = import.meta.env.VITE_CLUSTER_URL; // e.g. your Cloud Run service
+
+const clusterSignatures = async () => {
+  if (!deviceId.value) {
+    console.error("No device configured; cannot cluster signatures.");
+    return;
+  }
+
+  clustering.value = true;
+  clusterMessage.value = "Clustering signatures... please wait.";
+
+  try {
+    const resp = await fetch(CLUSTER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: deviceId.value })
+    });
+
+    const result = await resp.json();
+    console.log("Clustering result:", result);
+
+    if (result.detail) {
+      // Show backend-provided detail message
+      clusterMessage.value = result.detail;
+    } else {
+      clusterMessage.value = "Clustering complete. Refreshing results...";
+      await fetchClusters();
+      clusterMessage.value = "Suggested appliances updated successfully";
+    }
+  } catch (err) {
+    console.error("Failed to trigger clustering:", err);
+    clusterMessage.value = "Clustering failed. Please try again.";
+  } finally {
+    setTimeout(() => { 
+      clustering.value = false;
+      clusterMessage.value = "";
+    }, 4000); // auto-hide after 4s
+  }
+};
+
+
+
 
 // --- updateLabel: mark prediction as confirmed + add confirmed_label (no hardcoded user/device) ---
 const updateLabel = async (signatureId) => {
@@ -504,6 +741,8 @@ onMounted(() => {
       // once deviceId discovery attempted, fetch existing signatures (if deviceId found)
       await fetchApplianceSignatures();
 
+      // Fetch Clustered Unidentified Appliances
+      await fetchClusters(); // NEW
       unsubscribe(); // stop listening once setup is done
     }
   });

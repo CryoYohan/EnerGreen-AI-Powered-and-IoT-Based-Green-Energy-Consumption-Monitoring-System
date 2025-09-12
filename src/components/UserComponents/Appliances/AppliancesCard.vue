@@ -1,6 +1,8 @@
 <template>
   <div class="container max-w-full p-10 mx-auto font-poppins">
+
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  
       <!-- Device Cards -->
       <div
         v-for="(device) in devices"
