@@ -20,9 +20,8 @@
       tooltipUnit="kWh"
     />
     <SourcesChart />
-    <Tips />
-
     <Footer />
+    
     <div v-if="showOnboarding" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full text-center">
         <h2 class="text-xl font-semibold mb-4 text-green-600">Welcome, {{ userFirstName }}!</h2>
@@ -55,7 +54,6 @@ import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 import SourcesChart from "@/components/UserComponents/Home/SourcesChart.vue";
-import Tips from "@/components/UserComponents/Home/Tips.vue";
 import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";

@@ -51,7 +51,7 @@
                   :class="[
                     'py-2 hover:text-green-600 dark:hover:text-green-500',
                     $route.name === 'Appliances' ? 'text-green-600 dark:text-green-500' : ''
-                  ]">      
+                  ]"> 
                   Appliances
                 </button>
               </li>
@@ -94,8 +94,15 @@
             </ul>
           </nav>  
         </div>
-
+        
         <div class="relative items-center hidden space-x-2 md:flex lg:space-x-3 font-poppins lg:left-40">
+          <button
+              @click="openTipsModal"
+              class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <img src="/src/Images/icons/bulb.svg" class="w-5 h-5" alt="">
+            Tips
+          </button>
           <button 
             @click="toggleDarkMode" 
             class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -156,6 +163,7 @@
         </div>
       </div>
     </div>
+    
 
     <transition
       enter-active-class="transition-all duration-300 ease-out"
@@ -173,7 +181,6 @@
         <div class="bg-white dark:bg-gray-800 shadow-lg w-full absolute top-[80px] left-0">
           <div class="px-4 py-4 border-t dark:border-gray-700">
             <ul class="flex flex-col space-y-4 font-poppins">
-
               <li>
                 <button
                   @click="navigateTo('Profile')"
@@ -272,126 +279,135 @@
       </div>
     </transition>
   </header>
-</template>
-<script>
-import { useDarkMode } from "@/composables/useDarkMode.js"; // 1. Import the composable
+  
+  <Tips :showModal="showTipsModal" @close="showTipsModal = false" ref="tipsComponent" />
 
-import Notification from '../ReusableComponents/Notification.vue';
-import { 
-  auth, 
-  db, 
-  doc, 
+</template>
+
+<script setup>
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useDarkMode } from "@/composables/useDarkMode.js"
+
+// Import the Tips and Notification components
+import Tips from '../UserComponents/Home/Tips.vue'
+import Notification from '../ReusableComponents/Notification.vue'
+
+import {
+  auth,
+  db,
+  doc,
   onAuthStateChanged,
   onSnapshot,
   signOut
-} from '../../firebase.js';
+} from '../../firebase.js'
 
-export default {
-  components: {
-    Notification
-  },
+// state variables
+const isMobileMenuOpen = ref(false)
+const showNotifications = ref(false)
+const isProfileDropdownOpen = ref(false)
+const userName = ref('Guest')
+const profilePic = ref('/src/Images/profile/pfp.png')
+const showTipsModal = ref(false)
 
-  data() {
-    return {
-      isMobileMenuOpen: false,
-      showNotifications: false,
-      isProfileDropdownOpen: false,
-      userName: 'Guest',
-      profilePic: '/src/Images/profile/pfp.png'
-    }
-  },
-  setup() {
-    // 4. Use the composable to get the reactive state and the toggle function.
-    const { isDarkMode, toggleDarkMode } = useDarkMode();
-    
-    // Return them so they can be used in the template.
-    return { isDarkMode, toggleDarkMode };
-  },
-  methods: {
-    // 5. The toggleDarkMode method is now replaced by the one from the composable.
-    toggleMobileMenu() {
-      this.isMobileMenuOpen = !this.isMobileMenuOpen
-    },
-    toggleNotifications() {
-      this.showNotifications = !this.showNotifications;
-      if(this.showNotifications) {
-        this.isProfileDropdownOpen = false;
-      }
-    },
-    toggleProfileDropdown() {
-      this.isProfileDropdownOpen = !this.isProfileDropdownOpen;
-      if(this.isProfileDropdownOpen) {
-        this.showNotifications = false;
-      }
-    },
-    navigateTo(routeName) {
-      this.$router.push({ name: routeName })
-      this.isMobileMenuOpen = false
-      this.showNotifications = false;
-      this.isProfileDropdownOpen = false;
-    },
-    closeDropdowns(event) {
-      const notificationIcon = this.$el.querySelector('img[alt="Notifications"]');
-      const profileIcon = this.$el.querySelector('.relative.flex.items-center.space-x-2');
-      
-      if (notificationIcon && !notificationIcon.contains(event.target) && this.showNotifications) {
-        this.showNotifications = false;
-      }
-      
-      const dropdownElement = this.$el.querySelector('.relative.flex.items-center.space-x-2 > div:last-child');
-      if (profileIcon && !profileIcon.contains(event.target) && this.isProfileDropdownOpen && dropdownElement && !dropdownElement.contains(event.target)) {
-        this.isProfileDropdownOpen = false;
-      }
-    },
-    fetchUserProfile(userId) {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      try {
-        const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-        onSnapshot(userProfileRef, (userProfileSnap) => {
-          if (userProfileSnap.exists()) {
-            const profileData = userProfileSnap.data();
-            this.userName = profileData.fullName || 'Guest';
-            this.profilePic = profileData.photoURL || this.profilePic;
-          } else {
-            console.log("No user profile found for UserHeader!");
-            this.userName = 'Guest';
-            this.profilePic = '/src/Images/profile/pfp.png';
-          }
-        }, (error) => {
-          console.error("Error listening to user profile in UserHeader:", error);
-          this.userName = 'Guest';
-        });
-      } catch (error) {
-        console.error("Error setting up user profile listener in UserHeader:", error);
-        this.userName = 'Guest';
-      }
-    },
-    async signOutUser() {
-      try {
-        await signOut(auth);
-        console.log("User signed out successfully.");
-        this.$router.push({ name: 'Landing' });
-      } catch (error) {
-        console.error("Error signing out:", error);
-      }
-    }
-  },
-  mounted() {
-    document.addEventListener('click', this.closeDropdowns);
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        this.fetchUserProfile(user.uid);
-      } else {
-        this.userName = 'Guest';
-        this.profilePic = '/src/Images/profile/pfp.png';
-      }
-    });
-  },
-  beforeDestroy() {
-    document.removeEventListener('click', this.closeDropdowns);
+const tipsComponent = ref(null) 
+
+const route = useRoute()
+const router = useRouter()
+
+// dark mode
+const { isDarkMode, toggleDarkMode } = useDarkMode()
+
+// methods
+const openTipsModal = async () => {
+  showTipsModal.value = true
+  await nextTick()
+  tipsComponent.value?.fetchAndGenerate()
+}
+
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
+  if (showNotifications.value) isProfileDropdownOpen.value = false
+}
+
+const toggleProfileDropdown = () => {
+  isProfileDropdownOpen.value = !isProfileDropdownOpen.value
+  if (isProfileDropdownOpen.value) showNotifications.value = false
+}
+
+const navigateTo = (routeName) => {
+  router.push({ name: routeName })
+  isMobileMenuOpen.value = false
+  showNotifications.value = false
+  isProfileDropdownOpen.value = false
+}
+
+const closeDropdowns = (event) => {
+  const notificationIcon = document.querySelector('.relative > img[alt="Notifications"]')
+  const profileSection = document.querySelector('.relative.flex.items-center.space-x-2')
+
+  if (notificationIcon && !notificationIcon.contains(event.target) && showNotifications.value) {
+    showNotifications.value = false
+  }
+  if (profileSection && !profileSection.contains(event.target) && isProfileDropdownOpen.value) {
+    isProfileDropdownOpen.value = false
   }
 }
+
+const fetchUserProfile = (userId) => {
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
+  try {
+    const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`)
+    onSnapshot(userProfileRef, (userProfileSnap) => {
+      if (userProfileSnap.exists()) {
+        const profileData = userProfileSnap.data()
+        userName.value = profileData.fullName || 'Guest'
+        profilePic.value = profileData.photoURL || '/src/Images/profile/pfp.png'
+      } else {
+        userName.value = 'Guest'
+        profilePic.value = '/src/Images/profile/pfp.png'
+      }
+    }, (error) => {
+      console.error("Error listening to user profile in UserHeader:", error)
+      userName.value = 'Guest'
+    })
+  } catch (error) {
+    console.error("Error setting up user profile listener in UserHeader:", error)
+    userName.value = 'Guest'
+  }
+}
+
+const signOutUser = async () => {
+  try {
+    await signOut(auth)
+    router.push({ name: 'Landing' })
+  } catch (error) {
+    console.error("Error signing out:", error)
+  }
+}
+
+// lifecycle
+onMounted(() => {
+  document.addEventListener('click', closeDropdowns)
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      fetchUserProfile(user.uid)
+    } else {
+      userName.value = 'Guest'
+      profilePic.value = '/src/Images/profile/pfp.png'
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDropdowns)
+})
 </script>
+
 
 <style scoped>
 header {
