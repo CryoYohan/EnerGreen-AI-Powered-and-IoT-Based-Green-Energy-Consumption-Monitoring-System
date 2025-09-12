@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
+    class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
   >
     <AdminHeader />
     <Heading title="User Management"/>
@@ -22,25 +22,25 @@ import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
 // Metrics data (used for MetricsCard)
 const dailyMetrics = [
   {
-          title: 'Total Users',
-          icon: '/src/Images/Icons/totalusers.svg',
-          cost: '127',
-        },
-        {
-          title: 'Active Users',
-          icon: '/src/Images/Icons/users.svg',
-          cost: '123',
-        },
-        {
-          title: 'Inactive Users',
-          icon: '/src/Images/Icons/inactiveusers.svg',
-          cost: '4',
-        },
-        {
-          title: 'New Users',
-          icon: '/src/Images/Icons/newusers.svg',
-          cost: '12',
-        },
+    title: 'Total Users',
+    icon: '/src/Images/Icons/totalusers.svg',
+    cost: '127',
+  },
+  {
+    title: 'Active Users',
+    icon: '/src/Images/Icons/users.svg',
+    cost: '123',
+  },
+  {
+    title: 'Inactive Users',
+    icon: '/src/Images/Icons/inactiveusers.svg',
+    cost: '4',
+  },
+  {
+    title: 'New Users',
+    icon: '/src/Images/Icons/newusers.svg',
+    cost: '12',
+  },
 
 ];
 
