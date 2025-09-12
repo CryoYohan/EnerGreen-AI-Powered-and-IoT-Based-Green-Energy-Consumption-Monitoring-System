@@ -310,7 +310,7 @@ const userName = ref('Guest')
 const profilePic = ref('/src/Images/profile/pfp.png')
 const showTipsModal = ref(false)
 
-const tipsComponent = ref(null) // ✅ add this
+const tipsComponent = ref(null) 
 
 const route = useRoute()
 const router = useRouter()
@@ -322,7 +322,7 @@ const { isDarkMode, toggleDarkMode } = useDarkMode()
 const openTipsModal = async () => {
   showTipsModal.value = true
   await nextTick()
-  tipsComponent.value?.fetchAndGenerate() // ✅ now works
+  tipsComponent.value?.fetchAndGenerate()
 }
 
 const toggleMobileMenu = () => {

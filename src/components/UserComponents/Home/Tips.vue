@@ -3,14 +3,13 @@
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
       <div class="relative w-full max-w-4xl mx-auto flex items-end justify-center">
         <div class="absolute -bottom-10 left-0 hidden lg:block" style="width: 350px; height: auto;">
-          <img src="/src/Images/background/EnerWizard.png" alt="EnerWizard" class="w-full h-full object-contain">
+          <img :src="currentWizardImage" alt="EnerWizard" class="w-full h-full object-contain">
         </div>
 
         <div class="flex flex-col items-center justify-center w-full lg:w-3/5 p-4 md:ml-64">
           <Transition name="tip-bubble" mode="out-in">
             <div v-if="currentTip" :key="currentTipIndex"
                  class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md">
-              <span class="absolute -top-2 left-4 text-orange-400 text-xl font-bold">•</span>
               <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
               <div class="absolute -left-3 bottom-5 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10 hidden lg:block"></div>
             </div>
@@ -53,12 +52,19 @@ export default {
       required: true
     }
   },
-  emits: ['close', 'open'], // 🔹 add "open" event
+  emits: ['close', 'open'],
   setup(props, { emit }) {
     const tips = ref([]);
     const loading = ref(true);
     const error = ref(null);
     const currentTipIndex = ref(0);
+
+    // 🔹 New: Array of wizard image paths
+    const wizardImages = [
+      '/src/Images/background/EnerWizard.png',
+      '/src/Images/background/EnerWizard2.png',
+      '/src/Images/background/EnerWizard3.png'
+    ];
 
     const currentTip = computed(() => {
       return tips.value.length > 0 ? tips.value[currentTipIndex.value] : null;
@@ -66,6 +72,13 @@ export default {
 
     const isLastTip = computed(() => {
       return currentTipIndex.value === tips.value.length - 1;
+    });
+
+    // 🔹 New: Computed property to get the current wizard image
+    const currentWizardImage = computed(() => {
+      // Use Math.min to prevent an out-of-bounds error if there are more tips than images
+      const index = Math.min(currentTipIndex.value, wizardImages.length - 1);
+      return wizardImages[index];
     });
 
     const nextTip = () => {
@@ -169,7 +182,6 @@ export default {
           return;
         }
 
-        // 🔹 Find devices under this user
         const devicesRef = collection(db, `artifacts/${appId}/users/${userId}/devices`);
         const devicesSnap = await getDocs(devicesRef);
 
@@ -179,7 +191,6 @@ export default {
           return;
         }
 
-        // Just take the first device ID
         const firstDeviceId = devicesSnap.docs[0].id;
 
         const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${firstDeviceId}/appliances`);
@@ -243,13 +254,11 @@ export default {
       emit('close');
     };
 
-    // 🔹 Add openModal method
     const openModal = async () => {
-      emit('open');           // tell parent to show modal
-      await fetchAndGenerate(); // fetch tips
+      emit('open');
+      await fetchAndGenerate();
     };
 
-    // Expose openModal so parent can call it
     defineExpose({ openModal });
 
     return {
@@ -261,12 +270,12 @@ export default {
       currentTip,
       isLastTip,
       nextTip,
-      fetchAndGenerate
+      fetchAndGenerate,
+      currentWizardImage // 🔹 New: Expose the computed property to the template
     };
   },
 };
 </script>
-
 
 <style scoped>
 .font-poppins {
