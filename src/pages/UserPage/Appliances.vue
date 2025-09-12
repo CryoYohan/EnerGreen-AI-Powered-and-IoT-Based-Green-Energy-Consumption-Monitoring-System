@@ -119,7 +119,7 @@
           <div
             v-for="cluster in clusters"
             :key="cluster.id"
-            class="p-4 border rounded-lg shadow-sm bg-white dark:bg-gray-800"
+            class="p-4 border text-gray-900 rounded-lg shadow-sm bg-white dark:bg-gray-800"
           >
             <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">
               {{ cluster.user_label || "Unnamed Appliance" }}
