@@ -1,82 +1,93 @@
 <template>
   <Transition name="modal">
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
-      <div class="relative w-full max-w-sm p-4 mx-auto">
-        <button
-          @click="closeModal"
-          class="absolute top-0 right-0 p-2 text-white transition-transform transform rounded-full hover:scale-110"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+      <div class="relative w-full max-w-4xl mx-auto flex items-end justify-center">
+        <div class="absolute -bottom-10 left-0 hidden lg:block" style="width: 350px; height: auto;">
+          <img :src="currentWizardImage" alt="EnerWizard" class="w-full h-full object-contain">
+        </div>
 
-        <div class="container max-w-full lg:pr-12 lg:pl-12 font-poppins">
-          <div class="w-full p-6 bg-white rounded-md shadow dark:bg-gray-800 dark:shadow-gray-700">
-            <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">
-              Energy Saving Tip
-            </h2>
-            <div v-if="loading" class="flex flex-col items-center justify-center p-8 text-center">
-              <svg
-                class="w-8 h-8 text-gray-400 animate-spin dark:text-gray-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.000 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <p class="mt-4 text-gray-500 dark:text-gray-400">Generating personalized tip...</p>
+        <div class="flex flex-col items-center justify-center w-full lg:w-3/5 p-4 md:ml-64">
+          <Transition name="tip-bubble" mode="out-in">
+            <div v-if="currentTip" :key="currentTipIndex"
+                 class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md">
+              <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
+              <div class="absolute -left-3 bottom-5 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10 hidden lg:block"></div>
             </div>
-            <div v-else-if="error" class="p-8 text-center text-red-500 dark:text-red-400">
-              <p>Error generating tips. Please try again later.</p>
-              <p class="text-xs text-red-400">{{ error }}</p>
-            </div>
-            <div v-else class="flex flex-col gap-4 ">
-              <div v-for="(tip, index) in tips" :key="index" class="flex items-start gap-4 p-4 bg-[#F9FAFB] dark:bg-gray-900 rounded-lg">
-                <div>
-                  <img src="/src/Images/icons/bulb.svg" alt="">
-                </div>
-                <div>
-                  <p class="text-sm text-gray-700 dark:text-gray-300">
-                    {{ tip.description }}
-                  </p>
-                </div>
-              </div>
-            </div>
+          </Transition>
+
+          <div class="w-full max-w-md">
+            <button
+              @click="nextTip"
+              class="w-full px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              {{ isLastTip ? 'Got It!' : 'Next Tip' }}
+            </button>
           </div>
         </div>
       </div>
+
+      <button
+        @click="closeModal"
+        class="absolute top-4 right-4 p-2 text-white transition-transform transform rounded-full hover:scale-110 z-50"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   </Transition>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import { onAuthStateChanged } from 'firebase/auth';
-import { onSnapshot, doc, collection, query, getDocs, setDoc, getDoc } from 'firebase/firestore';
+import { ref, computed, defineExpose } from 'vue';
+import { doc, collection, getDocs, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../../firebase.js';
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 export default {
-  setup() {
+  props: {
+    showModal: {
+      type: Boolean,
+      required: true
+    }
+  },
+  emits: ['close', 'open'],
+  setup(props, { emit }) {
     const tips = ref([]);
     const loading = ref(true);
     const error = ref(null);
-    const showModal = ref(false);
-    const isTipShown = ref(false);
+    const currentTipIndex = ref(0);
+
+    // 🔹 New: Array of wizard image paths
+    const wizardImages = [
+      '/src/Images/background/EnerWizard.png',
+      '/src/Images/background/EnerWizard2.png',
+      '/src/Images/background/EnerWizard3.png'
+    ];
+
+    const currentTip = computed(() => {
+      return tips.value.length > 0 ? tips.value[currentTipIndex.value] : null;
+    });
+
+    const isLastTip = computed(() => {
+      return currentTipIndex.value === tips.value.length - 1;
+    });
+
+    // 🔹 New: Computed property to get the current wizard image
+    const currentWizardImage = computed(() => {
+      // Use Math.min to prevent an out-of-bounds error if there are more tips than images
+      const index = Math.min(currentTipIndex.value, wizardImages.length - 1);
+      return wizardImages[index];
+    });
+
+    const nextTip = () => {
+      if (isLastTip.value) {
+        closeModal();
+      } else {
+        currentTipIndex.value++;
+      }
+    };
 
     const generateTip = async (energyData, userProfileRef) => {
       let prompt = `Act as an energy efficiency expert. Provide a list of three concise, short tips to a homeowner to help them save energy. The tips must be personalized based on the following data:\n\n`;
@@ -135,31 +146,57 @@ export default {
         tips.value = [{ description: "An error occurred while generating the tips." }];
       } finally {
         loading.value = false;
-        showModal.value = true;
+        if (tips.value.length > 0) {
+          currentTipIndex.value = 0; // Reset to first tip
+        }
       }
     };
 
-    const fetchAndGenerate = async (userId, deviceId) => {
+    const fetchAndGenerate = async () => {
       loading.value = true;
       error.value = null;
+
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        error.value = "User not logged in.";
+        loading.value = false;
+        return;
+      }
+
       const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-      
+
       try {
         const profileSnap = await getDoc(userProfileRef);
         const profileData = profileSnap.data();
 
         const oneDayInMs = 24 * 60 * 60 * 1000;
-        if (profileData && profileData.tips && profileData.tipTimestamp && (Date.now() - profileData.tipTimestamp < oneDayInMs)) {
-            tips.value = profileData.tips;
-            loading.value = false;
-            showModal.value = true;
-            return;
+        if (
+          profileData &&
+          profileData.tips &&
+          profileData.tipTimestamp &&
+          Date.now() - profileData.tipTimestamp < oneDayInMs
+        ) {
+          tips.value = profileData.tips;
+          loading.value = false;
+          currentTipIndex.value = 0;
+          return;
         }
 
-        const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/appliances`);
+        const devicesRef = collection(db, `artifacts/${appId}/users/${userId}/devices`);
+        const devicesSnap = await getDocs(devicesRef);
+
+        if (devicesSnap.empty) {
+          tips.value = [{ description: "No devices found for this user." }];
+          loading.value = false;
+          return;
+        }
+
+        const firstDeviceId = devicesSnap.docs[0].id;
+
+        const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${firstDeviceId}/appliances`);
         const querySnapshot = await getDocs(consumersRef);
-        
-        let topConsumerName = 'No major appliances monitored';
+
+        let topConsumerName = "No major appliances monitored";
         let topConsumerUsage = 0;
         if (!querySnapshot.empty) {
           let topAppliance = null;
@@ -175,12 +212,12 @@ export default {
           }
         }
 
-        const readingsRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/realtime_readings`);
+        const readingsRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${firstDeviceId}/realtime_readings`);
         const readingsSnapshot = await getDocs(readingsRef);
-        
+
         let gridKwh = 0;
         let solarKwh = 0;
-        readingsSnapshot.forEach((doc) => {
+        readingsSnapshot.forEach(doc => {
           const data = doc.data();
           if (data.energySource === "Grid") {
             gridKwh += data.kwhConsumed || 0;
@@ -198,52 +235,43 @@ export default {
           topConsumerUsage,
           solarPercentage,
           gridPercentage,
-          totalKwh
+          totalKwh,
         };
-        await generateTip(energyData, userProfileRef);
 
+        await generateTip(energyData, userProfileRef);
       } catch (err) {
         console.error("Error fetching or generating tip:", err);
         error.value = err.message;
         loading.value = false;
-        showModal.value = true;
+        tips.value = [
+          { description: "An error occurred while fetching data or generating tips. Please try again later." },
+        ];
+        currentTipIndex.value = 0;
       }
     };
 
     const closeModal = () => {
-      showModal.value = false;
+      emit('close');
     };
 
-    onMounted(() => {
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          if (!isTipShown.value) {
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/userProfile/profile`);
-            const profileSnap = await getDoc(userProfileRef);
-            if (profileSnap.exists() && profileSnap.data().deviceId) {
-              await fetchAndGenerate(user.uid, profileSnap.data().deviceId);
-            } else {
-              tips.value = [{ description: "Monitor your devices to get personalized energy-saving tips!" }];
-              loading.value = false;
-              showModal.value = true;
-            }
-            isTipShown.value = true;
-          }
-        } else {
-          isTipShown.value = false;
-          tips.value = [{ description: "Sign in to get personalized energy-saving tips!" }];
-          loading.value = false;
-          showModal.value = false;
-        }
-      });
-    });
+    const openModal = async () => {
+      emit('open');
+      await fetchAndGenerate();
+    };
+
+    defineExpose({ openModal });
 
     return {
       tips,
       loading,
       error,
-      showModal,
       closeModal,
+      currentTipIndex,
+      currentTip,
+      isLastTip,
+      nextTip,
+      fetchAndGenerate,
+      currentWizardImage // 🔹 New: Expose the computed property to the template
     };
   },
 };
@@ -271,7 +299,7 @@ export default {
   }
 }
 
-/* Modal Transition Styles */
+/* Modal Transition Styles (for the whole modal overlay) */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.3s ease-in-out;
@@ -280,5 +308,20 @@ export default {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+/* Tip Bubble Transition Styles */
+.tip-bubble-enter-active,
+.tip-bubble-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.tip-bubble-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.tip-bubble-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 </style>
