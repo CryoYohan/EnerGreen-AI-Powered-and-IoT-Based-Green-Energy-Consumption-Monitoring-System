@@ -1,12 +1,12 @@
 <template>
-  <div class="w-full flex flex-col-reverse md:flex-row gap-6 md:gap-12 mt-20 md:mt-96 h-auto md:h-[62.5%]">
+  <div class="w-full flex flex-col-reverse md:flex-row gap-6 dark:bg-[#0D2535] md:gap-12 mt-20 h-auto md:h-[62.5%]">
     <!-- Image -->
     <div class="flex justify-center w-full md:w-auto md:justify-start">
       <img class="w-full md:w-[720px] h-auto md:h-[620px] object-cover" src="/src/Images/background/monitoring.png" alt="">
     </div>
 
     <!-- Text Block -->
-    <div class="w-full md:w-[60%] flex flex-col bg-[#059669] font-poppins justify-center px-6 md:px-32 py-8 md:py-0 gap-4 text-center md:text-left">
+    <div class="w-full md:w-[60%] flex flex-col bg-[#059669] dark:bg-[#0D2535] font-poppins justify-center px-6 md:px-32 py-8 md:py-0 gap-4 text-center md:text-left">
       <h3 class="text-lg text-white md:text-xl">Empower</h3>
       <h1 class="mb-4 font-semibold text-white" style="font-size: clamp(2rem, 5vw, 4.5rem);">
         Unlock the Future of Energy Management

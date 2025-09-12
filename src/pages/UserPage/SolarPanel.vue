@@ -1,7 +1,6 @@
 <template>
-  <div
-    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
-  >
+  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
+
     <UserHeader />
     <div class="flex flex-col items-center justify-between sm:flex-row">
       <Heading title="Solar Panel Integration" subtitle="Monitor and manage your solar energy system" />

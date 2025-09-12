@@ -1,5 +1,5 @@
 <template>
-  <div class="relative mt-20 md:mt-40 font-poppins">
+  <div class="relative  mt-20 md:mt-40 font-poppins">
     <!-- Background Image - Mobile Optimized -->
     <img class="w-full h-[40vh] md:h-[60vh] object-cover" 
          src="/src/Images/background/footer-img.png" 

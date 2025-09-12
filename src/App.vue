@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-[#F1F6FA]">
+  <div class="min-h-screen flex flex-col bg-[#F1F6FA] dark:bg-[#0D2535]">
     <!-- Optional: global header that you want on every page -->
     <!-- <Header class="sticky top-0 z-50 shadow-sm" /> -->
 

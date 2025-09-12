@@ -1,7 +1,6 @@
 <template>
-  <div
-    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
-  >
+  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
+
     <UserHeader />
       <Heading
         title="Simulate Solar"

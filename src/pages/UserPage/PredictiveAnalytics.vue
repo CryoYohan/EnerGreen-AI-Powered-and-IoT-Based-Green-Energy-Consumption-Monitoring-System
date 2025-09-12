@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
-  >
+  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <UserHeader />
     <div class="flex flex-col items-center justify-between sm:flex-row">
       <Heading title="Predictive Analysis" subtitle="Monitor your carbon emission and find ways to reduce them." />
@@ -35,8 +33,6 @@ import Heading from "@/components/ReusableComponents/Heading.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
-import AnalyticsBtn from "@/components/UserComponents/CarbonEmission/AnalyticsBtn.vue";
-import EmissionSourceTips from "@/components/UserComponents/CarbonEmission/EmissionSourceTips.vue";
 import BackButton from "@/components/UserComponents/PredictiveAnalysis/BackButton.vue";
 import EmissionDashboard from "@/components/ReusableComponents/EmissionCard.vue";
 

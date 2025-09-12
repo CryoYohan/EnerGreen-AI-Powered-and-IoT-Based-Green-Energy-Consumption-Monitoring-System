@@ -6,7 +6,7 @@
         v-for="(panel, index) in panels"
         :key="index"
         @click="openModal(panel)"
-        class="relative p-6 bg-white rounded-lg shadow cursor-pointer"
+        class="relative p-6 bg-white rounded-lg dark:bg-gray-800 shadow cursor-pointer"
       >
         <!-- Delete Icon -->
         <button
@@ -18,9 +18,9 @@
 
         <div class="space-y-2">
           <img :src="panel.icon" alt="" />
-          <h3 class="text-lg font-bold text-gray-800">{{ panel.name }}</h3>
+          <h3 class="text-lg font-bold dark:text-gray-200 text-gray-800">{{ panel.name }}</h3>
           <div class="flex items-center justify-between gap-2">
-            <p class="text-sm text-gray-600">{{ panel.location }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-200">{{ panel.location }}</p>
             <div class="mt-2">
               <span
                 class="inline-block px-2 py-1 text-xs rounded-full"
@@ -35,8 +35,8 @@
         </div>
 
         <div class="flex items-center justify-between mt-2 mb-4">
-          <span class="text-sm text-gray-600">Today's Usage:</span>
-          <span class="text-sm font-semibold">{{ panel.usage }} kWh</span>
+          <span class="text-sm dark:text-gray-200 text-gray-600">Today's Usage:</span>
+          <span class="text-sm dark:text-gray-200 font-semibold">{{ panel.usage }} kWh</span>
         </div>
 
         <!-- Progress Bar -->

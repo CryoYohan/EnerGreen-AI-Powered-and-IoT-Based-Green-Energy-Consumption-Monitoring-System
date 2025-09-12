@@ -1,6 +1,6 @@
 <template>
-  <div class="w-full flex flex-col md:flex-row gap-6 md:gap-12 h-auto md:h-[63%]">
-    <div class="w-full md:w-[60%] flex flex-col bg-[#059669] font-poppins justify-center p-6 md:p-32 gap-4">
+  <div class="w-full flex flex-col dark:bg-gray-900 md:flex-row gap-6 md:gap-12 h-auto md:h-[63%]">
+    <div class="w-full md:w-[60%] flex flex-col bg-[#059669] dark:bg-gray-900 font-poppins justify-center p-6 md:p-32 gap-4">
       <h3 class="text-lg text-white md:text-2xl">Integrate</h3>
       <h1 class="mb-4 font-semibold text-white"
           style="font-size: clamp(2rem, 5vw, 4.5rem);">
