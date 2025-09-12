@@ -16,7 +16,7 @@
       <div>
         <p :class="costSizeClass">{{ metric.cost }}</p>
         <p :class="definitionSizeClass">{{ metric.definition }}</p>
-      </div>
+      </div>  
     </div>
   </div>
 </template>
