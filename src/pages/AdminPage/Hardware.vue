@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
+    class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
   >
     <AdminHeader />
     <Heading title="Hardware Management"/>
