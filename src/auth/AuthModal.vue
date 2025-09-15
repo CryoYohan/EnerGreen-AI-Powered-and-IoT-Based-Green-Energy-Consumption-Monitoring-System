@@ -1,11 +1,21 @@
 <template>
   <!-- Modal Backdrop -->
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" @click.self="closeModal">
+  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+    @click.self="closeModal">
     <!-- Modal Container -->
+    <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-100">
+      <div class="text-center text-white">
+        <div
+          class="w-16 h-16 border-4 border-t-4 border-white border-solid rounded-full animate-spin border-t-transparent">
+        </div>
+        <p class="mt-4 text-lg font-semibold">Logging in...</p>
+      </div>
+    </div>
     <div class="flex w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden">
       <!-- Left Side: Welcome -->
       <div class="relative flex-col justify-center hidden w-1/2 md:flex">
-        <img src="/src/Images/background/loginbg.png" alt="Background" class="absolute inset-0 object-cover w-full h-full opacity-70">
+        <img src="/src/Images/background/loginbg.png" alt="Background"
+          class="absolute inset-0 object-cover w-full h-full opacity-70">
         <div class="relative z-10 p-8 text-black">
           <div class="flex items-center mb-6">
             <img src="/src/Images/logo/energreen-logo.svg" alt="EnerGreen Logo" class="w-12 h-12 mr-3">
@@ -50,10 +60,8 @@
             </svg>
             <p class="mb-4 text-gray-200 text-lg">Your email has been successfully verified!</p>
             <p class="mb-6 text-gray-200">You can now log in with your new account.</p>
-            <button
-              @click="switchToLogin"
-              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200"
-            >
+            <button @click="switchToLogin"
+              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
               Go to Login
             </button>
           </div>
@@ -68,17 +76,13 @@
           <div class="flex justify-center mb-6 space-x-2">
             <p>Verification link has been sent to your email.</p>
           </div>
-          <button
-            type="button"
-            @click="handleResendVerification"
-            :disabled="isResendDisabled"
+          <button type="button" @click="handleResendVerification" :disabled="isResendDisabled"
             class="w-full py-2 mt-2 font-bold transition rounded-md"
-            :class="{ 'bg-gray-400 text-gray-700 cursor-not-allowed': isResendDisabled, 'bg-white text-black hover:bg-gray-200': !isResendDisabled }"
-          >
+            :class="{ 'bg-gray-400 text-gray-700 cursor-not-allowed': isResendDisabled, 'bg-white text-black hover:bg-gray-200': !isResendDisabled }">
             {{ isResendDisabled ? `Resend in ${resendTimer}s` : 'Resend Verification Email' }}
           </button>
         </template>
-        
+
         <!-- New: Password Recovery Success State -->
         <template v-else-if="isForgotPasswordMode && isPasswordResetSuccess">
           <div class="flex flex-col items-center text-center">
@@ -89,10 +93,8 @@
             </svg>
             <p class="mb-4 text-gray-200 text-lg">Password reset link sent!</p>
             <p class="mb-6 text-gray-200">Check your email and sign in with your new password.</p>
-            <button
-              @click="switchToLogin"
-              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200"
-            >
+            <button @click="switchToLogin"
+              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
               Go to Login
             </button>
           </div>
@@ -109,10 +111,8 @@
               <input type="email" v-model="email" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
-            <button type="submit" 
-              :disabled="passwordResetCountdown > 0"
-              class="w-full py-2 mt-2 font-bold text-black transition rounded-lg"
-              :class="{
+            <button type="submit" :disabled="passwordResetCountdown > 0"
+              class="w-full py-2 mt-2 font-bold text-black transition rounded-lg" :class="{
                 'bg-white hover:bg-gray-200': passwordResetCountdown === 0,
                 'bg-gray-400 cursor-not-allowed text-gray-700': passwordResetCountdown > 0
               }">
@@ -136,84 +136,70 @@
           <form @submit.prevent="isLoginMode ? handleLogin() : handleRegister()">
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Full Name</label>
-              <input type="text" v-model="fullName" required 
+              <input type="text" v-model="fullName" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div class="mb-2">
               <label class="block text-white">Email</label>
-              <input type="text" v-model="email" required 
+              <input type="text" v-model="email" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Phone Number</label>
-              <input type="tel" v-model="phoneNumber" required 
+              <input type="tel" v-model="phoneNumber" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Address</label>
-              <input type="text" v-model="address" required 
+              <input type="text" v-model="address" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Device ID</label>
-              <input type="text" v-model="deviceId" required 
+              <input type="text" v-model="deviceId" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
- <div class="mb-4 relative">
+            <div class="mb-4 relative">
               <label for="password" class="block text-gray-300 mb-1">Password</label>
-              
+
               <!-- Input with toggle -->
-              <input 
-                :type="showPassword ? 'text' : 'password'" 
-                id="password" 
-                v-model="password"
-                required 
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black"
-              >
+              <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" required
+                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
 
               <!-- Toggle button -->
-              <button 
-                type="button" 
-                @click="showPassword = !showPassword"
-                class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none"
-              >
+              <button type="button" @click="showPassword = !showPassword"
+                class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
                 <!-- Eye open -->
                 <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" 
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" 
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
                       8.268 2.943 9.542 7-1.274 4.057-5.064 
                       7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
 
                 <!-- Eye with slash -->
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" 
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
                       0-8.268-2.943-9.542-7a9.956 9.956 
                       0 012.38-3.882m3.184-2.3A9.956 9.956 
                       0 0112 5c4.478 0 8.268 2.943 
                       9.542 7a9.956 9.956 0 01-4.338 
                       5.223M15 12a3 3 0 11-6 0 3 3 
                       0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" 
-                    d="M3 3l18 18" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
                 </svg>
               </button>
             </div>
 
-
-
-
             <div v-if="!isLoginMode" class="mb-2">
               <label class="block text-white">Confirm Password</label>
-              <input type="password" v-model="confirmPassword" required 
+              <input type="password" v-model="confirmPassword" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
-            <button type="submit" class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
+            <button type="submit"
+              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
               {{ isLoginMode ? 'Log in' : 'Sign up' }}
             </button>
             <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
@@ -235,15 +221,16 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script setup>
 import { ref, watch, defineProps, defineEmits, computed, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { 
-  auth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  auth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail
 } from '../firebase.js';
@@ -271,6 +258,7 @@ const isEmailVerifiedSuccess = ref(false);
 const isForgotPasswordMode = ref(false);
 const isPasswordResetSuccess = ref(false); // New state for success message
 const passwordResetCountdown = ref(0); // New state for countdown timer
+const isLoading = ref(false); // New state variable
 
 const fullName = ref('');
 const email = ref('');
@@ -393,14 +381,20 @@ const checkEmailVerificationStatus = async () => {
 
 const handleLogin = async () => {
   error.value = '';
+  isLoading.value = true; // Start loading
   try {
     await signInWithEmailAndPassword(auth, email.value, password.value);
     console.log('Successfully logged in.');
+
+    // The redirect will happen after this, so you can set isLoading to false here
+    isLoading.value = false;
     closeModal();
+
     // Redirect the user to the Home page
     router.push('/home');
   } catch (err) {
     console.error('Login error:', err.message);
+    isLoading.value = false; // Stop loading on error
     error.value = err.message;
   }
 };
@@ -411,7 +405,7 @@ const handleRegister = async () => {
     error.value = "Passwords don't match!";
     return;
   }
-  
+
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
@@ -425,18 +419,18 @@ const handleRegister = async () => {
       deviceId: deviceId.value, // Save the device ID
     });
     console.log('User profile and device ID data saved to Firestore.');
-    
+
     // Immediately send a verification email
     await sendEmailVerification(userCredential.user);
-    
+
     console.log('Successfully registered and verification email sent.');
     isVerifyingEmail.value = true;
     startResendTimer();
-    
+
     // Start polling to check for verification
     if (verificationPollInterval) clearInterval(verificationPollInterval); // Clear any old timer
     verificationPollInterval = setInterval(checkEmailVerificationStatus, 2000); // Poll every 2 seconds
-    
+
   } catch (err) {
     console.error('Registration error:', err.message);
     error.value = err.message;
@@ -451,7 +445,7 @@ const startResendTimer = () => {
 
   isResendDisabled.value = true;
   resendTimer.value = 60;
-  
+
   timerInterval = setInterval(() => {
     if (resendTimer.value > 0) {
       resendTimer.value--;
@@ -499,9 +493,9 @@ const startPasswordResetCountdown = () => {
   if (passwordResetTimerInterval) {
     clearInterval(passwordResetTimerInterval);
   }
-  
+
   passwordResetCountdown.value = 60;
-  
+
   passwordResetTimerInterval = setInterval(() => {
     if (passwordResetCountdown.value > 0) {
       passwordResetCountdown.value--;
@@ -525,9 +519,11 @@ onUnmounted(() => {
   border-radius: 50%;
   display: block;
   stroke-width: 2;
-  stroke: #fff; /* White stroke for visibility on green background */
+  stroke: #fff;
+  /* White stroke for visibility on green background */
   stroke-miterlimit: 10;
-  box-shadow: inset 0px 0px 0px #059669; /* EnerGreen color for the fill effect */
+  box-shadow: inset 0px 0px 0px #059669;
+  /* EnerGreen color for the fill effect */
   animation: fill .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) 1s forwards;
 }
 
@@ -536,7 +532,8 @@ onUnmounted(() => {
   stroke-dashoffset: 166;
   stroke-width: 2;
   stroke-miterlimit: 10;
-  stroke: #fff; /* White circle */
+  stroke: #fff;
+  /* White circle */
   fill: none;
   animation: stroke 0.6s cubic-bezier(0.650, 0.000, 0.450, 1.000) forwards;
 }
@@ -546,7 +543,8 @@ onUnmounted(() => {
   stroke-dasharray: 48;
   stroke-dashoffset: 48;
   animation: stroke 0.3s cubic-bezier(0.650, 0.000, 0.450, 1.000) 0.8s forwards;
-  stroke: #fff; /* White checkmark */
+  stroke: #fff;
+  /* White checkmark */
 }
 
 @keyframes stroke {
@@ -557,7 +555,8 @@ onUnmounted(() => {
 
 @keyframes fill {
   100% {
-    box-shadow: inset 0px 0px 0px 30px #059669; /* Fills with EnerGreen color */
+    box-shadow: inset 0px 0px 0px 30px #059669;
+    /* Fills with EnerGreen color */
   }
 }
 </style>
