@@ -1,17 +1,41 @@
 <template>
   <Transition name="modal">
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
-      <div class="relative w-full max-w-4xl mx-auto flex items-end justify-center">
-        <div class="absolute -bottom-10 left-0 hidden lg:block" style="width: 350px; height: auto;">
-          <img :src="currentWizardImage" alt="EnerWizard" class="w-full h-full object-contain">
+      <div class="relative w-full max-w-5xl mx-auto flex flex-col lg:flex-row items-center justify-center p-4">
+
+        <!-- Desktop wizard (unchanged) -->
+        <div class="hidden lg:block lg:w-1/2 lg:flex lg:justify-end lg:items-end pr-8">
+          <img :src="currentWizardImage" alt="EnerWizard" class="max-w-xs xl:max-w-sm h-auto object-contain">
         </div>
 
-        <div class="flex flex-col items-center justify-center w-full lg:w-3/5 p-4 md:ml-64">
+        <div class="flex flex-col items-center justify-center w-full lg:w-1/2 p-4">
+
+          <!-- Mobile layout with wizard on left and bubble above -->
+          <div class="block lg:hidden w-full flex flex-row items-end justify-start mb-6">
+            <!-- Wizard image on left for mobile -->
+            <div class="w-32 h-32 mr-4 flex-shrink-0">
+              <img :src="currentWizardImage" alt="EnerWizard" class="w-full h-full object-contain">
+            </div>
+            
+            <!-- Conversation bubble -->
+            <Transition name="tip-bubble" mode="out-in">
+              <div v-if="currentTip" :key="currentTipIndex"
+                   class="relative bg-gray-800 dark:bg-gray-700 mb-10 text-white p-4 rounded-2xl shadow-lg max-w-xs"
+                   style="border-bottom-left-radius: 4px;">
+                <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
+                
+                <!-- Bubble tail pointing to wizard -->
+                <div class="absolute -left-2 bottom-2 w-4 h-4 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Desktop tip (unchanged) -->
           <Transition name="tip-bubble" mode="out-in">
             <div v-if="currentTip" :key="currentTipIndex"
-                 class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md">
+                 class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md hidden lg:block">
               <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
-              <div class="absolute -left-3 bottom-5 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10 hidden lg:block"></div>
+              <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
             </div>
           </Transition>
 

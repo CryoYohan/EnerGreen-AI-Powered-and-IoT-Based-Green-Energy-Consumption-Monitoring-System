@@ -17,7 +17,7 @@
     </button>
 
     <div v-if="isTraining" class="mt-4 w-full flex flex-col items-center">
-      <img src="/src/Images/ai_brain.gif" alt="AI Training" class="w-24 h-24 mb-2" />
+      <img src="/src/Images/gif/ai_brain.gif" alt="AI Training" class="w-24 h-24 mb-2" />
       <p class="text-center text-gray-500 text-sm max-w-xs">
         "{{ currentQuote }}"
       </p>
