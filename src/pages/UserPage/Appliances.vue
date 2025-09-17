@@ -6,6 +6,8 @@
         title="Manage Your Appliances"
         subtitle="Manage and monitor your connected devices"
       />
+   
+
       <ReusableBarChart
         title="Appliances Electricity Usage"
         :activePeriod="activePeriod"
@@ -18,7 +20,6 @@
         xAxisLabel="Time"
         tooltipUnit="kWh"
       />
-
       <div class="container max-w-full p-4 mx-auto lg:px-12">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
           <div class="flex items-center gap-3 w-full sm:w-[70%]">
@@ -64,6 +65,26 @@
           </div>
         </div>
       </div>
+       <!-- Appliance Count Container -->
+      <div class="container max-w-full p-4 mx-auto lg:px-12 mt-4">
+        <div class="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm px-6 py-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">
+              Total Appliances
+            </h2>
+            <span class="text-2xl font-extrabold text-[#059669]">
+              {{ counts.total }}
+            </span>
+          </div>
+
+          <!-- Breakdown -->
+          <div class="flex justify-between mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <span>ON: <b class="text-green-600">{{ counts.on }}</b></span>
+            <span>OFF: <b class="text-red-600">{{ counts.off }}</b></span>
+          </div>
+        </div>
+      </div>
+
 
       <div class="container max-w-full mx-auto mt-8 flex justify-center">
         <TrainModelButton />
@@ -91,6 +112,7 @@
         <h2 class="text-xl font-bold text-gray-800">No Appliances Found</h2>
         <p class="mt-2">It looks like you haven't added any appliances yet. Click "Add Appliance" to get started.</p>
       </div>
+      
       
       <AppliancesCard
         v-else
@@ -299,6 +321,7 @@ const selectedAppliance = ref(null);
 const clusters = ref([]); // new for suggested appliances
 const clustering = ref(false); // <-- NEW: track clustering state
 const clusterMessage = ref(""); // <-- NEW: status message
+const counts = ref({ total: 0, on: 0, off: 0 }); // ✅ FIX
 
 // --- Fetch clusters ---
 const fetchClusters = async () => {
@@ -321,6 +344,42 @@ const fetchClusters = async () => {
     console.error("Error fetching clusters:", err);
   }
 };
+
+// For testing ONLY!
+// ✅ Count ON/OFF events inside this user's appliance_predictions
+const getPredictionsCounts = async () => {
+  try {
+    const predictionsRef = getAppliancePredictionsRef();
+    if (!predictionsRef) return;
+
+    const snapshot = await getDocs(predictionsRef);
+
+    let onCount = 0;
+    let offCount = 0;
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.event_type === "ON") {
+        onCount++;
+      } else if (data.event_type === "OFF") {
+        offCount++;
+      }
+    });
+
+    counts.value = {
+      total: snapshot.size,
+      on: onCount,
+      off: offCount,
+    };
+
+    console.log("✅ Counts updated:", counts.value);
+  } catch (error) {
+    console.error("Error counting predictions:", error);
+    counts.value = { total: 0, on: 0, off: 0 };
+  }
+};
+
+// Remove this after getting the right amount of data for training set
 
 
 const dailyData = [
@@ -739,6 +798,8 @@ onMounted(() => {
 
       // once deviceId discovery attempted, fetch existing signatures (if deviceId found)
       await fetchApplianceSignatures();
+
+      await getPredictionsCounts(); // ✅ update totals
 
       // Fetch Clustered Unidentified Appliances
       await fetchClusters(); // NEW
