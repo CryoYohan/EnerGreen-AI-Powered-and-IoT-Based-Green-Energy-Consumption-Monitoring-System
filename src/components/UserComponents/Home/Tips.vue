@@ -50,14 +50,44 @@
         </div>
       </div>
 
-      <button
-        @click="closeModal"
-        class="absolute top-4 right-4 p-2 text-white transition-transform transform rounded-full hover:scale-110 z-50"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <!-- 🔹 Top-right controls (Refresh + Close) -->
+      <div class="absolute top-4 right-4 flex space-x-2 z-50">
+        <!-- Refresh Button -->
+        <button
+          @click="refreshTips"
+          class="p-2 text-white transition-transform transform rounded-full hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="loading"
+          title="Refresh Tips"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            :class="{ 'animate-spin-slow': loading }"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v6h6M20 20v-6h-6M20 4l-6 6M4 20l6-6"
+            />
+          </svg>
+        </button>
+
+        <!-- Close Button -->
+        <button
+          @click="closeModal"
+          class="p-2 text-white transition-transform transform rounded-full hover:scale-110"
+          title="Close"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
   </Transition>
 </template>
@@ -83,7 +113,6 @@ export default {
     const error = ref(null);
     const currentTipIndex = ref(0);
 
-    // 🔹 New: Array of wizard image paths
     const wizardImages = [
       '/src/Images/background/EnerWizard.png',
       '/src/Images/background/EnerWizard2.png',
@@ -98,9 +127,7 @@ export default {
       return currentTipIndex.value === tips.value.length - 1;
     });
 
-    // 🔹 New: Computed property to get the current wizard image
     const currentWizardImage = computed(() => {
-      // Use Math.min to prevent an out-of-bounds error if there are more tips than images
       const index = Math.min(currentTipIndex.value, wizardImages.length - 1);
       return wizardImages[index];
     });
@@ -113,12 +140,14 @@ export default {
       }
     };
 
+    // ✅ Stable generateTip logic
     const generateTip = async (energyData, userProfileRef) => {
-      let prompt = `Act as an energy efficiency expert. Provide a list of three concise, short tips to a homeowner to help them save energy. The tips must be personalized based on the following data:\n\n`;
+      let prompt = `Act as an energy efficiency expert. Provide a list of three concise, short energy-saving tips. 
+The tips must be personalized based on the following data:\n\n`;
       prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
       prompt += `- Energy Source Breakdown: ${energyData.solarPercentage.toFixed(0)}% Solar, ${energyData.gridPercentage.toFixed(0)}% Grid\n`;
       prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
-      prompt += `Do not use any greetings or sign-offs. Provide the tips in a JSON array format with a 'description' property for each tip.`;
+      prompt += `Each tip must be an object with a "description" field in JSON format. Do not include greetings or extra commentary.`;
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
@@ -129,13 +158,7 @@ export default {
           responseMimeType: "application/json",
           responseSchema: {
             type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                "description": { "type": "STRING" }
-              },
-              "propertyOrdering": ["description"]
-            }
+            items: { type: "OBJECT", properties: { "description": { "type": "STRING" } } }
           }
         }
       };
@@ -144,23 +167,18 @@ export default {
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-          throw new Error(`API call failed with status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
 
         const result = await response.json();
         const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
         if (jsonText) {
           const generatedTips = JSON.parse(jsonText);
           tips.value = generatedTips;
-
-          await setDoc(userProfileRef, {
-            tips: generatedTips,
-            tipTimestamp: Date.now()
-          }, { merge: true });
+          await setDoc(userProfileRef, { tips: generatedTips, tipTimestamp: Date.now() }, { merge: true });
         } else {
           tips.value = [{ description: "Could not generate a tip based on current data." }];
         }
@@ -170,13 +188,12 @@ export default {
         tips.value = [{ description: "An error occurred while generating the tips." }];
       } finally {
         loading.value = false;
-        if (tips.value.length > 0) {
-          currentTipIndex.value = 0; // Reset to first tip
-        }
+        if (tips.value.length > 0) currentTipIndex.value = 0;
       }
     };
 
-    const fetchAndGenerate = async () => {
+    // ✅ Stable fetchAndGenerate logic (uses userProfile.deviceId, daily caching)
+    const fetchAndGenerate = async (force = false) => {
       loading.value = true;
       error.value = null;
 
@@ -193,31 +210,25 @@ export default {
         const profileSnap = await getDoc(userProfileRef);
         const profileData = profileSnap.data();
 
+        // check if cached tips are still valid
         const oneDayInMs = 24 * 60 * 60 * 1000;
-        if (
-          profileData &&
-          profileData.tips &&
-          profileData.tipTimestamp &&
-          Date.now() - profileData.tipTimestamp < oneDayInMs
-        ) {
+        if (!force && profileData?.tips && profileData?.tipTimestamp && Date.now() - profileData.tipTimestamp < oneDayInMs) {
           tips.value = profileData.tips;
           loading.value = false;
           currentTipIndex.value = 0;
           return;
         }
 
-        const devicesRef = collection(db, `artifacts/${appId}/users/${userId}/devices`);
-        const devicesSnap = await getDocs(devicesRef);
-
-        if (devicesSnap.empty) {
-          tips.value = [{ description: "No devices found for this user." }];
+        if (!profileData?.deviceId) {
+          tips.value = [{ description: "No device linked to your account. Please monitor your devices to get tips!" }];
           loading.value = false;
           return;
         }
 
-        const firstDeviceId = devicesSnap.docs[0].id;
+        const deviceId = profileData.deviceId;
 
-        const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${firstDeviceId}/appliances`);
+        // Fetch appliances
+        const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/appliances`);
         const querySnapshot = await getDocs(consumersRef);
 
         let topConsumerName = "No major appliances monitored";
@@ -236,51 +247,37 @@ export default {
           }
         }
 
-        const readingsRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${firstDeviceId}/realtime_readings`);
+        // Fetch realtime readings
+        const readingsRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/realtime_readings`);
         const readingsSnapshot = await getDocs(readingsRef);
 
-        let gridKwh = 0;
-        let solarKwh = 0;
+        let gridKwh = 0, solarKwh = 0;
         readingsSnapshot.forEach(doc => {
           const data = doc.data();
-          if (data.energySource === "Grid") {
-            gridKwh += data.kwhConsumed || 0;
-          } else if (data.energySource === "Solar") {
-            solarKwh += data.kwhConsumed || 0;
-          }
+          if (data.energySource === "Grid") gridKwh += data.kwhConsumed || 0;
+          else if (data.energySource === "Solar") solarKwh += data.kwhConsumed || 0;
         });
 
         const totalKwh = gridKwh + solarKwh;
         const solarPercentage = totalKwh > 0 ? (solarKwh / totalKwh) * 100 : 0;
         const gridPercentage = totalKwh > 0 ? (gridKwh / totalKwh) * 100 : 0;
 
-        const energyData = {
-          topConsumerName,
-          topConsumerUsage,
-          solarPercentage,
-          gridPercentage,
-          totalKwh,
-        };
-
+        const energyData = { topConsumerName, topConsumerUsage, solarPercentage, gridPercentage, totalKwh };
         await generateTip(energyData, userProfileRef);
       } catch (err) {
         console.error("Error fetching or generating tip:", err);
         error.value = err.message;
         loading.value = false;
-        tips.value = [
-          { description: "An error occurred while fetching data or generating tips. Please try again later." },
-        ];
+        tips.value = [{ description: "An error occurred while fetching data or generating tips. Please try again later." }];
         currentTipIndex.value = 0;
       }
     };
 
-    const closeModal = () => {
-      emit('close');
-    };
+    const closeModal = () => emit('close');
+    const openModal = async () => { emit('open'); await fetchAndGenerate(); };
 
-    const openModal = async () => {
-      emit('open');
-      await fetchAndGenerate();
+    const refreshTips = () => {
+      if (!loading.value) fetchAndGenerate(true);
     };
 
     defineExpose({ openModal });
@@ -295,26 +292,16 @@ export default {
       isLastTip,
       nextTip,
       fetchAndGenerate,
-      currentWizardImage // 🔹 New: Expose the computed property to the template
+      refreshTips,
+      currentWizardImage
     };
   },
 };
 </script>
 
 <style scoped>
-.font-poppins {
-  font-family: 'Poppins', sans-serif;
-}
-.rounded-md {
-  border-radius: 0.375rem;
-}
-.shadow {
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
+/* 🔹 Slow spin animation for wizardly effect */
+@keyframes spin-slow {
   from {
     transform: rotate(0deg);
   }
@@ -323,29 +310,8 @@ export default {
   }
 }
 
-/* Modal Transition Styles (for the whole modal overlay) */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease-in-out;
+.animate-spin-slow {
+  animation: spin-slow 1.5s linear infinite;
 }
 
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-/* Tip Bubble Transition Styles */
-.tip-bubble-enter-active,
-.tip-bubble-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-.tip-bubble-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-.tip-bubble-leave-to {
-  opacity: 0;
-  transform: translateY(-20px);
-}
 </style>
