@@ -252,6 +252,15 @@
                 </button>
               </li>
               <li>
+              <button
+                  @click="openTipsModal"
+                  class="flex items-center w-full gap-1 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500"
+              >
+                <img src="/src/Images/icons/bulb.svg" class="w-5 h-5" alt="">
+                Tips
+              </button>
+              </li>
+              <li>
                 <button
                   @click="toggleDarkMode"
                   class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500"

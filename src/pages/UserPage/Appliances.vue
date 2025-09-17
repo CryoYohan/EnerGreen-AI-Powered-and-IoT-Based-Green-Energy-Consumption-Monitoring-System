@@ -58,10 +58,20 @@
             </button>
 
             <!-- Display cluster status message -->
-            <div v-if="clusterMessage" class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              {{ clusterMessage }}
+            <div v-if="clustering" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div class="flex flex-col items-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center">
+                <div v-if="clusterMessage === 'Not enough unidentified signatures to form clusters. At least 2 are required.'">
+                  <img src="/src/Images/gif/plug.gif" alt="pluggif" class="w-24 h-24">
+                </div>
+                <div v-else>
+                  <div class="w-12 h-12 mb-4 border-4 border-t-4 border-[#2563EB] border-solid rounded-full animate-spin border-t-transparent"></div>
+                </div>
+                
+                <div class="mt-2 text-sm text-center text-gray-600 dark:text-gray-300">
+                  {{ clusterMessage }}
+                </div>
+              </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -662,8 +672,6 @@ const clusterSignatures = async () => {
     }, 4000); // auto-hide after 4s
   }
 };
-
-
 
 
 // --- updateLabel: mark prediction as confirmed + add confirmed_label (no hardcoded user/device) ---
