@@ -91,18 +91,22 @@ const solarKwh = ref(0);
 const topConsumers = ref([]);
 const loadingConsumers = ref(true);
 
+// Reactive state for current VECO rate
+const currentRate = ref(0); // ₱ per kWh
+
+
 // Metrics Card Data
 const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
     icon: '/src/Images/Icons/Peso.svg',
-    cost: '₱12.30',
+    cost: `₱${currentRate.value.toFixed(2)}`,  // ✅ Dynamic from Firestore
     definition: 'Current rate'
   },
   {
     title: 'Consumption',
     icon: '/src/Images/Icons/electric.svg',
-    cost: `${totalKwhToday.value.toFixed(4)} kWh`,  // ✅ Now accurate
+    cost: `${totalKwhToday.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {
@@ -124,6 +128,25 @@ const dailyMetrics = computed(() => [
     definition: 'Today'
   },
 ]);
+
+// Fetch Function to get kwH price from Firestore
+const fetchUtilityRate = () => {
+  const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates/veco`);
+  
+  onSnapshot(rateRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // assuming the document has a field "rate" in ₱ per kWh
+      currentRate.value = data.vecoKwhRate || 0;
+    } else {
+      console.warn("No VECO rate document found!");
+      currentRate.value = 0;
+    }
+  }, (error) => {
+    console.error("Error fetching VECO rate:", error);
+    currentRate.value = 0;
+  });
+};
 
 
 const showOnboarding = ref(false);
@@ -380,6 +403,7 @@ onMounted(async () => {
       userName.value = 'Guest';
     }
   });
+  fetchUtilityRate();
 
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
 
