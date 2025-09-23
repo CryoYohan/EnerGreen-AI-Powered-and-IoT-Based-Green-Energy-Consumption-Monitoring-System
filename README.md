@@ -1,5 +1,8 @@
 # EnerGreen
 
+<img width="1351" height="647" alt="image" src="https://github.com/user-attachments/assets/bd5ac2f5-2426-4cad-8bf8-a817308b03c0" />
+
+
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Recommended IDE Setup
