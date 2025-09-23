@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-col flex w-[100%] self-center p-5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300 my-8">
+  <div class="flex-col flex w-[96%] self-center p-5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300 my-8">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6">
       <div class="mb-4 sm:mb-0">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">{{ chartTitle }}</h2>
