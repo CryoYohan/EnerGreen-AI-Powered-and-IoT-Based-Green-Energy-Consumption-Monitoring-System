@@ -21,7 +21,7 @@
     <div class="flex justify-center w-full md:w-auto md:justify-start relative z-10">
       <div class="relative group">
         <img 
-          class="w-full md:w-[720px] h-auto md:h-[620px] object-cover rounded-r-2xl
+          class="w-full md:w-[720px] h-auto md:h-[720px] object-cover rounded-r-2xl
                  transform transition-all duration-500 group-hover:scale-105"
           src="/src/Images/background/monitoring.png" 
           alt="Energy Monitoring Dashboard"
@@ -33,9 +33,9 @@
     </div>
 
     <!-- Text Block -->
-    <div class="w-full md:w-[60%] flex flex-col bg-[#059669] dark:bg-gray-800 font-poppins justify-center px-6 md:px-32 py-8 md:py-0 gap-6 text-center md:text-left relative z-10">
+    <div class="w-full lg:h-[720px] md:w-[60%] flex flex-col bg-[#059669] dark:bg-gray-800 font-poppins justify-center px-6 md:px-32 py-8 md:py-0 gap-6 text-center md:text-left relative z-10">
       <!-- Animated header -->
-      <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 w-fit mx-auto md:mx-0">
+      <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full p-10 backdrop-blur-sm border border-white/20 w-fit mx-auto md:mx-0">
         <div class="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
         <h3 class="text-sm font-medium text-white md:text-lg">Smart Energy</h3>
       </div>

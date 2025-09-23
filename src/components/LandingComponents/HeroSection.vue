@@ -4,7 +4,7 @@
       <div class="flex flex-col items-center justify-center h-full gap-4 py-12 text-center md:gap-6">
         <!-- Animated Title -->
         <div class="relative">
-          <h1 class="text-7xl font-black md:text-7xl lg:text-9xl font-poppins dark:text-gray-100 animate-fade-in-up">
+          <h1 class="text-7xl font-black md:text-7xl lg:text-[200px] font-poppins dark:text-gray-100 animate-fade-in-up">
             <span class="text-[#0D2535] dark:text-white tracking-tight">
               <span class="inline-block animate-bounce-slow delay-100">Track.</span>
               <span class="inline-block animate-bounce-slow delay-300">Save.</span>

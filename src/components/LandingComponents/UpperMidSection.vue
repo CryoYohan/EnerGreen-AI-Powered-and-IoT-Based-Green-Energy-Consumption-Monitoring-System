@@ -1,8 +1,7 @@
 <template>
-  <div id="about" class="w-full min-h-[70vh] flex items-center bg-[#059669] dark:bg-gray-800 overflow-hidden relative">
-    <div class="mx-auto px-4 w-[73%] sm:px-6 mt-0 sm:mt-60 z-10">
+  <div id="about" class="w-full min-h-screen flex items-center bg-[#059669] dark:bg-gray-800 overflow-hidden relative">
+    <div class="mx-auto px-4 w-[73%] sm:px-6 mt-0 sm:mt-30 z-10">
       <div class="flex flex-col items-center gap-8 py-12 lg:flex-row lg:gap-10 lg:py-0">
-        <!-- Left Column - Title -->
         <div class="w-full text-center lg:w-1/2 sm:text-left">
           <h2 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white dark:text-white font-poppins leading-[1.5] tracking-tight">
             <span class="inline-block opacity-0 animate-fade-in-up">Empower</span> 
@@ -13,14 +12,12 @@
             <span class="inline-block opacity-0 animate-fade-in-up delay-600 text-green-200">EnerGreen</span>
           </h2>
           
-          <!-- Subtle decorative element -->
           <div class="mt-6 opacity-0 animate-fade-in delay-800">
             <div class="w-16 h-1 bg-green-300 rounded-full mx-auto sm:mx-0"></div>
           </div>
         </div>
 
-        <!-- Right Column - Description -->
-        <div class="w-full text-center lg:w-1/2 sm:text-left">
+        <div class="w-full text-center font-poppins lg:w-1/2 sm:text-left">
           <div class="opacity-0 animate-fade-in-up delay-1000">
             <p class="text-base leading-relaxed text-white dark:text-white font-poppins sm:text-lg md:text-xl">
               Discover how EnerGreen's monitoring system can help you reduce electricity costs 
@@ -28,7 +25,6 @@
               energy-saving tips tailored to your needs.
             </p>
             
-            <!-- Subtle stats or features -->
             <div class="mt-6 flex flex-wrap gap-6 justify-center sm:justify-start">
               <div class="flex items-center gap-2 opacity-0 animate-fade-in delay-1200">
                 <div class="w-2 h-2 bg-green-300 rounded-full"></div>
@@ -36,7 +32,7 @@
               </div>
               <div class="flex items-center gap-2 opacity-0 animate-fade-in delay-1400">
                 <div class="w-2 h-2 bg-green-300 rounded-full"></div>
-                <span class="text-green-100 text-sm font-medium">Cost Reduction</span>
+                <span class="text-green-100 text-sm font-medium">Cost Prediction</span>
               </div>
               <div class="flex items-center gap-2 opacity-0 animate-fade-in delay-1600">
                 <div class="w-2 h-2 bg-green-300 rounded-full"></div>
@@ -48,23 +44,23 @@
       </div>
     </div>
     
-    <!-- Tiny low opacity bubbles -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <!-- Large subtle background elements -->
       <div class="absolute top-1/4 left-10 w-32 h-32 bg-green-400 rounded-full opacity-5 animate-pulse-slow"></div>
       <div class="absolute bottom-1/3 right-20 w-24 h-24 bg-green-300 rounded-full opacity-5 animate-pulse-slow delay-1000"></div>
       
-      <!-- Tiny floating bubbles -->
-      <div v-for="i in 25" :key="i" 
-           class="absolute rounded-full opacity-10 animate-float-bubble"
-           :class="getBubbleSize(i)"
-           :style="{
-             left: Math.random() * 100 + '%',
-             top: Math.random() * 100 + '%',
-             animationDelay: (Math.random() * 10) + 's',
-             animationDuration: (15 + Math.random() * 15) + 's',
-             backgroundColor: getBubbleColor(i)
-           }">
+      <div 
+        v-for="i in 50" 
+        :key="i" 
+        class="absolute rounded-full opacity-10 animate-float-bubble"
+        :class="getBubbleSize(i)"
+        :style="{
+          left: Math.random() * 100 + '%',
+          top: Math.random() * 100 + '%',
+          animationDelay: (Math.random() * 10) + 's',
+          animationDuration: (15 + Math.random() * 15) + 's',
+          backgroundColor: getBubbleColor(i)
+        }"
+      >
       </div>
     </div>
   </div>

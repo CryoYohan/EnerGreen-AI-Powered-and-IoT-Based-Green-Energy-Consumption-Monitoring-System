@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col dark:bg-gray-900 md:flex-row gap-6 md:gap-12 h-auto md:h-[63%] relative overflow-hidden">
+  <div class="w-full flex flex-col dark:bg-gray-900 font-poppins md:flex-row gap-6 md:gap-12 h-auto md:h-[63%] relative overflow-hidden">
     <!-- Background Elements -->
     <div class="absolute inset-0 pointer-events-none">
       <!-- Floating solar particles -->
@@ -29,9 +29,9 @@
 
       <h1 class="font-semibold text-white leading-tight"
           style="font-size: clamp(2rem, 5vw, 4.5rem);">
-        <span class="inline-block opacity-0 animate-fade-in-up delay-200">Seamless Solar Panel</span>
+        <span class="inline-block opacity-0 font-poppins animate-fade-in-up delay-200">Seamless Solar Panel</span>
         <br>
-        <span class="inline-block opacity-0 animate-fade-in-up delay-400 text-yellow-200">Integration for Smart Savings</span>
+        <span class="inline-block opacity-0 font-poppins animate-fade-in-up delay-400 text-yellow-200">Integration for Smart Savings</span>
       </h1>
       
       <p class="text-base text-white/90 md:text-lg leading-relaxed opacity-0 animate-fade-in-up delay-600">
