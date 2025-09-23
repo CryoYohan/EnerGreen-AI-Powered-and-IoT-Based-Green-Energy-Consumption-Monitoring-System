@@ -31,7 +31,7 @@
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Estimated Savings:</span>
-                <span class="font-semibold text-gray-800 dark:text-gray-100">₱ {{ estimatedSavings.toFixed(2) }}</span>
+                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ pesoFormatter.format(estimatedSavings) }}</span>
               </div>
             </div>
           </div>
@@ -77,7 +77,7 @@
 import DoughnutChart from '@/components/ReusableComponents/DoughnutChart.vue';
 import { computed } from 'vue';
 
-// Define the props that this component will receive from its parent
+// Props from parent
 const props = defineProps({
   gridKwh: {
     type: Number,
@@ -94,26 +94,37 @@ const props = defineProps({
   loadingConsumers: {
     type: Boolean,
     required: true,
-  }
+  },
+  pesoFormatter: {
+    type: Function,
+    required: true,
+  },
+  estimatedSavings: {
+    type: Number,
+    required: true,
+  },
 });
 
-const energySourceData = computed(() => {
-  const total = props.gridKwh + props.solarKwh;
-  const gridPercentage = total > 0 ? (props.gridKwh / total) * 100 : 0;
-  const solarPercentage = total > 0 ? (props.solarKwh / total) * 100 : 0;
-  
-  return {
-    labels: ["Solar", "Grid"],
-    datasets: [
-      {
-        data: [solarPercentage, gridPercentage],
-        backgroundColor: ["#10B981", "#3B82F6"],
-        borderWidth: 0,
-        cutout: "60%",
-      },
-    ],
-  };
-});
+const totalKwh = computed(() => props.gridKwh + props.solarKwh);
+
+const solarPercentage = computed(() =>
+  totalKwh.value > 0 ? (props.solarKwh / totalKwh.value) * 100 : 0
+);
+const gridPercentage = computed(() =>
+  totalKwh.value > 0 ? (props.gridKwh / totalKwh.value) * 100 : 0
+);
+
+const energySourceData = computed(() => ({
+  labels: ["Solar", "Grid"],
+  datasets: [
+    {
+      data: [solarPercentage.value, gridPercentage.value],
+      backgroundColor: ["#10B981", "#3B82F6"],
+      borderWidth: 0,
+      cutout: "60%",
+    },
+  ],
+}));
 
 const doughnutOptions = {
   responsive: true,
@@ -129,16 +140,8 @@ const doughnutOptions = {
     },
   },
 };
-
-const totalKwh = computed(() => props.gridKwh + props.solarKwh);
-const solarPercentage = computed(() => totalKwh.value > 0 ? (props.solarKwh / totalKwh.value) * 100 : 0);
-const gridPercentage = computed(() => totalKwh.value > 0 ? (props.gridKwh / totalKwh.value) * 100 : 0);
-const estimatedSavings = computed(() => {
-  // Assuming a rough rate of ₱10 per kWh for the grid
-  const gridRate = 10;
-  return props.solarKwh * gridRate;
-});
 </script>
+
 
 <style scoped>
 /* You can add component-specific styles here if needed */
