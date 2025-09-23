@@ -1,17 +1,17 @@
-<template class="dark:bg-[#0D2535]" >
+<template class="dark:bg-gray-900">
   <Header class="sticky top-0 z-50 shadow-sm" ref="header" />
-  <div>
+  <div class="dark:bg-gray-900">
     <HeroSection 
+      data-aos="fade-up"
       @open-login-modal="showLoginModal = true"
       @toggle-dark-mode="toggleDarkMode" 
     />
-    <FloatSection class="w-full" />
-    <UpperMidSection class="w-full" />
-    <MidSection class="w-full" />
-    <LowerMidSection class="w-full" />
-    <BottomSection class="w-full" />
-    <UpperFooter @open-login-modal="showLoginModal = true" />
-    <Footer />
+    <UpperMidSection class="w-full" data-aos="fade-up" data-aos-delay="200" />
+    <MidSection class="w-full" data-aos="fade-up" data-aos-delay="400" />
+    <LowerMidSection class="w-full" data-aos="fade-up" data-aos-delay="400" />
+    <BottomSection class="w-full" data-aos="fade-up" data-aos-delay="400" />
+    <UpperFooter @open-login-modal="showLoginModal = true" data-aos="fade-up" />
+    <Footer data-aos="fade-up" />
     <AuthModal 
       :isOpen="showLoginModal" 
       @close="showLoginModal = false" 
