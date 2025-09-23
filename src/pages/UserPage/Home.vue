@@ -17,9 +17,18 @@
       :weeklyData="weeklyData"
       :monthlyData="monthlyData"
       :yearlyData="yearlyData"
+      :dailyCostData="dailyCostData"
+      :weeklyCostData="weeklyCostData"
+      :monthlyCostData="monthlyCostData"
+      :yearlyCostData="yearlyCostData"
+      :dailySavingsData="dailySavingsData"
+      :weeklySavingsData="weeklySavingsData"
+      :monthlySavingsData="monthlySavingsData"
+      :yearlySavingsData="yearlySavingsData"
       xAxisLabel="Time"
       tooltipUnit="kWh"
     />
+
     <SourcesChart 
       :grid-kwh="gridKwh" 
       :solar-kwh="solarKwh" 
@@ -97,6 +106,18 @@ const gridKwh = ref(0);
 const solarKwh = ref(0);
 const topConsumers = ref([]);
 const loadingConsumers = ref(true);
+
+// New refs for cost & savings timelines
+const dailyCostData = ref([]);
+const weeklyCostData = ref([]);
+const monthlyCostData = ref([]);
+const yearlyCostData = ref([]);
+
+const dailySavingsData = ref([]);
+const weeklySavingsData = ref([]);
+const monthlySavingsData = ref([]);
+const yearlySavingsData = ref([]);
+
 
 // Reactive state for current VECO rate
 const currentRate = ref(0); // ₱ per kWh
@@ -325,6 +346,42 @@ const aggregateData = (rawData) => {
     label: year,
     value: yearlyTotals[year],
   }));
+
+  // --- COST + SAVINGS PARALLEL DATASETS ---
+  // Helper to map kWh data into cost & savings
+  const mapToCostSavings = (arr) => {
+    return {
+      cost: arr.map(item => ({
+        label: item.label,
+        value: (item.grid ?? item.value ?? 0) * currentRate.value   // Grid kWh × rate
+      })),
+      savings: arr.map(item => ({
+        label: item.label,
+        value: (item.solar ?? 0) * currentRate.value   // Solar kWh × rate, 0 if not provided
+      }))
+    };
+  };
+
+  // Daily
+  const dailyMapped = mapToCostSavings(dailyData.value);
+  dailyCostData.value = dailyMapped.cost;
+  dailySavingsData.value = dailyMapped.savings;
+
+  // Weekly
+  const weeklyMapped = mapToCostSavings(weeklyData.value);
+  weeklyCostData.value = weeklyMapped.cost;
+  weeklySavingsData.value = weeklyMapped.savings;
+
+  // Monthly
+  const monthlyMapped = mapToCostSavings(monthlyData.value);
+  monthlyCostData.value = monthlyMapped.cost;
+  monthlySavingsData.value = monthlyMapped.savings;
+
+  // Yearly
+  const yearlyMapped = mapToCostSavings(yearlyData.value);
+  yearlyCostData.value = yearlyMapped.cost;
+  yearlySavingsData.value = yearlyMapped.savings;
+
 };
 
 

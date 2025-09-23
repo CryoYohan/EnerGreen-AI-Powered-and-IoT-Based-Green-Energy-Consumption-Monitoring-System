@@ -71,6 +71,15 @@ const props = defineProps({
     type: String,
     default: "kWh"
   },
+  dailyCostData: Array,
+  weeklyCostData: Array,
+  monthlyCostData: Array,
+  yearlyCostData: Array,
+
+  dailySavingsData: Array,
+  weeklySavingsData: Array,
+  monthlySavingsData: Array,
+  yearlySavingsData: Array,
 });
 
 const emit = defineEmits(['update:activePeriod']);
@@ -80,6 +89,28 @@ let energyChart = null;
 
 const chartType = ref('bar');
 const { isDarkMode } = useDarkMode();
+
+// Helper Functions
+const currentCostData = computed(() => {
+  switch (props.activePeriod) {
+    case 'Daily': return props.dailyCostData;
+    case 'Weekly': return props.weeklyCostData;
+    case 'Monthly': return props.monthlyCostData;
+    case 'Yearly': return props.yearlyCostData;
+    default: return [];
+  }
+});
+
+const currentSavingsData = computed(() => {
+  switch (props.activePeriod) {
+    case 'Daily': return props.dailySavingsData;
+    case 'Weekly': return props.weeklySavingsData;
+    case 'Monthly': return props.monthlySavingsData;
+    case 'Yearly': return props.yearlySavingsData;
+    default: return [];
+  }
+});
+
 
 // A computed property that selects the correct data array based on the active period
 const currentData = computed(() => {
@@ -98,22 +129,21 @@ const currentData = computed(() => {
 });
 
 const createChart = () => {
-  if (!chartCanvasRef.value) {
-    return;
-  }
-
-  if (energyChart) {
-    energyChart.destroy();
-  }
+  if (!chartCanvasRef.value) return;
+  if (energyChart) energyChart.destroy();
 
   const labels = currentData.value.map(item => item.label);
   const kwhValues = currentData.value.map(item => item.value);
+  const costValues = currentCostData.value.map(item => item.value);
+  const savingsValues = currentSavingsData.value.map(item => item.value);
 
   const baseColors = {
     grid: isDarkMode.value ? '#4A5568' : '#E2E8F0',
     ticks: isDarkMode.value ? '#CBD5E0' : '#4A5568',
     bar: 'rgba(76, 175, 80, 0.8)',
     line: isDarkMode.value ? '#E5E7EB' : '#1F2937',
+    cost: '#2563eb',     // blue
+    savings: '#f59e0b',  // amber
     point: isDarkMode.value ? '#E5E7EB' : '#1F2937',
   };
 
@@ -125,27 +155,50 @@ const createChart = () => {
       backgroundColor: baseColors.bar,
       borderColor: 'transparent',
       borderWidth: 1,
+      yAxisID: 'y',
     },
   ];
 
   if (chartType.value === 'combined') {
-    datasets.push({
-      type: 'line',
-      label: 'Trend',
-      data: kwhValues,
-      borderColor: baseColors.line,
-      backgroundColor: 'transparent',
-      tension: 0.4,
-      pointRadius: 4,
-      pointBackgroundColor: baseColors.point,
-    });
+    datasets.push(
+      {
+        type: 'line',
+        label: 'Trend',
+        data: kwhValues,
+        borderColor: baseColors.line,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        yAxisID: 'y',
+      },
+      {
+        type: 'line',
+        label: 'Cost (₱)',
+        data: costValues,
+        borderColor: baseColors.cost,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        yAxisID: 'y1', // second axis for pesos
+      },
+      {
+        type: 'line',
+        label: 'Savings (₱)',
+        data: savingsValues,
+        borderColor: baseColors.savings,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        yAxisID: 'y1',
+      }
+    );
   }
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true }, // ✅ show legend now
       tooltip: {
         mode: 'index',
         intersect: false,
@@ -175,6 +228,18 @@ const createChart = () => {
         beginAtZero: true,
         ticks: { color: baseColors.ticks },
         grid: { color: baseColors.grid },
+        position: 'left',
+      },
+      y1: {
+        title: {
+          display: true,
+          text: '₱ Cost / Savings',
+          color: baseColors.ticks,
+        },
+        beginAtZero: true,
+        ticks: { color: baseColors.ticks },
+        grid: { drawOnChartArea: false },
+        position: 'right',
       },
     },
   };
@@ -185,6 +250,7 @@ const createChart = () => {
     options,
   });
 };
+
 
 onMounted(() => {
   createChart();
