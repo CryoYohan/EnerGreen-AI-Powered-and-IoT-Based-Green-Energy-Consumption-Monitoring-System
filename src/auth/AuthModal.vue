@@ -225,7 +225,7 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits, computed, onUnmounted } from 'vue';
+import { ref, watch, computed, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   auth,
