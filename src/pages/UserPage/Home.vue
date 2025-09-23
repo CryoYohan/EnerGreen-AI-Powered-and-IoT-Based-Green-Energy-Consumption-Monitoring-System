@@ -7,8 +7,9 @@
 
     <Dashboard />
 
-    <ReusableBarChart
-      title="Electricity Usage"
+    <!-- REPLACED ReusableBarChart WITH THE NEW CombineCharts -->
+    <CombineCharts
+      chartTitle="Electricity Usage"
       :activePeriod="activePeriod"
       @update:activePeriod="activePeriod = $event"
       :periods="['Daily', 'Weekly', 'Monthly', 'Yearly']"
@@ -19,7 +20,7 @@
       xAxisLabel="Time"
       tooltipUnit="kWh"
     />
-    <SourcesChart />
+    <SourcesChart :grid-kwh="gridKwh" :solar-kwh="solarKwh" :top-consumers="topConsumers" :loading-consumers="loadingConsumers" />
     <Footer />
     
     <div v-if="showOnboarding" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -54,7 +55,8 @@ import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 import SourcesChart from "@/components/UserComponents/Home/SourcesChart.vue";
-import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue";
+// REPLACED ReusableBarChart with the new CombineCharts
+import CombineCharts from "@/components/UserComponents/Home/CombineCharts.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";
 
@@ -82,18 +84,29 @@ const monthlyData = ref([]);
 const yearlyData = ref([]);
 const deviceId = ref(null);
 
-// Metrics data (used for MetricsCard)
-const dailyMetrics = [
+// Reactive state for total kWh consumed today
+const totalKwhToday = ref(0);
+const gridKwh = ref(0);
+const solarKwh = ref(0);
+const topConsumers = ref([]);
+const loadingConsumers = ref(true);
+
+// Reactive state for current VECO rate
+const currentRate = ref(0); // ₱ per kWh
+
+
+// Metrics Card Data
+const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
     icon: '/src/Images/Icons/Peso.svg',
-    cost: '₱12.30',
+    cost: `₱${currentRate.value.toFixed(2)}`,  // ✅ Dynamic from Firestore
     definition: 'Current rate'
   },
   {
     title: 'Consumption',
     icon: '/src/Images/Icons/electric.svg',
-    cost: '0.85 kWh',
+    cost: `${totalKwhToday.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {
@@ -105,7 +118,7 @@ const dailyMetrics = [
   {
     title: 'Solar Generation',
     icon: '/src/Images/Icons/sun.svg',
-    cost: '3.2 kWh',
+    cost: `${solarKwh.value.toFixed(2)} kWh`,
     definition: 'Today'
   },
   {
@@ -114,7 +127,27 @@ const dailyMetrics = [
     cost: '1.5 kg',
     definition: 'Today'
   },
-];
+]);
+
+// Fetch Function to get kwH price from Firestore
+const fetchUtilityRate = () => {
+  const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates/veco`);
+  
+  onSnapshot(rateRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // assuming the document has a field "rate" in ₱ per kWh
+      currentRate.value = data.vecoKwhRate || 0;
+    } else {
+      console.warn("No VECO rate document found!");
+      currentRate.value = 0;
+    }
+  }, (error) => {
+    console.error("Error fetching VECO rate:", error);
+    currentRate.value = 0;
+  });
+};
+
 
 const showOnboarding = ref(false);
 
@@ -140,7 +173,36 @@ const fetchDeviceId = (userId) => {
 };
 
 /**
- * Aggregates raw data into daily, weekly, monthly, and yearly usage.
+ * Calculates the delta kWh from a sorted array of readings by summing up
+ * the differences between consecutive readings. This handles cases where
+ * the counter may reset (e.g., device turned off).
+ * @param {Array<object>} readings The sorted raw usage data from Firestore.
+ * @returns {number} The total kWh consumed.
+ */
+const calculateKwhDelta = (readings) => {
+  if (!readings || readings.length < 2) {
+    return 0;
+  }
+  
+  let totalDelta = 0;
+  for (let i = 1; i < readings.length; i++) {
+    const currentKwh = readings[i].kwhConsumed;
+    const prevKwh = readings[i - 1].kwhConsumed;
+    const delta = currentKwh - prevKwh;
+
+    // Only add positive deltas to the total
+    if (delta > 0) {
+      totalDelta += delta;
+    }
+  }
+
+  return totalDelta;
+};
+
+
+/**
+ * Aggregates raw data into daily (hourly), weekly, monthly, and yearly usage.
+ * Uses deltas between consecutive readings instead of raw cumulative values.
  * @param {Array<object>} rawData The raw usage data from Firestore.
  */
 const aggregateData = (rawData) => {
@@ -149,86 +211,183 @@ const aggregateData = (rawData) => {
     weeklyData.value = [];
     monthlyData.value = [];
     yearlyData.value = [];
+    totalKwhToday.value = 0;
     return;
   }
 
-  // Aggregate daily data (by hour)
+  // Sort by timestamp
+  rawData.sort((a, b) => a.timestamp - b.timestamp);
+
+  // --- DAILY (hourly buckets) ---
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const todaysReadings = rawData.filter(r => r.timestamp >= today);
+  totalKwhToday.value = calculateKwhDelta(todaysReadings);
+
   const hourly = {};
-  rawData.forEach(item => {
-    const hour = item.timestamp.getHours();
-    hourly[hour] = (hourly[hour] || 0) + item.kwhConsumed;
-  });
+  for (let i = 1; i < todaysReadings.length; i++) {
+    const prev = todaysReadings[i - 1];
+    const curr = todaysReadings[i];
+    const delta = curr.kwhConsumed - prev.kwhConsumed;
+
+    if (delta > 0) {
+      const hour = curr.timestamp.getHours();
+      hourly[hour] = (hourly[hour] || 0) + delta;
+    }
+  }
   dailyData.value = Array.from({ length: 24 }, (_, i) => ({
     label: `${i}:00`,
     value: hourly[i] || 0,
   }));
 
-  // Aggregate weekly data (by day of the week)
+  // --- WEEKLY (per day) ---
   const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dailyTotal = {};
-  rawData.forEach(item => {
-    const day = item.timestamp.toDateString();
-    dailyTotal[day] = (dailyTotal[day] || 0) + item.kwhConsumed;
-  });
-  weeklyData.value = weekday.map((label, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (date.getDay() - index + 7) % 7);
-    const total = dailyTotal[date.toDateString()] || 0;
-    return { label, value: total };
-  });
+  const dailyTotals = {};
+  for (let i = 1; i < rawData.length; i++) {
+    const prev = rawData[i - 1];
+    const curr = rawData[i];
+    const delta = curr.kwhConsumed - prev.kwhConsumed;
 
-  // Aggregate monthly data (by month)
+    if (delta > 0) {
+      const day = curr.timestamp.toDateString();
+      dailyTotals[day] = (dailyTotals[day] || 0) + delta;
+    }
+  }
+
+  const lastSevenDays = [];
+  const currentDate = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(currentDate);
+    date.setDate(currentDate.getDate() - i);
+    const label = weekday[date.getDay()];
+    const total = dailyTotals[date.toDateString()] || 0;
+    lastSevenDays.push({ label, value: total });
+  }
+  weeklyData.value = lastSevenDays;
+
+  // --- MONTHLY (per month) ---
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthlyTotal = {};
-  rawData.forEach(item => {
-    const month = item.timestamp.getMonth();
-    const year = item.timestamp.getFullYear();
-    const key = `${monthNames[month]}-${year}`;
-    monthlyTotal[key] = (monthlyTotal[key] || 0) + item.kwhConsumed;
-  });
-  monthlyData.value = Object.keys(monthlyTotal).map(key => ({
+  const monthlyTotals = {};
+  for (let i = 1; i < rawData.length; i++) {
+    const prev = rawData[i - 1];
+    const curr = rawData[i];
+    const delta = curr.kwhConsumed - prev.kwhConsumed;
+
+    if (delta > 0) {
+      const month = curr.timestamp.getMonth();
+      const year = curr.timestamp.getFullYear();
+      const key = `${monthNames[month]}-${year}`;
+      monthlyTotals[key] = (monthlyTotals[key] || 0) + delta;
+    }
+  }
+  monthlyData.value = Object.keys(monthlyTotals).map(key => ({
     label: key.split('-')[0],
-    value: monthlyTotal[key],
+    value: monthlyTotals[key],
   }));
 
-  // Aggregate yearly data (by year)
-  const yearlyTotal = {};
-  rawData.forEach(item => {
-    const year = item.timestamp.getFullYear();
-    yearlyTotal[year] = (yearlyTotal[year] || 0) + item.kwhConsumed;
-  });
-  yearlyData.value = Object.keys(yearlyTotal).map(year => ({
+  // --- YEARLY (per year) ---
+  const yearlyTotals = {};
+  for (let i = 1; i < rawData.length; i++) {
+    const prev = rawData[i - 1];
+    const curr = rawData[i];
+    const delta = curr.kwhConsumed - prev.kwhConsumed;
+
+    if (delta > 0) {
+      const year = curr.timestamp.getFullYear();
+      yearlyTotals[year] = (yearlyTotals[year] || 0) + delta;
+    }
+  }
+  yearlyData.value = Object.keys(yearlyTotals).map(year => ({
     label: year,
-    value: yearlyTotal[year],
+    value: yearlyTotals[year],
   }));
+};
+
+/**
+ * Fetches energy and appliance data based on the device ID.
+ * @param {string} deviceId The device ID to fetch data for.
+ */
+const fetchEnergyAndApplianceData = (deviceId) => {
+  // Fetch energy source data
+  const readingsQuery = query(
+    collection(db, `devices/${deviceId}/realtime_readings`),
+    orderBy("timestamp", "asc")
+  );
+
+  onSnapshot(readingsQuery, (querySnapshot) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const rawReadings = [];
+    const gridReadings = [];
+    const solarReadings = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const reading = {
+        ...data,
+        timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
+      };
+      
+      // Separate the readings into grid and solar and ensure they are from today
+      if (reading.timestamp >= today) {
+        if (reading.energySource === "Grid") {
+          gridReadings.push(reading);
+        } else if (reading.energySource === "Solar") {
+          solarReadings.push(reading);
+        }
+      }
+      rawReadings.push(reading);
+    });
+
+    // Use the delta calculation for accurate totals
+    gridKwh.value = calculateKwhDelta(gridReadings);
+    solarKwh.value = calculateKwhDelta(solarReadings);
+    aggregateData(rawReadings);
+  }, (error) => {
+    console.error("Error fetching electricity data:", error);
+  });
+  
+  // Fetch top consumers data
+  loadingConsumers.value = true;
+  const consumersQuery = query(
+    collection(db, `devices/${deviceId}/appliances`)
+  );
+
+  onSnapshot(consumersQuery, (querySnapshot) => {
+    const fetchedAppliances = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      fetchedAppliances.push({
+        id: doc.id,
+        name: data.name || 'Unknown Appliance',
+        usage: data.kwhConsumed || 0,
+      });
+    });
+
+    // Sort by kwh consumed in descending order
+    fetchedAppliances.sort((a, b) => b.usage - a.usage);
+    topConsumers.value = fetchedAppliances;
+    loadingConsumers.value = false;
+  }, (error) => {
+    console.error("Error fetching top consumers:", error);
+    loadingConsumers.value = false;
+    topConsumers.value = [];
+  });
 };
 
 // Listen for device ID changes to fetch and process data
 watch(deviceId, (newDeviceId) => {
   if (newDeviceId) {
-    // Set up a real-time listener for electricity readings
-    const readingsQuery = query(
-      collection(db, `devices/${newDeviceId}/realtime_readings`),
-      orderBy("timestamp", "desc")
-    );
-
-    onSnapshot(readingsQuery, (querySnapshot) => {
-      const rawReadings = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        rawReadings.push({
-          ...data,
-          timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
-        });
-      });
-      // The Firestore data is processed into the correct format for the chart.
-      aggregateData(rawReadings);
-    }, (error) => {
-      console.error("Error fetching electricity data:", error);
-    });
+    fetchEnergyAndApplianceData(newDeviceId);
   } else {
-    // Clear data if no device is connected
+    // Clear all data if no device is connected
     aggregateData([]);
+    gridKwh.value = 0;
+    solarKwh.value = 0;
+    topConsumers.value = [];
+    loadingConsumers.value = false;
   }
 }, { immediate: true });
 
@@ -244,6 +403,7 @@ onMounted(async () => {
       userName.value = 'Guest';
     }
   });
+  fetchUtilityRate();
 
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
 
