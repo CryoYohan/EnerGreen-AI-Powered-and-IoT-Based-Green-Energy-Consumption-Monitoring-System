@@ -1,12 +1,13 @@
 <template>
   <div class="p-5 lg:p-10 bg-gray-50 dark:bg-gray-900">
+    <h1 class="text-3xl text-gray-200 font-bold p-2" >Real TIme Readings</h1>
     <div v-if="loading" class="text-center text-gray-500 my-8 dark:text-gray-400">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
     </div>
 
     <div v-else-if="deviceId" class="grid sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-4">
-
+      
       <div v-for="(chartData, key) in chartConfigurations" :key="key"
         class="p-6 bg-white shadow-lg rounded-xl dark:bg-gray-800 flex flex-col relative">
         <div class="flex justify-between items-start mb-2">
