@@ -1,11 +1,11 @@
-<template class="dark:bg-[#0D2535]" >
+<template class="dark:bg-gray-900" >
   <Header class="sticky top-0 z-50 shadow-sm" ref="header" />
-  <div>
+  <div class="dark:bg-gray-900">
     <HeroSection 
       @open-login-modal="showLoginModal = true"
       @toggle-dark-mode="toggleDarkMode" 
     />
-    <FloatSection class="w-full" />
+    <!-- <FloatSection class="w-full" /> -->
     <UpperMidSection class="w-full" />
     <MidSection class="w-full" />
     <LowerMidSection class="w-full" />

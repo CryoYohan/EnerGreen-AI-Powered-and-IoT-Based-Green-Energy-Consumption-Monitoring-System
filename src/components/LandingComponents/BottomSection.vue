@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col-reverse md:flex-row gap-6 dark:bg-[#0D2535] md:gap-12 mt-20 h-auto md:h-[62.5%] relative overflow-hidden">
+  <div class="w-full flex flex-col-reverse md:flex-row gap-6 dark:bg-gray-900 md:gap-12 mt-20 h-auto md:h-[62.5%] relative overflow-hidden">
     <!-- Background Elements -->
     <div class="absolute inset-0 pointer-events-none">
       <!-- Floating energy particles -->
