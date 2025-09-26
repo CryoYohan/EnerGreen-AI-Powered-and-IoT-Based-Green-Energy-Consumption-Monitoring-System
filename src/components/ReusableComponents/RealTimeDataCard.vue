@@ -1,6 +1,6 @@
 <template>
   <div class="p-5 lg:p-10 bg-gray-50 dark:bg-gray-900">
-    <h2 class="text-2xl text-gray-800 font-semibold p-2 mb-2 dark:text-gray-300" >Real TIme Readings</h2>
+    <h2 class="text-2xl text-gray-800 font-semibold p-2 mb-2 dark:text-gray-300">Real Time Readings</h2>
     <div v-if="loading" class="text-center text-gray-500 my-8 dark:text-gray-400">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
@@ -31,8 +31,8 @@
         <p class="text-4xl font-bold text-green-600 dark:text-green-400 mb-4">{{ latestValues[key] || 'N/A' }} <span
             class="text-xl font-normal text-gray-500 dark:text-gray-400">{{ chartData.unit }}</span></p>
 
-        <div class="flex-grow">
-          <canvas :id="key + 'Chart'"></canvas>
+        <div class="flex-grow min-h-[200px] bg-white dark:bg-gray-900 rounded-lg">
+          <div :id="key + 'Chart'" class="w-full h-full bg-transparent"></div>
         </div>
       </div>
     </div>
@@ -48,7 +48,7 @@
 
     <div v-if="expandedChart" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 p-4"
       @click.self="closeExpandedChart">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl h-full max-h-5xl flex flex-col">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[90vh] flex flex-col">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h3 class="text-2xl font-bold text-gray-800 dark:text-white">{{ chartConfigurations[expandedChart].title }}</h3>
           <button @click="closeExpandedChart"
@@ -59,8 +59,8 @@
             </svg>
           </button>
         </div>
-        <div class="p-6 flex-grow dark:bg-gray-800 flex items-center justify-center">
-          <canvas id="expandedChartCanvas"></canvas>
+        <div class="p-6 flex-grow">
+          <div id="expandedChartCanvas" class="w-full h-full"></div>
         </div>
       </div>
     </div>
@@ -71,14 +71,18 @@
 import { auth, db, doc, onAuthStateChanged, collection, onSnapshot, query, orderBy, limit } from '../../firebase';
 import { Timestamp } from 'firebase/firestore';
 
-
-// A promise to ensure Chart.js is loaded
-const chartJsPromise = new Promise((resolve, reject) => {
-  const chartJsScript = document.createElement('script');
-  chartJsScript.src = "https://cdn.jsdelivr.net/npm/chart.js";
-  chartJsScript.onload = () => resolve();
-  chartJsScript.onerror = () => reject(new Error('Failed to load Chart.js'));
-  document.head.appendChild(chartJsScript);
+// Load Plotly.js
+const plotlyPromise = new Promise((resolve, reject) => {
+  if (window.Plotly) {
+    resolve(window.Plotly);
+    return;
+  }
+  
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js';
+  script.onload = () => resolve(window.Plotly);
+  script.onerror = () => reject(new Error('Failed to load Plotly.js'));
+  document.head.appendChild(script);
 });
 
 export default {
@@ -92,33 +96,144 @@ export default {
       error: null,
       charts: {},
       expandedChart: null,
+      maxDataPoints: 50, // Increased for better real-time visualization
+      plotlyInstance: null,
+      themeObserver: null, // For watching theme changes
       chartConfigurations: {
-        voltage: { title: 'Voltage', unit: 'V', dataKey: 'voltageVolt', color: '#34D399', icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>' },
-        current: { title: 'Current', unit: 'A', dataKey: 'currentAmp', color: '#60A5FA', icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>' },
-        power: { title: 'Power', unit: 'W', dataKey: 'powerWatt', color: '#F87171', icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>' },
-        energyConsumed: { title: 'Energy Consumed', unit: 'kWh', dataKey: 'kwhConsumed', color: '#A78BFA', icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="2 8 22 8"></polyline><line x1="12" y1="4" x2="12" y2="20"></line><line x1="6" y1="16" x2="6" y2="16"></line><line x1="18" y1="16" x2="18" y2="16"></line></svg>' },
-        powerFactor: { title: 'Power Factor', unit: '', dataKey: 'powerFactor', color: '#9CA3AF', icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2z"></path></svg>' },
+        voltage: { 
+          title: 'Voltage', 
+          unit: 'V', 
+          dataKey: 'voltageVolt', 
+          color: '#34D399', 
+          thresholds: [
+            { value: 230, color: '#facc15', name: 'Target' },
+            { value: 253, color: '#dc2626', name: 'Upper Limit' },
+            { value: 207, color: '#dc2626', name: 'Lower Limit' }
+          ],
+          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>' 
+        },
+        current: { 
+          title: 'Current', 
+          unit: 'A', 
+          dataKey: 'currentAmp', 
+          color: '#60A5FA', 
+          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>' 
+        },
+        power: { 
+          title: 'Power', 
+          unit: 'W', 
+          dataKey: 'powerWatt', 
+          color: '#F87171', 
+          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>' 
+        },
+        energyConsumed: { 
+          title: 'Energy Consumed', 
+          unit: 'kWh', 
+          dataKey: 'kwhConsumed', 
+          color: '#A78BFA', 
+          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="2 8 22 8"></polyline><line x1="12" y1="4" x2="12" y2="20"></line><line x1="6" y1="16" x2="6" y2="16"></line><line x1="18" y1="16" x2="18" y2="16"></line></svg>' 
+        },
+        powerFactor: { 
+          title: 'Power Factor', 
+          unit: '', 
+          dataKey: 'powerFactor', 
+          color: '#9CA3AF',
+          thresholds: [
+            { value: 0.9, color: '#dc2626', name: 'Minimum Threshold' }
+          ],
+          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2z"></path></svg>' 
+        },
       },
     };
   },
-  mounted() {
-    chartJsPromise.then(() => {
+  
+  async mounted() {
+    try {
+      this.plotlyInstance = await plotlyPromise;
+      this.setupThemeObserver(); // Watch for theme changes
       this.setupListeners();
-    }).catch(error => {
-      console.error(error);
+    } catch (error) {
+      console.error('Failed to load Plotly:', error);
       this.error = "Error loading charts. Please try again.";
       this.loading = false;
-    });
+    }
   },
+
   methods: {
-    getChartColors() {
+    setupThemeObserver() {
+      // Watch for changes to the 'dark' class on the html element
+      this.themeObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            // Theme changed, update all chart colors
+            this.$nextTick(() => {
+              this.updateAllChartThemes();
+            });
+          }
+        });
+      });
+
+      // Start observing
+      this.themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    },
+
+    updateAllChartThemes() {
+      if (!this.plotlyInstance) return;
+
+      const theme = this.getTheme();
+
+      // Update all main charts
+      for (const key in this.chartConfigurations) {
+        const element = document.getElementById(key + 'Chart');
+        if (element && element.data) {
+          this.updateChartTheme(key + 'Chart', theme);
+        }
+      }
+
+      // Update expanded chart if it exists
+      if (this.expandedChart) {
+        const expandedElement = document.getElementById('expandedChartCanvas');
+        if (expandedElement && expandedElement.data) {
+          this.updateChartTheme('expandedChartCanvas', theme);
+        }
+      }
+    },
+
+    updateChartTheme(chartId, theme) {
+      const layoutUpdate = {
+        'font.color': theme.textColor,
+        'xaxis.gridcolor': theme.gridColor,
+        'xaxis.color': theme.axisColor,
+        'xaxis.linecolor': theme.gridColor,
+        'xaxis.zerolinecolor': theme.gridColor,
+        'xaxis.tickfont.color': theme.textColor,
+        'yaxis.gridcolor': theme.gridColor,
+        'yaxis.color': theme.axisColor,
+        'yaxis.linecolor': theme.gridColor,
+        'yaxis.zerolinecolor': theme.gridColor,
+        'yaxis.tickfont.color': theme.textColor,
+        'title.font.color': theme.textColor,
+        'legend.font.color': theme.textColor
+      };
+
+      this.plotlyInstance.relayout(chartId, layoutUpdate);
+    },
+
+    getTheme() {
       const isDarkMode = document.documentElement.classList.contains('dark');
       return {
-        tickColor: isDarkMode ? '#9CA3AF' : '#6B7280', // gray-400 / gray-500
-        gridColor: isDarkMode ? '#374151' : '#E5E7EB', // gray-700 / gray-200
-        labelColor: isDarkMode ? '#D1D5DB' : '#6B7280' // gray-300 / gray-500
+        isDark: isDarkMode,
+        bgColor: isDarkMode ? '#1f2937' : '#ffffff',
+        textColor: isDarkMode ? '#6b7280' : '#374151', // Much darker gray for dark mode
+        gridColor: isDarkMode ? '#374151' : '#d1d5db', // Darker grid in dark mode, lighter in light mode
+        axisColor: isDarkMode ? '#4b5563' : '#6b7280', // Darker axis colors
+        plotBgColor: 'transparent' // Make plot background transparent to inherit from container
       };
     },
+
     setupListeners() {
       onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -131,6 +246,7 @@ export default {
         }
       });
     },
+
     fetchDeviceId(userId) {
       const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
       const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
@@ -159,6 +275,7 @@ export default {
         this.loading = false;
       });
     },
+
     fetchRealtimeData() {
       if (!this.deviceId) {
         this.loading = false;
@@ -168,272 +285,365 @@ export default {
       const q = query(
         collection(db, `devices/${this.deviceId}/realtime_readings`),
         orderBy('timestamp', 'desc'),
-        limit(30)
+        limit(this.maxDataPoints)
       );
+
+      let isInitialized = false;
 
       onSnapshot(q, (querySnapshot) => {
         this.loading = false;
-        this.readings = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            timestamp: data.timestamp ? data.timestamp.toDate() : new Date()
-          };
-        }).reverse();
-        this.updateLatestValues();
 
-        this.$nextTick(() => {
-          this.updateOrCreateCharts();
-        });
+        if (!isInitialized) {
+          // Initial load - set up all data and create charts
+          this.readings = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              timestamp: data.timestamp ? data.timestamp.toDate() : new Date()
+            };
+          }).reverse(); // Oldest first
+
+          this.updateLatestValues();
+          this.$nextTick(() => {
+            this.createAllCharts();
+          });
+          isInitialized = true;
+        } else {
+          // Handle real-time updates
+          let hasNewData = false;
+          
+          querySnapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const data = change.doc.data();
+              const newReading = {
+                id: change.doc.id,
+                ...data,
+                timestamp: data.timestamp ? data.timestamp.toDate() : new Date()
+              };
+
+              // Check if this is truly new data
+              const existingIndex = this.readings.findIndex(r => r.id === newReading.id);
+              if (existingIndex === -1) {
+                // Add new reading and maintain max points
+                this.readings.push(newReading);
+                if (this.readings.length > this.maxDataPoints) {
+                  this.readings.shift();
+                }
+                hasNewData = true;
+              }
+            }
+          });
+
+          if (hasNewData) {
+            this.updateLatestValues();
+            this.updateAllChartsRealtime();
+          }
+        }
       }, (error) => {
         this.loading = false;
         this.error = "Failed to fetch data: " + error.message;
         console.error("Firestore error:", error);
       });
     },
+
     updateLatestValues() {
       if (this.readings.length > 0) {
         const latestReading = this.readings[this.readings.length - 1];
         for (const key in this.chartConfigurations) {
           const dataKey = this.chartConfigurations[key].dataKey;
-          this.latestValues[key] = latestReading[dataKey]?.toFixed(2) || 'N/A';
+          const value = latestReading[dataKey];
+          this.latestValues[key] = value !== undefined && value !== null ? value.toFixed(2) : 'N/A';
         }
       }
     },
-    updateOrCreateCharts() {
-      if (Object.keys(this.charts).length === 0) {
-        this.createCharts();
-      } else {
-        this.updateCharts();
-      }
-    },
-    createCharts() {
-      const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
-      const colors = this.getChartColors();
+
+    createAllCharts() {
+      if (!this.plotlyInstance || this.readings.length === 0) return;
 
       for (const key in this.chartConfigurations) {
-        const config = this.chartConfigurations[key];
-        const ctx = document.getElementById(key + 'Chart')?.getContext('2d');
-        if (ctx) {
-          const datasets = [{
-            data: this.readings.map(r => r[config.dataKey]),
-            borderColor: config.color,
-            borderWidth: 2,
-            tension: 0.4,
-            pointRadius: 0,
-            fill: false
-          }];
+        this.createChart(key);
+      }
+    },
 
-          // Add a line for the target voltage and thresholds
-          if (key === 'voltage') {
-            datasets.push({
-              data: Array(labels.length).fill(230),
-              borderColor: '#facc15', // Yellow
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              label: 'Target (230V)'
-            });
-            datasets.push({
-              data: Array(labels.length).fill(253),
-              borderColor: '#dc2626', // Red
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              label: 'Upper Threshold (253V)'
-            });
-            datasets.push({
-              data: Array(labels.length).fill(207),
-              borderColor: '#dc2626', // Red
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              label: 'Lower Threshold (207V)'
-            });
-          }
+    createChart(key) {
+      const config = this.chartConfigurations[key];
+      const theme = this.getTheme();
+      
+      // Prepare data
+      const timestamps = this.readings.map(r => r.timestamp);
+      const values = this.readings.map(r => r[config.dataKey] || 0);
 
-          // Add a threshold line for Power Factor
-          if (key === 'powerFactor') {
-            datasets.push({
-              data: Array(labels.length).fill(0.9),
-              borderColor: '#dc2626', // Red
-              borderWidth: 2,
-              borderDash: [5, 5],
-              pointRadius: 0,
-              label: 'Threshold (0.9)'
-            });
-          }
+      const traces = [{
+        x: timestamps,
+        y: values,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: config.title,
+        line: {
+          color: config.color,
+          width: 2,
+          shape: 'spline'
+        },
+        marker: {
+          size: 4,
+          color: config.color
+        },
+        connectgaps: true
+      }];
 
-          this.charts[key] = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: labels,
-              datasets: datasets,
+      // Add threshold lines if they exist
+      if (config.thresholds) {
+        config.thresholds.forEach(threshold => {
+          traces.push({
+            x: timestamps,
+            y: Array(timestamps.length).fill(threshold.value),
+            type: 'scatter',
+            mode: 'lines',
+            name: `${threshold.name} (${threshold.value}${config.unit})`,
+            line: {
+              color: threshold.color,
+              width: 2,
+              dash: 'dash'
             },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                x: { display: false, ticks: { color: colors.tickColor }, grid: { color: colors.gridColor } },
-                y: {
-                  beginAtZero: true,
-                  ticks: { color: colors.tickColor },
-                  grid: { color: colors.gridColor }
-                }
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                  titleColor: '#fff',
-                  bodyColor: '#fff',
-                }
-              }
-            }
+            showlegend: false
           });
-        }
+        });
+      }
+
+      const layout = {
+        margin: { l: 30, r: 30, t: 20, b: 30 },
+        showlegend: false,
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { color: theme.textColor, size: 10 },
+        xaxis: {
+          showticklabels: false,
+          showgrid: true,
+          gridcolor: theme.gridColor,
+          gridwidth: 1,
+          color: theme.axisColor,
+          linecolor: theme.gridColor,
+          zerolinecolor: theme.gridColor
+        },
+        yaxis: {
+          showticklabels: true,
+          showgrid: true,
+          gridcolor: theme.gridColor,
+          gridwidth: 1,
+          color: theme.axisColor,
+          linecolor: theme.gridColor,
+          zerolinecolor: theme.gridColor,
+          tickformat: '.1f',
+          tickfont: { color: theme.textColor, size: 9 }
+        },
+        hovermode: 'closest'
+      };
+
+      const config_options = {
+        displayModeBar: false,
+        responsive: true
+      };
+
+      // Create the plot
+      this.plotlyInstance.newPlot(key + 'Chart', traces, layout, config_options)
+        .then(() => {
+          console.log(`Chart ${key} created successfully`);
+        })
+        .catch(error => {
+          console.error(`Error creating chart ${key}:`, error);
+        });
+    },
+
+    updateAllChartsRealtime() {
+      if (!this.plotlyInstance) return;
+
+      for (const key in this.chartConfigurations) {
+        this.updateChartRealtime(key);
+      }
+
+      // Update expanded chart if it exists
+      if (this.expandedChart) {
+        this.updateExpandedChartRealtime();
       }
     },
-    updateCharts() {
-      const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
-      const colors = this.getChartColors();
-      for (const key in this.charts) {
-        const chart = this.charts[key];
-        const config = this.chartConfigurations[key];
-        if (chart) {
-          chart.data.labels = labels;
-          chart.data.datasets[0].data = this.readings.map(r => r[config.dataKey]);
 
-          if (key === 'voltage') {
-            chart.data.datasets[1].data = Array(labels.length).fill(230);
-            chart.data.datasets[2].data = Array(labels.length).fill(253);
-            chart.data.datasets[3].data = Array(labels.length).fill(207);
-          }
+    updateChartRealtime(key) {
+      const config = this.chartConfigurations[key];
+      const timestamps = this.readings.map(r => r.timestamp);
+      const values = this.readings.map(r => r[config.dataKey] || 0);
 
-          if (key === 'powerFactor') {
-            chart.data.datasets[1].data = Array(labels.length).fill(0.9);
-          }
+      // Use Plotly's streaming update for smooth real-time updates
+      const update = {
+        x: [timestamps],
+        y: [values]
+      };
 
-          chart.options.scales.y.ticks.color = colors.tickColor;
-          chart.options.scales.y.grid.color = colors.gridColor;
-
-          chart.update();
-        }
+      // Update threshold lines if they exist
+      if (config.thresholds) {
+        config.thresholds.forEach((threshold, index) => {
+          update.x.push(timestamps);
+          update.y.push(Array(timestamps.length).fill(threshold.value));
+        });
       }
+
+      this.plotlyInstance.restyle(key + 'Chart', update);
     },
+
     expandChart(key) {
       this.expandedChart = key;
       this.$nextTick(() => {
         this.createExpandedChart();
       });
     },
+
     closeExpandedChart() {
       this.expandedChart = null;
-    },
-    createExpandedChart() {
-      const key = this.expandedChart;
-      if (!key) return;
-
-      const config = this.chartConfigurations[key];
-      const labels = this.readings.map(r => r.timestamp.toLocaleTimeString());
-      const ctx = document.getElementById('expandedChartCanvas')?.getContext('2d');
-      const colors = this.getChartColors();
-
-      if (ctx) {
-        if (this.charts.expanded) {
-          this.charts.expanded.destroy();
-        }
-
-        const datasets = [{
-          label: config.title,
-          data: this.readings.map(r => r[config.dataKey]),
-          borderColor: config.color,
-          borderWidth: 2,
-          tension: 0.4,
-          fill: false
-        }];
-
-        if (key === 'voltage') {
-          datasets.push({
-            data: Array(labels.length).fill(230),
-            borderColor: '#facc15', // Yellow
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: 0,
-            label: 'Target (230V)'
-          });
-          datasets.push({
-            data: Array(labels.length).fill(253),
-            borderColor: '#dc2626', // Red
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: 0,
-            label: 'Upper Threshold (253V)'
-          });
-          datasets.push({
-            data: Array(labels.length).fill(207),
-            borderColor: '#dc2626', // Red
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: 0,
-            label: 'Lower Threshold (207V)'
-          });
-        }
-
-        if (key === 'powerFactor') {
-          datasets.push({
-            data: Array(labels.length).fill(0.9),
-            borderColor: '#dc2626', // Red
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: 0,
-            label: 'Threshold (0.9)'
-          });
-        }
-
-        this.charts.expanded = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: datasets
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: {
-                title: { display: true, text: 'Time', color: colors.labelColor },
-                ticks: { color: colors.tickColor },
-                grid: { color: colors.gridColor }
-              },
-              y: {
-                title: { display: true, text: config.title + ' (' + config.unit + ')', color: colors.labelColor },
-                beginAtZero: true,
-                ticks: { color: colors.tickColor },
-                grid: { color: colors.gridColor }
-              }
-            },
-            plugins: {
-              legend: { 
-                display: true,
-                labels: {
-                  color: colors.labelColor // Add color to legend labels
-                }
-              },
-              tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                titleColor: '#fff',
-                bodyColor: '#fff',
-              }
-            }
-          }
-        });
+      // Clean up the expanded chart
+      if (this.plotlyInstance) {
+        this.plotlyInstance.purge('expandedChartCanvas');
       }
     },
+
+    createExpandedChart() {
+      if (!this.plotlyInstance || !this.expandedChart) return;
+
+      const key = this.expandedChart;
+      const config = this.chartConfigurations[key];
+      const theme = this.getTheme();
+      
+      const timestamps = this.readings.map(r => r.timestamp);
+      const values = this.readings.map(r => r[config.dataKey] || 0);
+
+      const traces = [{
+        x: timestamps,
+        y: values,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: config.title,
+        line: {
+          color: config.color,
+          width: 3,
+          shape: 'spline'
+        },
+        marker: {
+          size: 6,
+          color: config.color
+        }
+      }];
+
+      // Add threshold lines
+      if (config.thresholds) {
+        config.thresholds.forEach(threshold => {
+          traces.push({
+            x: timestamps,
+            y: Array(timestamps.length).fill(threshold.value),
+            type: 'scatter',
+            mode: 'lines',
+            name: `${threshold.name} (${threshold.value}${config.unit})`,
+            line: {
+              color: threshold.color,
+              width: 2,
+              dash: 'dash'
+            }
+          });
+        });
+      }
+
+      const layout = {
+        title: {
+          text: `${config.title} Real-time Monitoring`,
+          font: { color: theme.textColor, size: 18 }
+        },
+        margin: { l: 60, r: 60, t: 80, b: 60 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { color: theme.textColor },
+        xaxis: {
+          title: 'Time',
+          showgrid: true,
+          gridcolor: theme.gridColor,
+          color: theme.axisColor,
+          linecolor: theme.gridColor,
+          zerolinecolor: theme.gridColor,
+          tickfont: { color: theme.textColor }
+        },
+        yaxis: {
+          title: `${config.title} (${config.unit})`,
+          showgrid: true,
+          gridcolor: theme.gridColor,
+          color: theme.axisColor,
+          linecolor: theme.gridColor,
+          zerolinecolor: theme.gridColor,
+          tickfont: { color: theme.textColor }
+        },
+        legend: {
+          orientation: 'h',
+          y: -0.2,
+          font: { color: theme.textColor }
+        }
+      };
+
+      const config_options = {
+        displayModeBar: false,
+        responsive: true,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d']
+      };
+
+      this.plotlyInstance.newPlot('expandedChartCanvas', traces, layout, config_options);
+    },
+
+    updateExpandedChartRealtime() {
+      if (!this.plotlyInstance || !this.expandedChart) return;
+
+      const key = this.expandedChart;
+      const config = this.chartConfigurations[key];
+      const timestamps = this.readings.map(r => r.timestamp);
+      const values = this.readings.map(r => r[config.dataKey] || 0);
+
+      const update = {
+        x: [timestamps],
+        y: [values]
+      };
+
+      if (config.thresholds) {
+        config.thresholds.forEach((threshold) => {
+          update.x.push(timestamps);
+          update.y.push(Array(timestamps.length).fill(threshold.value));
+        });
+      }
+
+      this.plotlyInstance.restyle('expandedChartCanvas', update);
+    },
+
     handleSetDeviceId() {
       console.log('Navigating to Set Device ID page...');
     }
   },
+
+  beforeUnmount() {
+    // Disconnect theme observer
+    if (this.themeObserver) {
+      this.themeObserver.disconnect();
+    }
+
+    // Clean up all Plotly charts
+    if (this.plotlyInstance) {
+      for (const key in this.chartConfigurations) {
+        try {
+          this.plotlyInstance.purge(key + 'Chart');
+        } catch (e) {
+          // Chart might not exist
+        }
+      }
+      if (this.expandedChart) {
+        try {
+          this.plotlyInstance.purge('expandedChartCanvas');
+        } catch (e) {
+          // Chart might not exist
+        }
+      }
+    }
+  }
 };
 </script>
-

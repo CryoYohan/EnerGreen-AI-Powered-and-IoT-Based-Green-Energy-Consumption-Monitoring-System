@@ -1,4 +1,12 @@
 <template>
+  <transition
+  enter-active-class="transition-opacity duration-300 ease-out"
+  enter-from-class="opacity-0"
+  enter-to-class="opacity-100"
+  leave-active-class="transition-opacity duration-200 ease-in"
+  leave-from-class="opacity-100"
+  leave-to-class="opacity-0"
+>
   <!-- Modal Backdrop -->
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
     @click.self="closeModal">
@@ -221,6 +229,7 @@
       </div>
     </div>
   </div>
+</transition>
 
 </template>
 
