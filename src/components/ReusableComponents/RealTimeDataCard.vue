@@ -1,6 +1,6 @@
 <template>
   <div class="p-5 lg:p-10 bg-gray-50 dark:bg-gray-900">
-    <h1 class="text-3xl text-gray-200 font-bold p-2" >Real TIme Readings</h1>
+    <h2 class="text-2xl text-gray-800 font-semibold p-2 mb-2 dark:text-gray-300" >Real TIme Readings</h2>
     <div v-if="loading" class="text-center text-gray-500 my-8 dark:text-gray-400">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
