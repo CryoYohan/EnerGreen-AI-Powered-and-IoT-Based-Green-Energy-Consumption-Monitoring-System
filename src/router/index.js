@@ -1,18 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '@/pages/LandingPage/LandingPage.vue';  // new landing page
 import Home from '@/pages/UserPage/Home.vue';       // your user home page
-import Appliances from '@/pages/UserPage/Appliances.vue';
-import SolarPanel from '@/pages/UserPage/SolarPanel.vue';
-import Simulation from '@/pages/UserPage/Simulation.vue';
-import CarbonEmission from '@/pages/UserPage/CarbonEmission.vue';
-import PredictiveAnalytics from '@/pages/UserPage/PredictiveAnalytics.vue';
-import Resources from '@/pages/UserPage/Resources.vue';
-import Profile from '@/pages/UserPage/Profile.vue';
-import AdminHome from '@/pages/AdminPage/AdminHome.vue';
-import Hardware from '@/pages/AdminPage/Hardware.vue';
-import UserManagement from '@/pages/AdminPage/UserManagement.vue';
-import MonitoringAnalytics from '@/pages/AdminPage/MonitoringAnalytics.vue';
-import AdminProfile from '@/pages/AdminPage/AdminProfile.vue';
+import Forecast from '@/pages/UserPage/Forecast.vue'; // Forecast page
+import Appliances from '@/pages/UserPage/Appliances.vue'; // Appliances page
+import SolarPanel from '@/pages/UserPage/SolarPanel.vue'; // Solar Panel Integration page
+import Simulation from '@/pages/UserPage/Simulation.vue'; // Simulation page
+import CarbonEmission from '@/pages/UserPage/CarbonEmission.vue'; // Carbon Emission page
+import PredictiveAnalytics from '@/pages/UserPage/PredictiveAnalytics.vue'; // Predictive Analytics for Carbon Emission only page
+import Resources from '@/pages/UserPage/Resources.vue'; // Resources page
+import Profile from '@/pages/UserPage/Profile.vue'; // User Profile page
+import AdminHome from '@/pages/AdminPage/AdminHome.vue'; // Admin Home page
+import Hardware from '@/pages/AdminPage/Hardware.vue'; // Hardware Management page
+import UserManagement from '@/pages/AdminPage/UserManagement.vue'; // User Management page
+import MonitoringAnalytics from '@/pages/AdminPage/MonitoringAnalytics.vue'; // Monitoring and Analytics page
+import AdminProfile from '@/pages/AdminPage/AdminProfile.vue'; // Admin Profile page
 const routes = [
   {
     path: '/',
@@ -24,12 +25,17 @@ const routes = [
     name: 'Home',
     component: Home,
   },
-   {
+  {
     path: '/appliances',
     name: 'Appliances',
     component: Appliances,
   },
-     {
+  {
+    path: '/forecast',
+    name: 'Forecast',
+    component: Forecast,
+  },
+  {
     path: '/solarpanel',
     name: 'SolarPanel',
     component: SolarPanel,
@@ -79,7 +85,7 @@ const routes = [
     name: 'Monitoring',
     component: MonitoringAnalytics,
   },
-    {
+  {
     path: '/adminprofile',
     name: 'AdminProfile',
     component: AdminProfile,
