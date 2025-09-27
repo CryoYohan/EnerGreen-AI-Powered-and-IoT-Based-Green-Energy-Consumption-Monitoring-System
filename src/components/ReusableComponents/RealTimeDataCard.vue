@@ -558,6 +558,7 @@ export default {
         margin: { l: 60, r: 60, t: 80, b: 60 },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
+        modebar: { bgcolor: theme.bgColor },
         font: { color: theme.textColor },
         xaxis: {
           title: 'Time',
@@ -585,7 +586,7 @@ export default {
       };
 
       const config_options = {
-        displayModeBar: false,
+        displayModeBar: true,
         responsive: true,
         modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d']
       };
