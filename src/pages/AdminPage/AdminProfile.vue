@@ -4,7 +4,7 @@
   >
     <AdminHeader />
    
-    <AdminProfile />
+    <ProfileComponent />
     <Footer />
   </div>
 </template>
@@ -12,6 +12,6 @@
 
 import Footer from "@/components/ReusableComponents/Footer.vue";
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
-import AdminProfile from "@/components/AdminComponents/Profile/AdminProfile.vue";
+import ProfileComponent from "@/components/AdminComponents/Profile/AdminProfile.vue";
 
 </script>
