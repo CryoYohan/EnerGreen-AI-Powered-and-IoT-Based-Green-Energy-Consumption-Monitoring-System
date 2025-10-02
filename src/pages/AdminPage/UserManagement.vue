@@ -1,32 +1,42 @@
 <template>
-  <div
-    class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
-  >
+  <div class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
     <AdminHeader />
     <Heading title="User Management" />
 
-    <!-- ✅ Key Metrics (preserved as requested) -->
+    <!-- Metrics -->
     <MetricsCard :metrics="dailyMetrics" size="large" />
 
-    <!-- Advanced Insights + Eco Heroes (side by side) -->
+    <!-- Insights + Eco Heroes -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-      <!-- Left: Insights -->
       <UserInsights :insights="insights" />
-
-      <!-- Right: Eco Heroes -->
       <EcoHeroes :heroes="ecoHeroes" />
     </div>
 
-    <!-- Users Table with Actions -->
+    <!-- Users Table -->
     <div class="px-6 pb-20">
       <UsersTable
         :users="filteredUsers"
         @suspend="suspendUser"
+        @enable="enableUser"
         @delete="deleteUser"
       />
     </div>
 
     <Footer />
+    <!-- ------------------------- -->
+    <!-- Pop-up Notification -->
+    <!-- ------------------------- -->
+    <transition name="fade">
+      <div v-if="showPopup" 
+           :class="[
+             'fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50',
+             popupType==='info' ? 'bg-blue-500' :
+             popupType==='success' ? 'bg-green-500' :
+             'bg-red-500'
+           ]">
+        {{ popupMessage }}
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -39,12 +49,11 @@ import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
-
 import UserInsights from "@/components/AdminComponents/Users/UserInsights.vue";
 import EcoHeroes from "@/components/AdminComponents/Users/EcoHeroes.vue";
 import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
 
-// 📊 Metrics data (preserved)
+// Metrics
 const dailyMetrics = [
   { title: "Total Users", icon: "/src/Images/Icons/totalusers.svg", cost: "127" },
   { title: "Active Users", icon: "/src/Images/Icons/users.svg", cost: "123" },
@@ -56,10 +65,10 @@ const insights = ref({});
 const ecoHeroes = ref([]);
 const users = ref([]);
 
-// 🔎 Filtering
+// Filters
 const filters = ref({ search: "", role: "", status: "" });
-const filteredUsers = computed(() => {
-  return users.value.filter((u) => {
+const filteredUsers = computed(() =>
+  users.value.filter(u => {
     const matchesSearch =
       !filters.value.search ||
       u.name?.toLowerCase().includes(filters.value.search.toLowerCase()) ||
@@ -69,20 +78,106 @@ const filteredUsers = computed(() => {
     const matchesStatus = !filters.value.status || u.status === filters.value.status;
 
     return matchesSearch && matchesRole && matchesStatus;
-  });
-});
+  })
+);
 
+// ---------------------------
+// Pop-up notification state
+// ---------------------------
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("info"); // info | success | error
 
-// 🚀 Firestore Fetch (admin only)
+const showNotification = (message, type = "info", duration = 3000) => {
+  popupMessage.value = message;
+  popupType.value = type;
+  showPopup.value = true;
+  setTimeout(() => (showPopup.value = false), duration);
+};
+
+// ---------------------------
+// Suspend user
+// ---------------------------
+const suspendUser = async (user) => {
+  showNotification(`Suspending ${user.name}...`, "info");
+  try {
+    const response = await fetch(import.meta.env.VITE_SUSPEND_USER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: user.userId }),
+    });
+    const result = await response.json();
+    if (result.success) {
+      user.status = "Inactive";
+      showNotification(`User ${user.name} suspended successfully!`, "success");
+    } else {
+      showNotification(`Failed to suspend user: ${result.error}`, "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showNotification(`Error suspending user: ${err.message}`, "error");
+  }
+};
+
+// ---------------------------
+// Delete user
+// ---------------------------
+const deleteUser = async (user) => {
+  showNotification(`Deleting ${user.name}...`, "info");
+  try {
+    const response = await fetch(import.meta.env.VITE_DELETE_USER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: user.userId }),
+    });
+    const result = await response.json();
+    if (result.success) {
+      users.value = users.value.filter(u => u.userId !== user.userId);
+      showNotification(`User ${user.name} deleted successfully!`, "success");
+    } else {
+      showNotification(`Failed to delete user: ${result.error}`, "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showNotification(`Error deleting user: ${err.message}`, "error");
+  }
+};
+
+// ---------------------------
+// Enable (Unsuspend) user
+// ---------------------------
+const enableUser = async (user) => {
+  showNotification(`Enabling ${user.name}...`, "info");
+  try {
+    const response = await fetch(import.meta.env.VITE_ENABLE_USER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: user.userId }),
+    });
+    const result = await response.json();
+    if (result.success) {
+      user.status = "Active";
+      showNotification(`User ${user.name} enabled successfully!`, "success");
+    } else {
+      showNotification(`Failed to enable user: ${result.error}`, "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showNotification(`Error enabling user: ${err.message}`, "error");
+  }
+};
+
+// ---------------------------
+// Fetch users
+// ---------------------------
 onMounted(async () => {
   try {
-    // query all userProfile subcollections across users
     const profilesQuery = collectionGroup(db, "userProfile");
     const profilesSnap = await getDocs(profilesQuery);
 
-    const loadedUsers = profilesSnap.docs.map((docSnap) => {
+    const loadedUsers = profilesSnap.docs.map(docSnap => {
       const profileData = docSnap.data();
-      const uid = docSnap.ref.parent.parent.id; // parent userId
+      const uid = docSnap.ref.parent.parent.id;
 
       return {
         userId: uid,
@@ -100,3 +195,12 @@ onMounted(async () => {
   }
 });
 </script>
+<style>
+.fade-enter-active, .fade-leave-active {
+  transition: all 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style>
