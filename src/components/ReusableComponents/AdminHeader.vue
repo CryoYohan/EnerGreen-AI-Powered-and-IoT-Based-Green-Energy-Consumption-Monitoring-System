@@ -59,17 +59,25 @@
                 </button>
               </li>
               <li>
-                <button
-                  @click="navigateTo('ManageUsers')"
+                <button 
+                  @click="navigateTo('UserManagement')" 
                   :class="[
                     'py-2 hover:text-green-600 dark:hover:text-[#059669]',
-                    $route.name === 'ManageUsers' ? 'text-green-600 dark:text-[#059669]' : ''
-                  ]">
-                  Manage Users
+                    $route.name === 'UserManagement' ? 'text-green-600 dark:text-[#059669]' : '']">
+                  Users
+                </button>
+              </li>
+              <li>
+                <button 
+                  @click="navigateTo('Monitoring')" 
+                  :class="[
+                    'py-2 hover:text-green-600 dark:hover:text-[#059669]',
+                    $route.name === 'Monitoring' ? 'text-green-600 dark:text-[#059669]' : '']">
+                  Monitoring & Analytics
                 </button>
               </li>
             </ul>
-          </nav>  
+          </nav>
         </div>
 
         <!-- Right side (desktop) -->
