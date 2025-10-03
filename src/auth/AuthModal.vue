@@ -462,6 +462,7 @@ const handleRegister = async () => {
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
     const defaultRole = "user"; // Default role
+    const defaultStatus = "active"; // Default status
 
     // Create a new document in Firestore with user profile data, including the device ID
     await setDoc(doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`), {
@@ -471,6 +472,7 @@ const handleRegister = async () => {
       address: address.value,
       deviceId: deviceId.value, // Save the device ID
       role: defaultRole,
+      status: defaultStatus,
     });
     console.log('User profile and device ID data saved to Firestore.');
 
