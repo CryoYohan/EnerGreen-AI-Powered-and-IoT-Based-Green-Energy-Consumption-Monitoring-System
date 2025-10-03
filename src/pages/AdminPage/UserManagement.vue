@@ -1,50 +1,63 @@
 <template>
-  <div
-    class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
-  >
+  <div class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
     <AdminHeader />
     <Heading title="User Management" />
 
-    <!-- ✅ Key Metrics (preserved as requested) -->
+    <!-- Metrics -->
     <MetricsCard :metrics="dailyMetrics" size="large" />
 
-    <!-- Advanced Insights + Eco Heroes (side by side) -->
+    <!-- Insights + Eco Heroes -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-      <!-- Left: Insights -->
       <UserInsights :insights="insights" />
-
-      <!-- Right: Eco Heroes -->
       <EcoHeroes :heroes="ecoHeroes" />
     </div>
 
-    <!-- Users Table with Actions -->
+    <!-- Users Table -->
     <div class="px-6 pb-20">
       <UsersTable
         :users="filteredUsers"
         @suspend="suspendUser"
+        @enable="enableUser"
         @delete="deleteUser"
       />
     </div>
 
     <Footer />
+    
+    <!-- Pop-up Notification -->
+    <transition name="fade">
+      <div v-if="showPopup" 
+           :class="[
+             'fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50',
+             popupType==='info' ? 'bg-blue-500' :
+             popupType==='success' ? 'bg-green-500' :
+             'bg-red-500'
+           ]">
+        {{ popupMessage }}
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { collectionGroup, getDocs } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { db } from "@/firebase";
 
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
-
 import UserInsights from "@/components/AdminComponents/Users/UserInsights.vue";
 import EcoHeroes from "@/components/AdminComponents/Users/EcoHeroes.vue";
 import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
 
-// 📊 Metrics data (preserved)
+// Get current admin user
+const auth = getAuth();
+const currentAdminUid = ref('');
+
+// Metrics
 const dailyMetrics = [
   { title: "Total Users", icon: "/src/Images/Icons/totalusers.svg", cost: "127" },
   { title: "Active Users", icon: "/src/Images/Icons/users.svg", cost: "123" },
@@ -56,10 +69,10 @@ const insights = ref({});
 const ecoHeroes = ref([]);
 const users = ref([]);
 
-// 🔎 Filtering
+// Filters
 const filters = ref({ search: "", role: "", status: "" });
-const filteredUsers = computed(() => {
-  return users.value.filter((u) => {
+const filteredUsers = computed(() =>
+  users.value.filter(u => {
     const matchesSearch =
       !filters.value.search ||
       u.name?.toLowerCase().includes(filters.value.search.toLowerCase()) ||
@@ -69,20 +82,124 @@ const filteredUsers = computed(() => {
     const matchesStatus = !filters.value.status || u.status === filters.value.status;
 
     return matchesSearch && matchesRole && matchesStatus;
+  })
+);
+
+// Pop-up notification state
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("info");
+
+const showNotification = (message, type = "info", duration = 3000) => {
+  popupMessage.value = message;
+  popupType.value = type;
+  showPopup.value = true;
+  setTimeout(() => (showPopup.value = false), duration);
+};
+
+// Generic cloud function caller
+const callCloudFunction = async (action, uid) => {
+  console.log('Sending request with:', {
+    uid: uid,
+    adminUid: currentAdminUid.value
   });
-});
+  
+  try {
+    const urls = {
+      suspend: import.meta.env.VITE_SUSPEND_USER_URL,
+      enable: import.meta.env.VITE_ENABLE_USER_URL,
+      delete: import.meta.env.VITE_DELETE_USER_URL
+    };
 
+    const response = await fetch(urls[action], {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        uid: uid,
+        adminUid: currentAdminUid.value 
+      }),
+    });
 
-// 🚀 Firestore Fetch (admin only)
+    // Check for 405 Method Not Allowed
+    if (response.status === 405) {
+      console.warn("405 Method Not Allowed detected. Ignoring response.");
+      return { success: false, error: "Method not allowed" };
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (err) {
+    console.error("Network error:", err);
+    return { success: false, error: "Network error" };
+  }
+};
+
+// Suspend user
+const suspendUser = async (user) => {
+  showNotification(`Suspending ${user.name}...`, "info");
+  const result = await callCloudFunction("suspend", user.userId);
+  
+  if (result.success) {
+    // Update local user status
+    const userIndex = users.value.findIndex(u => u.userId === user.userId);
+    if (userIndex !== -1) {
+      users.value[userIndex].status = "Inactive";
+    }
+    showNotification(`User ${user.name} suspended successfully!`, "success");
+  } else {
+    showNotification(`Failed to suspend user: ${result.error}`, "error");
+  }
+};
+
+// Delete user
+const deleteUser = async (user) => {
+  showNotification(`Deleting ${user.name}...`, "info");
+  const result = await callCloudFunction("delete", user.userId);
+  
+  if (result.success) {
+    // Remove user from local array
+    users.value = users.value.filter(u => u.userId !== user.userId);
+    showNotification(`User ${user.name} deleted successfully!`, "success");
+  } else {
+    showNotification(`Failed to delete user: ${result.error}`, "error");
+  }
+};
+
+// Enable user
+const enableUser = async (user) => {
+  showNotification(`Enabling ${user.name}...`, "info");
+  const result = await callCloudFunction("enable", user.userId);
+  
+  if (result.success) {
+    // Update local user status
+    const userIndex = users.value.findIndex(u => u.userId === user.userId);
+    if (userIndex !== -1) {
+      users.value[userIndex].status = "Active";
+    }
+    showNotification(`User ${user.name} enabled successfully!`, "success");
+  } else {
+    showNotification(`Failed to enable user: ${result.error}`, "error");
+  }
+};
+
+// Fetch users
 onMounted(async () => {
   try {
-    // query all userProfile subcollections across users
+    // Get current admin UID
+    const user = auth.currentUser;
+    if (user) {
+      currentAdminUid.value = user.uid;
+    } else {
+      showNotification("Please log in to manage users", "error");
+      return;
+    }
+
     const profilesQuery = collectionGroup(db, "userProfile");
     const profilesSnap = await getDocs(profilesQuery);
 
-    const loadedUsers = profilesSnap.docs.map((docSnap) => {
+    const loadedUsers = profilesSnap.docs.map(docSnap => {
       const profileData = docSnap.data();
-      const uid = docSnap.ref.parent.parent.id; // parent userId
+      const uid = docSnap.ref.parent.parent.id;
 
       return {
         userId: uid,
@@ -97,6 +214,17 @@ onMounted(async () => {
     users.value = loadedUsers;
   } catch (err) {
     console.error("Error fetching user profiles:", err);
+    showNotification("Error loading users", "error");
   }
 });
 </script>
+
+<style>
+.fade-enter-active, .fade-leave-active {
+  transition: all 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style>
