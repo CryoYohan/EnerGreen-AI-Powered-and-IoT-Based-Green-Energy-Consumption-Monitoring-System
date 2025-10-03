@@ -2,7 +2,7 @@
   <div class="m-4 sm:m-5 lg:m-10 font-poppins dark:bg-gray-900">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
       <div class="relative w-full md:w-1/3">
-        <input v-model="searchTerm" type="text" placeholder="Search by ID, Name, Location"
+        <input v-model.lazy="searchTerm" type="text" placeholder="Search by ID, Name, Location"
           class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400">
         <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
@@ -12,7 +12,7 @@
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-        <select v-model="selectedLocation"
+        <select v-model.lazy="selectedLocation"
           class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">
           <option value="">All Location</option>
           <option v-for="location in uniqueLocations" :key="location" :value="location">
@@ -20,11 +20,11 @@
           </option>
         </select>
 
-        <select v-model="selectedStatus"
+        <select v-model.lazy="selectedStatus"
           class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">
           <option value="">All Status</option>
           <option v-for="status in uniqueStatuses" :key="status" :value="status">
-            {{ status }}
+            {{ capitalize(status) }}
           </option>
         </select>
       </div>
@@ -32,7 +32,7 @@
 
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow dark:shadow-gray-700 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" v-if="filteredUsers.length > 0">
           <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th><input type="checkbox" v-model="selectAll" @change="toggleSelectAll" /></th>
@@ -61,6 +61,7 @@
               <td class="px-6 py-4 flex gap-3 text-sm">
                 <button class="text-green-600 dark:text-green-400 hover:underline" @click="openModal(user)">View</button>
 
+                <!-- Show suspend button only for active users -->
                 <button
                     v-if="user.status.toLowerCase() === 'active'"
                     class="text-yellow-600 dark:text-yellow-400 hover:underline"
@@ -68,21 +69,57 @@
                     Suspend
                 </button>
                 
+                <!-- Show enable button only for inactive users -->
                 <button
-                    v-else
+                    v-else-if="user.status.toLowerCase() === 'inactive'"
                     class="text-blue-600 dark:text-blue-400 hover:underline"
-                    @click="$emit('enable', user)">
+                    @click="confirmAction('enable', user)">
                     Enable
                 </button>
 
-                <button class="text-red-600 dark:text-red-400 hover:underline" @click="confirmAction('delete', user)">Delete</button>
+                <!-- Show delete button only for non-deleted users -->
+                <button 
+                    v-if="user.status.toLowerCase() !== 'deleted'"
+                    class="text-red-600 dark:text-red-400 hover:underline" 
+                    @click="confirmAction('delete', user)">
+                    Delete
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- No Results State -->
+        <div v-else class="text-center py-16 px-4">
+          <div class="max-w-md mx-auto">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              No Users Found!
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
+              Looks like your search is playing hide and seek. 
+              Try different filters or search terms to find your users!
+            </p>
+            <div class="flex justify-center gap-3">
+              <button 
+                @click="clearFilters" 
+                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200"
+              >
+                Clear Filters
+              </button>
+              <button 
+                @click="searchTerm = ''" 
+                class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+              >
+                Clear Search
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- View Modal -->
     <Transition
       enter-active-class="transition ease-out duration-300"
       enter-from-class="opacity-0"
@@ -116,13 +153,20 @@
             </div>
             <div class="flex justify-end gap-3 mt-6">
               <button @click="closeModal" class="px-4 py-2 bg-gray-200 rounded-md">Cancel</button>
-              <button @click="confirmAction('delete', selectedUser)" class="px-4 py-2 bg-red-600 text-white rounded-md">Remove</button>
+              <!-- Only show remove button if user is not already deleted -->
+              <button 
+                v-if="selectedUser.status && selectedUser.status.toLowerCase() !== 'deleted'"
+                @click="confirmAction('delete', selectedUser)" 
+                class="px-4 py-2 bg-red-600 text-white rounded-md">
+                Remove
+              </button>
             </div>
           </div>
         </Transition>
       </div>
     </Transition>
 
+    <!-- Confirmation Modal -->
     <Transition
       enter-active-class="transition ease-out duration-300"
       enter-from-class="opacity-0"
@@ -141,18 +185,27 @@
           leave-to-class="opacity-0 scale-95"
         >
           <div v-if="showConfirmModal" class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm shadow-xl dark:shadow-gray-700 text-center">
-            <h3 class="text-xl font-semibold mb-4 text-red-600 dark:text-red-400">
+            <h3 class="text-xl font-semibold mb-4" :class="{
+              'text-red-600 dark:text-red-400': pendingAction === 'delete',
+              'text-yellow-600 dark:text-yellow-400': pendingAction === 'suspend',
+              'text-blue-600 dark:text-blue-400': pendingAction === 'enable'
+            }">
               Confirm {{ capitalize(pendingAction) }}
             </h3>
             <p class="mb-6 text-gray-700 dark:text-gray-300">
-              Are you sure you want to **{{ pendingAction }}** the account for user **{{ confirmUser.name }}** (ID: {{ confirmUser.userId }})? This action cannot be undone.
+              Are you sure you want to <strong>{{ pendingAction }}</strong> the account for user <strong>{{ confirmUser.name }}</strong> (ID: {{ confirmUser.userId }})?
+              {{ pendingAction === 'delete' ? 'This action cannot be undone.' : '' }}
             </p>
             <div class="flex justify-center gap-4">
               <button @click="showConfirmModal = false" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 dark:bg-gray-700 dark:text-white">
                 Cancel
               </button>
               <button @click="executeAction" 
-                      :class="{'bg-red-600 hover:bg-red-700': pendingAction === 'delete', 'bg-yellow-600 hover:bg-yellow-700': pendingAction === 'suspend'}"
+                      :class="{
+                        'bg-red-600 hover:bg-red-700': pendingAction === 'delete',
+                        'bg-yellow-600 hover:bg-yellow-700': pendingAction === 'suspend',
+                        'bg-blue-600 hover:bg-blue-700': pendingAction === 'enable'
+                      }"
                       class="px-4 py-2 text-white rounded-md transition duration-150">
                 Yes, {{ capitalize(pendingAction) }}
               </button>
@@ -165,7 +218,6 @@
 </template>
 
 <script setup>
-// The script block remains the same as the logic is not affected by the transition
 import { ref, computed, defineEmits } from "vue";
 const props = defineProps({ users: { type: Array, required: true } });
 const emit = defineEmits(['suspend', 'enable', 'delete']);
@@ -173,7 +225,7 @@ const emit = defineEmits(['suspend', 'enable', 'delete']);
 // Helper to capitalize the first letter
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
 
-// --- Existing State ---
+// State - using .lazy for performance
 const searchTerm = ref("");
 const selectedLocation = ref("");
 const selectedStatus = ref("");
@@ -181,13 +233,11 @@ const selectAll = ref(false);
 const selectedUsers = ref([]);
 const showModal = ref(false);
 const selectedUser = ref({});
-
-// --- Corrected Confirmation State ---
 const showConfirmModal = ref(false);
-const pendingAction = ref(''); // 'delete' or 'suspend'
+const pendingAction = ref(''); // 'delete', 'suspend', or 'enable'
 const confirmUser = ref({});
 
-// --- Configuration ---
+// Configuration
 const headers = [
   { key: "userId", label: "User ID" },
   { key: "name", label: "Name" },
@@ -197,67 +247,100 @@ const headers = [
   { key: "action", label: "Action" },
 ];
 
-// --- Computed Properties ---
-const uniqueLocations = computed(() => [...new Set(props.users.map(u => u.location))]);
-const uniqueStatuses = computed(() => [...new Set(props.users.map(u => u.status))]);
+// Computed Properties - optimized with caching
+const uniqueLocations = computed(() => {
+  const locations = new Set();
+  props.users.forEach(u => {
+    if (u.location) locations.add(u.location);
+  });
+  return Array.from(locations);
+});
 
-const filteredUsers = computed(() =>
-  props.users.filter(u => {
-    const matchesSearch =
-      u.userId.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      u.name?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      u.smartMeterID?.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      u.location?.toLowerCase().includes(searchTerm.value.toLowerCase());
+const uniqueStatuses = computed(() => {
+  const statuses = new Set();
+  props.users.forEach(u => {
+    if (u.status) statuses.add(u.status);
+  });
+  return Array.from(statuses);
+});
 
-    const matchesLocation = !selectedLocation.value || u.location === selectedLocation.value;
-    const matchesStatus = !selectedStatus.value || u.status === selectedStatus.value;
+// Debounced filtered users for better performance
+const filteredUsers = computed(() => {
+  const search = searchTerm.value.toLowerCase();
+  const location = selectedLocation.value;
+  const status = selectedStatus.value;
 
-    return matchesSearch && matchesLocation && matchesStatus;
-  })
-);
+  return props.users.filter(u => {
+    // Early return if no match on required filters
+    if (location && u.location !== location) return false;
+    if (status && u.status !== status) return false;
+    
+    // Only search if search term exists
+    if (search) {
+      return (
+        u.userId.toLowerCase().includes(search) ||
+        u.name?.toLowerCase().includes(search) ||
+        u.smartMeterID?.toLowerCase().includes(search) ||
+        u.location?.toLowerCase().includes(search)
+      );
+    }
+    
+    return true;
+  });
+});
 
-// --- General Functions ---
-
+// Functions
 const toggleSelectAll = () => {
   selectedUsers.value = selectAll.value ? props.users.map(u => u.userId) : [];
 };
 
-const openModal = (user) => { selectedUser.value = { ...user }; showModal.value = true; };
-const closeModal = () => { showModal.value = false; };
+const openModal = (user) => { 
+  selectedUser.value = { ...user }; 
+  showModal.value = true; 
+};
+
+const closeModal = () => { 
+  showModal.value = false; 
+};
+
+const clearFilters = () => {
+  searchTerm.value = "";
+  selectedLocation.value = "";
+  selectedStatus.value = "";
+};
 
 const statusClasses = (status) => ({
-  'bg-green-100 text-green-800': status.toLowerCase() === 'active',
-  'bg-red-100 text-red-800': status.toLowerCase() === 'inactive',
-  'bg-yellow-100 text-yellow-800': status.toLowerCase() === 'pending',
-  'bg-blue-100 text-blue-800': status.toLowerCase() === 'maintenance',
+  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': status.toLowerCase() === 'active',
+  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300': status.toLowerCase() === 'inactive',
+  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300': status.toLowerCase() === 'pending',
+  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300': status.toLowerCase() === 'maintenance',
+  'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300': status.toLowerCase() === 'deleted',
 });
 
-// --- Confirmation Functions ---
-
+// Confirmation Functions
 const confirmAction = (action, user) => {
-    // If the main details modal is open, close it first
-    if (showModal.value) {
-        closeModal();
-    }
-    // Set the action type and user data
-    pendingAction.value = action;
-    confirmUser.value = user;
-    showConfirmModal.value = true;
+  if (showModal.value) {
+    closeModal();
+  }
+  pendingAction.value = action;
+  confirmUser.value = user;
+  showConfirmModal.value = true;
 };
 
 const executeAction = () => {
-    // Close the confirmation modal
-    showConfirmModal.value = false;
+  showConfirmModal.value = false;
 
-    // Emit the corresponding action with the user data
-    if (pendingAction.value === 'delete') {
-        emit('delete', confirmUser.value);
-    } else if (pendingAction.value === 'suspend') {
-        emit('suspend', confirmUser.value);
-    }
-    
-    // Clear state
-    pendingAction.value = '';
-    confirmUser.value = {};
+  // Emit the corresponding action to parent
+  if (pendingAction.value === 'delete') {
+    emit('delete', confirmUser.value);
+  } else if (pendingAction.value === 'suspend') {
+    emit('suspend', confirmUser.value);
+  } else if (pendingAction.value === 'enable') {
+    emit('enable', confirmUser.value);
+  }
+  
+  // Clear state
+  pendingAction.value = '';
+  confirmUser.value = {};
 };
 </script>
