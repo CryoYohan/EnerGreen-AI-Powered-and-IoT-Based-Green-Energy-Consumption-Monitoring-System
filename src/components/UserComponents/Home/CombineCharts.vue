@@ -23,29 +23,16 @@
         </select>
       </div>
     </div>
-    <div class="h-64 sm:h-80 md:h-96 bg-transparent rounded-lg">
-      <div ref="chartContainer" class="w-full h-full"></div>
+    <div class="h-64 sm:h-80 md:h-96">
+      <canvas ref="chartCanvasRef"></canvas>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
+import Chart from 'chart.js/auto';
 import { useDarkMode } from "@/composables/useDarkMode.js";
-
-// Load Plotly.js
-const plotlyPromise = new Promise((resolve, reject) => {
-  if (window.Plotly) {
-    resolve(window.Plotly);
-    return;
-  }
-  
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js';
-  script.onload = () => resolve(window.Plotly);
-  script.onerror = () => reject(new Error('Failed to load Plotly.js'));
-  document.head.appendChild(script);
-});
 
 const props = defineProps({
   chartTitle: {
@@ -88,6 +75,7 @@ const props = defineProps({
   weeklyCostData: Array,
   monthlyCostData: Array,
   yearlyCostData: Array,
+
   dailySavingsData: Array,
   weeklySavingsData: Array,
   monthlySavingsData: Array,
@@ -96,369 +84,190 @@ const props = defineProps({
 
 const emit = defineEmits(['update:activePeriod']);
 
-const chartContainer = ref(null);
+const chartCanvasRef = ref(null);
+let energyChart = null;
+
 const chartType = ref('bar');
 const { isDarkMode } = useDarkMode();
 
-let plotlyInstance = null;
-let themeObserver = null;
-
-// Computed properties for data
+// Helper Functions
 const currentCostData = computed(() => {
   switch (props.activePeriod) {
-    case 'Daily': return props.dailyCostData || [];
-    case 'Weekly': return props.weeklyCostData || [];
-    case 'Monthly': return props.monthlyCostData || [];
-    case 'Yearly': return props.yearlyCostData || [];
+    case 'Daily': return props.dailyCostData;
+    case 'Weekly': return props.weeklyCostData;
+    case 'Monthly': return props.monthlyCostData;
+    case 'Yearly': return props.yearlyCostData;
     default: return [];
   }
 });
 
 const currentSavingsData = computed(() => {
   switch (props.activePeriod) {
-    case 'Daily': return props.dailySavingsData || [];
-    case 'Weekly': return props.weeklySavingsData || [];
-    case 'Monthly': return props.monthlySavingsData || [];
-    case 'Yearly': return props.yearlySavingsData || [];
+    case 'Daily': return props.dailySavingsData;
+    case 'Weekly': return props.weeklySavingsData;
+    case 'Monthly': return props.monthlySavingsData;
+    case 'Yearly': return props.yearlySavingsData;
     default: return [];
   }
 });
 
+
+// A computed property that selects the correct data array based on the active period
 const currentData = computed(() => {
   switch (props.activePeriod) {
-    case 'Daily': return props.dailyData;
-    case 'Weekly': return props.weeklyData;
-    case 'Monthly': return props.monthlyData;
-    case 'Yearly': return props.yearlyData;
-    default: return [];
+    case 'Daily':
+      return props.dailyData;
+    case 'Weekly':
+      return props.weeklyData;
+    case 'Monthly':
+      return props.monthlyData;
+    case 'Yearly':
+      return props.yearlyData;
+    default:
+      return [];
   }
 });
 
-// Theme configuration
-const getTheme = () => {
-  const isDark = isDarkMode.value;
-  return {
-    isDark,
-    bgColor: 'transparent',
-    textColor: '#6b7280', // gray-500 for all text/axis elements
-    gridColor: '#374151', // gray-500 for grid lines
-    axisColor: '#374151', // gray-500 for axis lines
-    barColor: 'rgba(76, 175, 80, 0.8)',
-    lineColor: isDark ? '#e5e7eb' : '#1f2937',
-    costColor: '#2563eb',
-    savingsColor: '#f59e0b'
-  };
-};
+const createChart = () => {
+  if (!chartCanvasRef.value) return;
+  if (energyChart) energyChart.destroy();
 
-// Custom tick formatting function
-const customFormatTicks = () => {
-  if (!chartContainer.value) return;
-  
-  // Find all y-axis tick labels and format them
-  const yAxisTicks = chartContainer.value.querySelectorAll('.ytick text');
-  yAxisTicks.forEach(tick => {
-    const value = parseFloat(tick.textContent);
-    if (value === 0) {
-      tick.textContent = '0';
-    } else {
-      tick.textContent = value.toFixed(4);
-    }
-  });
-};
-
-// Watchers removed theme switching complexity since axis colors are now static
-
-// Create chart
-const createChart = async () => {
-  if (!plotlyInstance || !chartContainer.value || !currentData.value.length) return;
-
-  const theme = getTheme();
   const labels = currentData.value.map(item => item.label);
   const kwhValues = currentData.value.map(item => item.value);
   const costValues = currentCostData.value.map(item => item.value);
   const savingsValues = currentSavingsData.value.map(item => item.value);
 
-  const traces = [
+  const baseColors = {
+    grid: isDarkMode.value ? '#4A5568' : '#E2E8F0',
+    ticks: isDarkMode.value ? '#CBD5E0' : '#4A5568',
+    bar: 'rgba(76, 175, 80, 0.8)',
+    line: isDarkMode.value ? '#E5E7EB' : '#1F2937',
+    cost: '#2563eb',     // blue
+    savings: '#f59e0b',  // amber
+    point: isDarkMode.value ? '#E5E7EB' : '#1F2937',
+  };
+
+  const datasets = [
     {
       type: 'bar',
-      name: `Total ${props.tooltipUnit}`,
-      x: labels,
-      y: kwhValues,
-      marker: {
-        color: theme.barColor,
-        line: {
-          color: 'transparent',
-          width: 1
-        }
-      },
-      yaxis: 'y',
-      hovertemplate: `<b>%{x}</b><br>${props.tooltipUnit}: %{y:.4f}<extra></extra>`
-    }
+      label: `Total ${props.tooltipUnit}`,
+      data: kwhValues,
+      backgroundColor: baseColors.bar,
+      borderColor: 'transparent',
+      borderWidth: 1,
+      yAxisID: 'y',
+    },
   ];
 
   if (chartType.value === 'combined') {
-    // Add trend line
-    traces.push({
-      type: 'scatter',
-      mode: 'lines+markers',
-      name: 'Trend',
-      x: labels,
-      y: kwhValues,
-      line: {
-        color: theme.lineColor,
-        width: 2,
-        shape: 'spline'
+    datasets.push(
+      {
+        type: 'line',
+        label: 'Trend',
+        data: kwhValues,
+        borderColor: baseColors.line,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        yAxisID: 'y',
       },
-      marker: {
-        size: 4,
-        color: theme.lineColor
+      {
+        type: 'line',
+        label: 'Cost (₱)',
+        data: costValues,
+        borderColor: baseColors.cost,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        yAxisID: 'y1', // second axis for pesos
       },
-      yaxis: 'y',
-      hovertemplate: `<b>%{x}</b><br>Trend: %{y:.4f} ${props.tooltipUnit}<extra></extra>`
-    });
-
-    // Add cost line if data exists
-    if (costValues.length && costValues.some(v => v !== null && v !== undefined)) {
-      traces.push({
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Cost (₱)',
-        x: labels,
-        y: costValues,
-        line: {
-          color: theme.costColor,
-          width: 2,
-          shape: 'spline'
-        },
-        marker: {
-          size: 4,
-          color: theme.costColor
-        },
-        yaxis: 'y2',
-        hovertemplate: `<b>%{x}</b><br>Cost: ₱%{y:.2f}<extra></extra>`
-      });
-    }
-
-    // Add savings line if data exists
-    if (savingsValues.length && savingsValues.some(v => v !== null && v !== undefined)) {
-      traces.push({
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Savings (₱)',
-        x: labels,
-        y: savingsValues,
-        line: {
-          color: theme.savingsColor,
-          width: 2,
-          shape: 'spline'
-        },
-        marker: {
-          size: 4,
-          color: theme.savingsColor
-        },
-        yaxis: 'y2',
-        hovertemplate: `<b>%{x}</b><br>Savings: ₱%{y:.2f}<extra></extra>`
-      });
-    }
+      {
+        type: 'line',
+        label: 'Savings (₱)',
+        data: savingsValues,
+        borderColor: baseColors.savings,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        yAxisID: 'y1',
+      }
+    );
   }
 
-  const layout = {
-    margin: { l: 80, r: 60, t: 40, b: 80 },
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: { 
-      color: theme.textColor,
-      size: 12
-    },
-    showlegend: true,
-    legend: {
-      orientation: 'h',
-      y: 1.08,
-      x: 0,
-      font: { color: theme.textColor }
-    },
-    xaxis: {
-      title: {
-        text: props.xAxisLabel,
-        font: { color: theme.textColor }
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true }, // ✅ show legend now
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: isDarkMode.value ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+        titleColor: isDarkMode.value ? '#F9FAFB' : '#1F2937',
+        bodyColor: isDarkMode.value ? '#F9FAFB' : '#1F2937',
+        borderColor: isDarkMode.value ? '#4A5568' : '#E2E8F0',
+        borderWidth: 1,
       },
-      showgrid: true,
-      gridcolor: theme.gridColor,
-      gridwidth: 1,
-      color: theme.axisColor,
-      linecolor: theme.gridColor,
-      zerolinecolor: theme.gridColor,
-      tickfont: { color: theme.textColor }
     },
-    yaxis: {
-      title: {
-        text: `Total ${props.tooltipUnit}`,
-        font: { color: theme.textColor },
-        standoff: 20 // 1. Defines the space (in px) between the title and the tick labels
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: props.xAxisLabel,
+          color: baseColors.ticks,
+        },
+        ticks: { color: baseColors.ticks },
+        grid: { color: baseColors.grid },
       },
-      automargin: true, // 2. Tells Plotly to automatically push the left margin ('margin.l')
-                        // to accommodate the title and its standoff distance.
-      showgrid: true,
-      Rangemode: 'tozero',
-      gridcolor: theme.gridColor,
-      gridwidth: 1,
-      color: theme.axisColor,
-      linecolor: theme.gridColor,
-      zerolinecolor: theme.gridColor,
-      tickfont: { color: theme.textColor },
-      tickmode: 'auto',
-      tickformat: '',
-      ticklabelposition: 'outside',
-      exponentformat: 'none',
-      side: 'left'
-    }
+      y: {
+        title: {
+          display: true,
+          text: `Total ${props.tooltipUnit}`,
+          color: baseColors.ticks,
+        },
+        beginAtZero: true,
+        ticks: { color: baseColors.ticks },
+        grid: { color: baseColors.grid },
+        position: 'left',
+      },
+      y1: {
+        title: {
+          display: true,
+          text: '₱ Cost / Savings',
+          color: baseColors.ticks,
+        },
+        beginAtZero: true,
+        ticks: { color: baseColors.ticks },
+        grid: { drawOnChartArea: false },
+        position: 'right',
+      },
+    },
   };
 
-// Add second y-axis for combined chart
-  if (chartType.value === 'combined') {
-    // Calculate max value for y2 axis from actual data points
-    const allY2Values = [...costValues, ...savingsValues].filter(v => v !== null && v !== undefined && !isNaN(v));
-    const maxY2 = allY2Values.length ? Math.max(...allY2Values) : 1;
-
-    // Always start at 0, add 15% padding above max
-    const rangeMin = 0;
-    const rangeMax = maxY2 * 1.1;
-
-    layout.yaxis2 = {
-      title: {
-        text: '₱ Cost / Savings',
-        font: { color: theme.textColor },
-      },
-      showgrid: false,
-      range: [rangeMin, rangeMax],
-      color: theme.axisColor,
-      linecolor: theme.gridColor,
-      zerolinecolor: theme.gridColor,
-      tickfont: { color: theme.textColor },
-      overlaying: 'y',
-      side: 'right',
-      automargin: true,
-      fixedrange: false
-    };
-  }
-
-  const config = {
-    displayModeBar: false,
-    responsive: true
-  };
-
-  try {
-    await plotlyInstance.newPlot(chartContainer.value, traces, layout, config);
-    // Apply custom formatting after plot is created
-    setTimeout(customFormatTicks, 100);
-  } catch (error) {
-    console.error('Error creating Plotly chart:', error);
-  }
+  energyChart = new Chart(chartCanvasRef.value, {
+    type: chartType.value === 'combined' ? 'bar' : 'bar',
+    data: { labels, datasets },
+    options,
+  });
 };
 
-// Initialize component
-onMounted(async () => {
-  try {
-    plotlyInstance = await plotlyPromise;
-    await nextTick();
-    await createChart();
-  } catch (error) {
-    console.error('Failed to initialize Plotly chart:', error);
-  }
+
+onMounted(() => {
+  createChart();
 });
 
-// Cleanup
-onUnmounted(() => {
-  if (plotlyInstance && chartContainer.value) {
-    try {
-      plotlyInstance.purge(chartContainer.value);
-    } catch (error) {
-      console.error('Error cleaning up chart:', error);
-    }
-  }
-});
-
-// Real-time update methods
-const updateChartRealtime = async () => {
-  if (!plotlyInstance || !chartContainer.value || !currentData.value.length) return;
-
-  const labels = currentData.value.map(item => item.label);
-  const kwhValues = currentData.value.map(item => item.value);
-  const costValues = currentCostData.value.map(item => item.value);
-  const savingsValues = currentSavingsData.value.map(item => item.value);
-
-  // Use Plotly's restyle for smooth updates
-  const update = {
-    x: [labels],
-    y: [kwhValues]
-  };
-
-  let traceIndex = 1;
-  
-  if (chartType.value === 'combined') {
-    // Update trend line
-    update.x.push(labels);
-    update.y.push(kwhValues);
-    traceIndex = 2;
-
-    // Update cost line if data exists
-    if (costValues.length && costValues.some(v => v !== null && v !== undefined)) {
-      update.x.push(labels);
-      update.y.push(costValues);
-      traceIndex++;
-    }
-
-    // Update savings line if data exists
-    if (savingsValues.length && savingsValues.some(v => v !== null && v !== undefined)) {
-      update.x.push(labels);
-      update.y.push(savingsValues);
-    }
-  }
-
-  try {
-    await plotlyInstance.restyle(chartContainer.value, update);
-  } catch (error) {
-    console.error('Error updating chart:', error);
-    // Fallback to recreating chart if restyle fails
-    await createChart();
-  }
-};
-
-// Smart watcher that detects if it's a real-time update vs full recreation
-let lastDataLength = 0;
-let isInitialized = false;
-
-watch(currentData, async (newData) => {
-  await nextTick();
-  
-  if (!isInitialized) {
-    // First load - create chart
-    await createChart();
-    lastDataLength = newData.length;
-    isInitialized = true;
-  } else {
-    // Check if this is a real-time update (length change) or period change
-    if (newData.length !== lastDataLength && Math.abs(newData.length - lastDataLength) <= 2) {
-      // Likely a real-time update - use smooth update
-      await updateChartRealtime();
-      lastDataLength = newData.length;
-    } else {
-      // Significant change - recreate chart (period change, etc.)
-      await createChart();
-      lastDataLength = newData.length;
-    }
-  }
+watch(currentData, () => {
+  createChart();
 }, { deep: true });
 
-watch(chartType, async () => {
-  await nextTick();
-  await createChart();
-  isInitialized = true;
+watch(chartType, () => {
+  createChart();
 });
 
-// Removed isDarkMode watcher since axis colors are now static gray-500
+watch(isDarkMode, () => {
+  createChart();
+});
 </script>
-
 <style scoped>
-/* Additional scoped styles if needed */
+/* You can add any additional scoped styles here if needed */
 </style>

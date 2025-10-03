@@ -91,31 +91,106 @@
       <div class="border-t border-gray-200 dark:border-gray-700 pt-8">
         <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Change Password</h2>
         
-        <div class="mb-5">
+        <div class="mb-5 relative">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
           <input 
-            type="password" 
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#059669] focus:border-[#059669] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+            :type="showCurrentPassword ? 'text' : 'password'" 
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#059669] focus:border-[#059669] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 pr-10"
             v-model="currentPassword"
           >
+          <!-- Toggle button for current password -->
+          <button type="button" @click="showCurrentPassword = !showCurrentPassword"
+            class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+            <!-- Eye open -->
+            <svg v-if="!showCurrentPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
+                  8.268 2.943 9.542 7-1.274 4.057-5.064 
+                  7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+
+            <!-- Eye with slash -->
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
+                  0-8.268-2.943-9.542-7a9.956 9.956 
+                  0 012.38-3.882m3.184-2.3A9.956 9.956 
+                  0 0112 5c4.478 0 8.268 2.943 
+                  9.542 7a9.956 9.956 0 01-4.338 
+                  5.223M15 12a3 3 0 11-6 0 3 3 
+                  0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+            </svg>
+          </button>
         </div>
 
-        <div class="mb-5">
+        <div class="mb-5 relative">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
           <input 
-            type="password" 
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#059669] focus:border-[#059669] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+            :type="showNewPassword ? 'text' : 'password'" 
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#059669] focus:border-[#059669] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 pr-10"
             v-model="newPassword"
           >
+          <!-- Toggle button for new password -->
+          <button type="button" @click="showNewPassword = !showNewPassword"
+            class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+            <!-- Eye open -->
+            <svg v-if="!showNewPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
+                  8.268 2.943 9.542 7-1.274 4.057-5.064 
+                  7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+
+            <!-- Eye with slash -->
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
+                  0-8.268-2.943-9.542-7a9.956 9.956 
+                  0 012.38-3.882m3.184-2.3A9.956 9.956 
+                  0 0112 5c4.478 0 8.268 2.943 
+                  9.542 7a9.956 9.956 0 01-4.338 
+                  5.223M15 12a3 3 0 11-6 0 3 3 
+                  0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+            </svg>
+          </button>
         </div>
 
-        <div class="mb-6">
+        <div class="mb-6 relative">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
           <input 
-            type="password" 
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#059669] focus:border-[#059669] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+            :type="showConfirmNewPassword ? 'text' : 'password'" 
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#059669] focus:border-[#059669] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 pr-10"
             v-model="confirmNewPassword"
           >
+          <!-- Toggle button for confirm new password -->
+          <button type="button" @click="showConfirmNewPassword = !showConfirmNewPassword"
+            class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none">
+            <!-- Eye open -->
+            <svg v-if="!showConfirmNewPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
+                  8.268 2.943 9.542 7-1.274 4.057-5.064 
+                  7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+
+            <!-- Eye with slash -->
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
+                  0-8.268-2.943-9.542-7a9.956 9.956 
+                  0 012.38-3.882m3.184-2.3A9.956 9.956 
+                  0 0112 5c4.478 0 8.268 2.943 
+                  9.542 7a9.956 9.956 0 01-4.338 
+                  5.223M15 12a3 3 0 11-6 0 3 3 
+                  0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+            </svg>
+          </button>
         </div>
         
         <div v-if="passwordError" class="bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 mb-6" role="alert">
@@ -168,7 +243,11 @@ export default {
       newPassword: '',
       confirmNewPassword: '',
       passwordError: '',
-      initialState: {} // To store the initial state for comparison and cancellation
+      initialState: {}, // To store the initial state for comparison and cancellation
+      // Password visibility states
+      showCurrentPassword: false,
+      showNewPassword: false,
+      showConfirmNewPassword: false
     };
   },
   setup() {
@@ -302,6 +381,10 @@ export default {
       this.newPassword = '';
       this.confirmNewPassword = '';
       this.passwordError = '';
+      // Reset password visibility states
+      this.showCurrentPassword = false;
+      this.showNewPassword = false;
+      this.showConfirmNewPassword = false;
     }
   },
   mounted() {
