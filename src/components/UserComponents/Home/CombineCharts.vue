@@ -140,9 +140,9 @@ const getTheme = () => {
   return {
     isDark,
     bgColor: 'transparent',
-    textColor: isDark ? '#6b7280' : '#374151',
-    gridColor: isDark ? '#374151' : '#d1d5db',
-    axisColor: isDark ? '#4b5563' : '#6b7280',
+    textColor: '#6b7280', // gray-500 for all text/axis elements
+    gridColor: '#374151', // gray-500 for grid lines
+    axisColor: '#374151', // gray-500 for axis lines
     barColor: 'rgba(76, 175, 80, 0.8)',
     lineColor: isDark ? '#e5e7eb' : '#1f2937',
     costColor: '#2563eb',
@@ -166,57 +166,7 @@ const customFormatTicks = () => {
   });
 };
 
-// Setup theme observer
-const setupThemeObserver = () => {
-  themeObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-        nextTick(() => {
-          updateChartTheme();
-        });
-      }
-    });
-  });
-
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class']
-  });
-};
-
-// Update chart theme dynamically
-const updateChartTheme = () => {
-  if (!plotlyInstance || !chartContainer.value) return;
-
-  const theme = getTheme();
-  const layoutUpdate = {
-    'font.color': theme.textColor,
-    'xaxis.gridcolor': theme.gridColor,
-    'xaxis.color': theme.axisColor,
-    'xaxis.linecolor': theme.gridColor,
-    'xaxis.zerolinecolor': theme.gridColor,
-    'xaxis.tickfont.color': theme.textColor,
-    'xaxis.title.font.color': theme.textColor,
-    'yaxis.gridcolor': theme.gridColor,
-    'yaxis.color': theme.axisColor,
-    'yaxis.linecolor': theme.gridColor,
-    'yaxis.zerolinecolor': theme.gridColor,
-    'yaxis.tickfont.color': theme.textColor,
-    'yaxis.title.font.color': theme.textColor,
-    'yaxis2.gridcolor': theme.gridColor,
-    'yaxis2.color': theme.axisColor,
-    'yaxis2.linecolor': theme.gridColor,
-    'yaxis2.zerolinecolor': theme.gridColor,
-    'yaxis2.tickfont.color': theme.textColor,
-    'yaxis2.title.font.color': theme.textColor,
-    'legend.font.color': theme.textColor
-  };
-
-  plotlyInstance.relayout(chartContainer.value, layoutUpdate).then(() => {
-    // Apply custom tick formatting after theme update
-    setTimeout(customFormatTicks, 100);
-  });
-};
+// Watchers removed theme switching complexity since axis colors are now static
 
 // Create chart
 const createChart = async () => {
@@ -313,7 +263,7 @@ const createChart = async () => {
   }
 
   const layout = {
-    margin: { l: 60, r: 60, t: 40, b: 60 },
+    margin: { l: 80, r: 60, t: 40, b: 80 },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
     font: { 
@@ -323,7 +273,7 @@ const createChart = async () => {
     showlegend: true,
     legend: {
       orientation: 'h',
-      y: 1.02,
+      y: 1.08,
       x: 0,
       font: { color: theme.textColor }
     },
@@ -343,9 +293,13 @@ const createChart = async () => {
     yaxis: {
       title: {
         text: `Total ${props.tooltipUnit}`,
-        font: { color: theme.textColor }
+        font: { color: theme.textColor },
+        standoff: 20 // 1. Defines the space (in px) between the title and the tick labels
       },
+      automargin: true, // 2. Tells Plotly to automatically push the left margin ('margin.l')
+                        // to accommodate the title and its standoff distance.
       showgrid: true,
+      Rangemode: 'tozero',
       gridcolor: theme.gridColor,
       gridwidth: 1,
       color: theme.axisColor,
@@ -360,20 +314,31 @@ const createChart = async () => {
     }
   };
 
-  // Add second y-axis for combined chart
+// Add second y-axis for combined chart
   if (chartType.value === 'combined') {
+    // Calculate max value for y2 axis from actual data points
+    const allY2Values = [...costValues, ...savingsValues].filter(v => v !== null && v !== undefined && !isNaN(v));
+    const maxY2 = allY2Values.length ? Math.max(...allY2Values) : 1;
+
+    // Always start at 0, add 15% padding above max
+    const rangeMin = 0;
+    const rangeMax = maxY2 * 1.1;
+
     layout.yaxis2 = {
       title: {
         text: '₱ Cost / Savings',
-        font: { color: theme.textColor }
+        font: { color: theme.textColor },
       },
       showgrid: false,
+      range: [rangeMin, rangeMax],
       color: theme.axisColor,
       linecolor: theme.gridColor,
       zerolinecolor: theme.gridColor,
       tickfont: { color: theme.textColor },
       overlaying: 'y',
-      side: 'right'
+      side: 'right',
+      automargin: true,
+      fixedrange: false
     };
   }
 
@@ -395,7 +360,6 @@ const createChart = async () => {
 onMounted(async () => {
   try {
     plotlyInstance = await plotlyPromise;
-    setupThemeObserver();
     await nextTick();
     await createChart();
   } catch (error) {
@@ -405,9 +369,6 @@ onMounted(async () => {
 
 // Cleanup
 onUnmounted(() => {
-  if (themeObserver) {
-    themeObserver.disconnect();
-  }
   if (plotlyInstance && chartContainer.value) {
     try {
       plotlyInstance.purge(chartContainer.value);
@@ -495,10 +456,7 @@ watch(chartType, async () => {
   isInitialized = true;
 });
 
-watch(isDarkMode, async () => {
-  await nextTick();
-  updateChartTheme();
-});
+// Removed isDarkMode watcher since axis colors are now static gray-500
 </script>
 
 <style scoped>
