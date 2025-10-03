@@ -23,7 +23,9 @@ import {
     limit,
     addDoc,
     doc,
-    setDoc
+    setDoc,
+    getDocs,
+    getDoc,
 } from "firebase/firestore";
 
 // Firebase configuration.
@@ -66,5 +68,7 @@ export {
     limit,
     addDoc,
     doc,
-    setDoc
+    setDoc,
+    getDocs,
+    getDoc,
 };

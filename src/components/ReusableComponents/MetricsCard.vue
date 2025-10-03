@@ -10,7 +10,8 @@
       class="flex flex-col bg-white rounded-lg shadow dark:bg-gray-800 dark:shadow-md dark:shadow-gray-700"
     >
       <div class="flex items-start justify-between mb-4">
-        <h3 :class="['text-gray-600', titleSizeClass, { 'dark:text-[#F8F8FF]': isDarkMode }]">{{ metric.title }}</h3>
+        <h3 :class="['text-gray-600', 'dark:text-gray-300', titleSizeClass]">{{ metric.title }}</h3>
+        
         <img 
           :class="['dark:invert', iconSizeClass]" 
           :src="metric.icon" 
@@ -18,8 +19,9 @@
         >
       </div>
       <div>
-        <p :class="['text-gray-800', costSizeClass, { 'dark:text-blue-400': isDarkMode }]">{{ metric.cost }}</p>
-        <p :class="['text-gray-500', definitionSizeClass, { 'dark:text-[#F8F8FF]': isDarkMode }]">{{ metric.definition }}</p>
+        <p :class="['text-gray-800', 'dark:text-blue-400', costSizeClass]">{{ metric.cost }}</p>
+        
+        <p :class="['text-gray-500', 'dark:text-gray-300', definitionSizeClass]">{{ metric.definition }}</p>
       </div>
     </div>
   </div>
