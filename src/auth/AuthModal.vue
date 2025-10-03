@@ -241,9 +241,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendEmailVerification,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  
 } from '../firebase.js';
-import { db, doc, setDoc } from '../firebase.js';
+import { db, doc, setDoc, getDoc } from '../firebase.js';
 
 // The global app ID and Firestore config are provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -390,20 +391,35 @@ const checkEmailVerificationStatus = async () => {
 
 const handleLogin = async () => {
   error.value = '';
-  isLoading.value = true; // Start loading
+  isLoading.value = true;
   try {
-    await signInWithEmailAndPassword(auth, email.value, password.value);
-    console.log('Successfully logged in.');
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+    const userId = userCredential.user.uid;
+    
 
-    // The redirect will happen after this, so you can set isLoading to false here
+    // Fetch user profile from Firestore
+    const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
+    const userDoc = await getDoc(userDocRef);
+
+    let role = "user"; // fallback
+    if (userDoc.exists() && userDoc.data().role) {
+      role = userDoc.data().role;
+    }
+
+    console.log("User role:", role);
+
     isLoading.value = false;
     closeModal();
 
-    // Redirect the user to the Home page
-    router.push('/home');
+    // Route based on role
+    if (role === "admin") {
+      router.push("/adminhome");
+    } else {
+      router.push("/home");
+    }
   } catch (err) {
-    console.error('Login error:', err.message);
-    isLoading.value = false; // Stop loading on error
+    console.error("Login error:", err.message);
+    isLoading.value = false;
     error.value = err.message;
   }
 };
@@ -418,6 +434,7 @@ const handleRegister = async () => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
+    const defaultRole = "user"; // Default role
 
     // Create a new document in Firestore with user profile data, including the device ID
     await setDoc(doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`), {
@@ -426,6 +443,7 @@ const handleRegister = async () => {
       phoneNumber: phoneNumber.value,
       address: address.value,
       deviceId: deviceId.value, // Save the device ID
+      role: defaultRole,
     });
     console.log('User profile and device ID data saved to Firestore.');
 

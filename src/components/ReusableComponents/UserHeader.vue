@@ -46,6 +46,17 @@
                 </button>
               </li>
               <li>
+                <button 
+                  @click="navigateTo('Forecast')" 
+                  :class="[
+                    'py-2 hover:text-green-600 dark:hover:text-green-500',
+                    $route.name === 'Forecast' ? 'text-green-600 dark:text-green-500' : ''
+                  ]">
+                  Forecast
+                </button>
+              </li>
+
+              <li>
                 <button
                   @click="navigateTo('Appliances')"
                   :class="[
@@ -211,6 +222,17 @@
                   <span class="text-gray-800 dark:text-gray-100">Appliances</span>
                 </button>
               </li>
+              <li>
+                <button
+                    @click="navigateTo('Forecast')"
+                    class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
+                    :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Forecast' }"
+                >
+                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/forecast.svg" alt="">
+                  <span class="text-gray-800 dark:text-gray-100">Forecast</span>
+                </button>
+              </li>
+
               <li>
                 <button
                   @click="navigateTo('SolarPanel')"

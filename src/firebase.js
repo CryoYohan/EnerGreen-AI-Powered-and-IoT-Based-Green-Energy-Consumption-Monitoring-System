@@ -25,6 +25,7 @@ import {
     doc,
     setDoc,
     getDocs,
+    getDoc,
 } from "firebase/firestore";
 
 // Firebase configuration.
@@ -69,4 +70,5 @@ export {
     doc,
     setDoc,
     getDocs,
+    getDoc,
 };
