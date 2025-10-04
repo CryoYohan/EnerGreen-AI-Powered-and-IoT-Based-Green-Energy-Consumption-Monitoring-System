@@ -14,6 +14,7 @@
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",
     "firebase": "^12.1.0",
+    "lodash-es": "^4.17.21",
     "plotly.js-dist-min": "^3.1.0",
     "pulltorefreshjs": "^0.1.22",
     "vue": "^3.5.13",
