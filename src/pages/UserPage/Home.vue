@@ -9,7 +9,6 @@
 
     <!-- REPLACED ReusableBarChart WITH THE NEW CombineCharts -->
      <Button @click="fetchDailySummaries" variant="outline">🔄 Refresh Data</Button>
-
     <CombineCharts
       chartTitle="Electricity Usage"
       :activePeriod="activePeriod"
@@ -253,14 +252,18 @@ const processDailySummaries = (summaries) => {
     const gridKwh = summary.gridKwhTotal || 0;
     const solarKwh = summary.solarKwhTotal || 0;
     
-    // WEEKLY GROUPING
+    // WEEKLY GROUPING - FIXED
     if (date > cutoffDate) {
-      const dayIndex = date.getDay();
-      if (!weeklyTotals[dayIndex]) {
-        weeklyTotals[dayIndex] = { grid: 0, solar: 0 };
+      const dateKey = date.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      if (!weeklyTotals[dateKey]) {
+        weeklyTotals[dateKey] = { 
+          grid: 0, 
+          solar: 0, 
+          label: weekday[date.getDay()] 
+        };
       }
-      weeklyTotals[dayIndex].grid += gridKwh;
-      weeklyTotals[dayIndex].solar += solarKwh;
+      weeklyTotals[dateKey].grid += gridKwh;
+      weeklyTotals[dateKey].solar += solarKwh;
     }
 
     // MONTHLY GROUPING
@@ -283,29 +286,35 @@ const processDailySummaries = (summaries) => {
   });
 
   // -----------------------------------------------------------
-  // 1. Weekly Data (Last 7 days) - FIXED VERSION
+  // 1. Weekly Data (Mon → Today) - FIXED VERSION
   // -----------------------------------------------------------
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Get Monday of this week (6 days before today)
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - 6); // 7-day window (Mon–Sun)
+
+  // Collect last 7 days (Monday → Today)
+  // Build last 7 days in order (Mon → Sun)
   const lastSevenDays = [];
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
-
   for (let i = 6; i >= 0; i--) {
-    const date = new Date(currentDate);
-    date.setDate(currentDate.getDate() - i);
-    const dayIndex = date.getDay();
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    const dateKey = d.toISOString().slice(0, 10);
 
-    // FIX: Safely access weeklyTotals with proper fallback
-    const dayData = weeklyTotals[dayIndex];
-    const grid = dayData ? dayData.grid : 0;
-    const solar = dayData ? dayData.solar : 0;
-    
-    lastSevenDays.push({ 
-      label: weekday[dayIndex], 
-      grid: grid, 
-      solar: solar,
-      value: grid + solar 
+    const dayData = weeklyTotals[dateKey] || { grid: 0, solar: 0, label: weekday[d.getDay()] };
+    lastSevenDays.push({
+      label: dayData.label,
+      grid: dayData.grid,
+      solar: dayData.solar,
+      value: dayData.grid + dayData.solar
     });
   }
+
+weeklyData.value = lastSevenDays;
+
+
   weeklyData.value = lastSevenDays;
 
   // 2. Monthly Data
