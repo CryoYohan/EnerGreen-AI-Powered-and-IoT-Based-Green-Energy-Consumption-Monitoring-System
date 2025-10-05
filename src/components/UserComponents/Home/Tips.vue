@@ -92,6 +92,9 @@ import {
   getDocs, 
   setDoc, 
   getDoc,
+  query, 
+  where,
+  Timestamp
   // Added query, orderBy, limit if your fetchAndGenerate logic needed them, 
   // though getDocs is being used here for simplicity.
 } from 'firebase/firestore'; 
@@ -143,12 +146,16 @@ export default {
 
     // ✅ Stable generateTip logic
     const generateTip = async (energyData, userProfileRef) => {
-      let prompt = `Act as an energy efficiency expert. Provide a list of three concise, short energy-saving tips. 
-The tips must be personalized based on the following data:\n\n`;
-      prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
+      let prompt = `Act as an energy efficiency expert. Generate three concise, practical energy-saving tips based on the user's daily energy data.\n\n`;
+      if (energyData.topConsumerName === "No major appliances monitored") {
+        prompt += `Note: The system currently has no smart plug data, so the readings represent the total household consumption — including possible phantom or standby loads.\n`;
+      } else {
+        prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
+      }
+
       prompt += `- Energy Source Breakdown: ${energyData.solarPercentage.toFixed(0)}% Solar, ${energyData.gridPercentage.toFixed(0)}% Grid\n`;
       prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
-      prompt += `Each tip must be an object with a "description" field in JSON format. Do not include greetings or extra commentary.`;
+      prompt += `Each tip must be an object with a "description" field in valid JSON format (array of objects). Do not include greetings, explanations, or extra commentary.`;
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
@@ -193,13 +200,8 @@ The tips must be personalized based on the following data:\n\n`;
       }
     };
 
-    // ✅ Stable fetchAndGenerate logic (uses userProfile.deviceId, daily caching)
+    // ✅ Accurate Delta-based energy computation
     const fetchAndGenerate = async (force = false) => {
-      // NOTE: This function's energy calculation (summing kwhConsumed) is
-      // simplified for this component. A production app might need to fetch
-      // daily summary documents for true kWh consumption.
-      // This is preserved as per the user's original code.
-      
       loading.value = true;
       error.value = null;
 
@@ -216,20 +218,19 @@ The tips must be personalized based on the following data:\n\n`;
         const profileSnap = await getDoc(userProfileRef);
         const profileData = profileSnap.data();
 
+        // 🕒 Cached tips check
         if (profileData?.tips && !force) {
-            const tipTimestamp = profileData.tipTimestamp || 0;
-            const now = Date.now();
-            const oneDay = 24 * 60 * 60 * 1000;
-
-            if (now - tipTimestamp < oneDay) {
-                // Serve cached tips if less than 24 hours old
-                tips.value = profileData.tips;
-                loading.value = false;
-                currentTipIndex.value = 0;
-                return;
-            }
+          const tipTimestamp = profileData.tipTimestamp || 0;
+          const now = Date.now();
+          const oneDay = 24 * 60 * 60 * 1000;
+          if (now - tipTimestamp < oneDay) {
+            tips.value = profileData.tips;
+            loading.value = false;
+            currentTipIndex.value = 0;
+            return;
+          }
         }
-        
+
         if (!profileData?.deviceId) {
           tips.value = [{ description: "No device linked to your account. Please monitor your devices to get tips!" }];
           loading.value = false;
@@ -238,19 +239,18 @@ The tips must be personalized based on the following data:\n\n`;
 
         const deviceId = profileData.deviceId;
 
-        // ✅ FIXED: Use the correct Firestore paths
+        // 🔍 Appliance data
         const consumersRef = collection(db, `devices/${deviceId}/appliances`);
         const readingsRef = collection(db, `devices/${deviceId}/realtime_readings`);
 
         let topConsumerName = "No major appliances monitored";
         let topConsumerUsage = 0;
-        
+
         const querySnapshot = await getDocs(consumersRef);
         if (!querySnapshot.empty) {
           let topAppliance = null;
           querySnapshot.forEach(doc => {
             const data = doc.data();
-            // Assuming kwhConsumed is a field in the appliance document
             if (topAppliance === null || (data.kwhConsumed || 0) > topAppliance.kwhConsumed) {
               topAppliance = { name: data.name, kwhConsumed: data.kwhConsumed || 0 };
             }
@@ -261,21 +261,68 @@ The tips must be personalized based on the following data:\n\n`;
           }
         }
 
-        // Fetch realtime readings from the correct path
-        const readingsSnapshot = await getDocs(readingsRef);
+        // 🕒 Define today's range
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+        // 🔎 Get only today's readings
+        const readingsQuery = query(
+          readingsRef,
+          where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
+          where('timestamp', '<', Timestamp.fromDate(endOfDay))
+        );
+        const readingsSnapshot = await getDocs(readingsQuery);
+
+        if (readingsSnapshot.empty) {
+          tips.value = [{ description: "No energy readings found for today. Try again later." }];
+          loading.value = false;
+          return;
+        }
+
+        // ⚙️ Collect and sort readings chronologically
+        const readings = [];
+        readingsSnapshot.forEach(doc => readings.push(doc.data()));
+        readings.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
+
+        // ⚡ Compute deltas (accurate daily kWh)
+        let lastGrid = null, lastSolar = null;
         let gridKwh = 0, solarKwh = 0;
-        readingsSnapshot.forEach(doc => {
-          const data = doc.data();
-          // Assuming kwhConsumed is a field in the realtime_readings document
-          if (data.energySource === "Grid") gridKwh += data.kwhConsumed || 0;
-          else if (data.energySource === "Solar") solarKwh += data.kwhConsumed || 0;
-        });
 
+        for (const data of readings) {
+          const { energySource, kwhConsumed } = data;
+
+          if (energySource === "Grid") {
+            if (lastGrid !== null && kwhConsumed > lastGrid) {
+              gridKwh += kwhConsumed - lastGrid;
+            }
+            lastGrid = kwhConsumed;
+          } else if (energySource === "Solar") {
+            if (lastSolar !== null && kwhConsumed > lastSolar) {
+              solarKwh += kwhConsumed - lastSolar;
+            }
+            lastSolar = kwhConsumed;
+          }
+        }
+
+        // 🧮 Compute totals and percentages
         const totalKwh = gridKwh + solarKwh;
-        const solarPercentage = totalKwh > 0 ? (solarKwh / totalKwh) * 100 : 0;
-        const gridPercentage = totalKwh > 0 ? (gridKwh / totalKwh) * 100 : 0;
+        const safeTotalKwh = Math.min(totalKwh, 100); // prevent runaway sums
+        const solarPercentage = safeTotalKwh > 0 ? (solarKwh / safeTotalKwh) * 100 : 0;
+        const gridPercentage = safeTotalKwh > 0 ? (gridKwh / safeTotalKwh) * 100 : 0;
 
-        const energyData = { topConsumerName, topConsumerUsage, solarPercentage, gridPercentage, totalKwh };
+        console.log(
+          `Δ Grid: ${gridKwh.toFixed(3)} kWh | Δ Solar: ${solarKwh.toFixed(3)} kWh | Total: ${safeTotalKwh.toFixed(3)} kWh`
+        );
+
+        const energyData = {
+          topConsumerName,
+          topConsumerUsage,
+          solarPercentage,
+          gridPercentage,
+          totalKwh: safeTotalKwh
+        };
+
         await generateTip(energyData, userProfileRef);
       } catch (err) {
         console.error("Error fetching or generating tip:", err);
@@ -285,6 +332,7 @@ The tips must be personalized based on the following data:\n\n`;
         currentTipIndex.value = 0;
       }
     };
+
 
     const closeModal = () => emit('close');
     

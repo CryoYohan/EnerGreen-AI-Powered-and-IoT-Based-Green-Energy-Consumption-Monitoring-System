@@ -28,6 +28,7 @@ import {
     getDoc,
     where,
     startAfter,
+    Timestamp,
 } from "firebase/firestore";
 
 // Firebase configuration.
@@ -74,5 +75,6 @@ export {
     getDoc,
     where,
     startAfter,
-    limit
+    limit,
+    Timestamp,
 };
