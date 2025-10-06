@@ -3,37 +3,31 @@
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
       <div class="relative w-full max-w-5xl mx-auto flex flex-col lg:flex-row items-center justify-center p-4">
 
-        <!-- Desktop wizard (unchanged) -->
         <div class="hidden lg:block lg:w-1/2 lg:flex lg:justify-end lg:items-end pr-8">
           <img :src="currentWizardImage" alt="EnerWizard" class="max-w-xs xl:max-w-sm h-auto object-contain">
         </div>
 
         <div class="flex flex-col items-center justify-center w-full lg:w-1/2 p-4">
 
-          <!-- Mobile layout with wizard on left and bubble above -->
           <div class="block lg:hidden w-full flex flex-row items-end justify-start mb-6">
-            <!-- Wizard image on left for mobile -->
             <div class="w-32 h-32 mr-4 flex-shrink-0">
               <img :src="currentWizardImage" alt="EnerWizard" class="w-full h-full object-contain">
             </div>
-            
-            <!-- Conversation bubble -->
+
             <Transition name="tip-bubble" mode="out-in">
               <div v-if="currentTip" :key="currentTipIndex"
-                   class="relative bg-gray-800 dark:bg-gray-700 mb-10 text-white p-4 rounded-2xl shadow-lg max-w-xs"
-                   style="border-bottom-left-radius: 4px;">
+                class="relative bg-gray-800 dark:bg-gray-700 mb-10 text-white p-4 rounded-2xl shadow-lg max-w-xs"
+                style="border-bottom-left-radius: 4px;">
                 <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
-                
-                <!-- Bubble tail pointing to wizard -->
+
                 <div class="absolute -left-2 bottom-2 w-4 h-4 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
               </div>
             </Transition>
           </div>
 
-          <!-- Desktop tip (unchanged) -->
           <Transition name="tip-bubble" mode="out-in">
             <div v-if="currentTip" :key="currentTipIndex"
-                 class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md hidden lg:block">
+              class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md hidden lg:block">
               <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
               <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
             </div>
@@ -50,9 +44,7 @@
         </div>
       </div>
 
-      <!-- 🔹 Top-right controls (Refresh + Close) -->
       <div class="absolute top-4 right-4 flex space-x-2 z-50">
-        <!-- Refresh Button -->
         <button
           @click="refreshTips"
           class="p-2 text-white transition-transform transform rounded-full hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -76,7 +68,6 @@
           </svg>
         </button>
 
-        <!-- Close Button -->
         <button
           @click="closeModal"
           class="p-2 text-white transition-transform transform rounded-full hover:scale-110"
@@ -94,8 +85,21 @@
 
 <script>
 import { ref, computed, defineExpose } from 'vue';
-import { doc, collection, getDocs, setDoc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../../../firebase.js';
+// 🌟 CRITICAL CHANGE: Added necessary Firestore imports for a standalone component
+import { 
+  doc, 
+  collection, 
+  getDocs, 
+  setDoc, 
+  getDoc,
+  query, 
+  where,
+  Timestamp
+  // Added query, orderBy, limit if your fetchAndGenerate logic needed them, 
+  // though getDocs is being used here for simplicity.
+} from 'firebase/firestore'; 
+// 🌟 CRITICAL CHANGE: Use db and auth directly
+import { db, auth } from '../../../firebase.js'; 
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -142,12 +146,16 @@ export default {
 
     // ✅ Stable generateTip logic
     const generateTip = async (energyData, userProfileRef) => {
-      let prompt = `Act as an energy efficiency expert. Provide a list of three concise, short energy-saving tips. 
-The tips must be personalized based on the following data:\n\n`;
-      prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
+      let prompt = `Act as an energy efficiency expert. Generate three concise, practical energy-saving tips based on the user's daily energy data.\n\n`;
+      if (energyData.topConsumerName === "No major appliances monitored") {
+        prompt += `Note: The system currently has no smart plug data, so the readings represent the total household consumption — including possible phantom or standby loads.\n`;
+      } else {
+        prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
+      }
+
       prompt += `- Energy Source Breakdown: ${energyData.solarPercentage.toFixed(0)}% Solar, ${energyData.gridPercentage.toFixed(0)}% Grid\n`;
       prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
-      prompt += `Each tip must be an object with a "description" field in JSON format. Do not include greetings or extra commentary.`;
+      prompt += `Each tip must be an object with a "description" field in valid JSON format (array of objects). Do not include greetings, explanations, or extra commentary.`;
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
@@ -192,7 +200,7 @@ The tips must be personalized based on the following data:\n\n`;
       }
     };
 
-    // ✅ Stable fetchAndGenerate logic (uses userProfile.deviceId, daily caching)
+    // ✅ Accurate Delta-based energy computation
     const fetchAndGenerate = async (force = false) => {
       loading.value = true;
       error.value = null;
@@ -210,13 +218,17 @@ The tips must be personalized based on the following data:\n\n`;
         const profileSnap = await getDoc(userProfileRef);
         const profileData = profileSnap.data();
 
-        // check if cached tips are still valid
-        const oneDayInMs = 24 * 60 * 60 * 1000;
-        if (!force && profileData?.tips && profileData?.tipTimestamp && Date.now() - profileData.tipTimestamp < oneDayInMs) {
-          tips.value = profileData.tips;
-          loading.value = false;
-          currentTipIndex.value = 0;
-          return;
+        // 🕒 Cached tips check
+        if (profileData?.tips && !force) {
+          const tipTimestamp = profileData.tipTimestamp || 0;
+          const now = Date.now();
+          const oneDay = 24 * 60 * 60 * 1000;
+          if (now - tipTimestamp < oneDay) {
+            tips.value = profileData.tips;
+            loading.value = false;
+            currentTipIndex.value = 0;
+            return;
+          }
         }
 
         if (!profileData?.deviceId) {
@@ -227,18 +239,20 @@ The tips must be personalized based on the following data:\n\n`;
 
         const deviceId = profileData.deviceId;
 
-        // Fetch appliances
-        const consumersRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/appliances`);
-        const querySnapshot = await getDocs(consumersRef);
+        // 🔍 Appliance data
+        const consumersRef = collection(db, `devices/${deviceId}/appliances`);
+        const readingsRef = collection(db, `devices/${deviceId}/realtime_readings`);
 
         let topConsumerName = "No major appliances monitored";
         let topConsumerUsage = 0;
+
+        const querySnapshot = await getDocs(consumersRef);
         if (!querySnapshot.empty) {
           let topAppliance = null;
           querySnapshot.forEach(doc => {
             const data = doc.data();
-            if (topAppliance === null || data.kwhConsumed > topAppliance.kwhConsumed) {
-              topAppliance = { name: data.name, kwhConsumed: data.kwhConsumed };
+            if (topAppliance === null || (data.kwhConsumed || 0) > topAppliance.kwhConsumed) {
+              topAppliance = { name: data.name, kwhConsumed: data.kwhConsumed || 0 };
             }
           });
           if (topAppliance) {
@@ -247,22 +261,68 @@ The tips must be personalized based on the following data:\n\n`;
           }
         }
 
-        // Fetch realtime readings
-        const readingsRef = collection(db, `artifacts/${appId}/users/${userId}/devices/${deviceId}/realtime_readings`);
-        const readingsSnapshot = await getDocs(readingsRef);
+        // 🕒 Define today's range
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
+        // 🔎 Get only today's readings
+        const readingsQuery = query(
+          readingsRef,
+          where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
+          where('timestamp', '<', Timestamp.fromDate(endOfDay))
+        );
+        const readingsSnapshot = await getDocs(readingsQuery);
+
+        if (readingsSnapshot.empty) {
+          tips.value = [{ description: "No energy readings found for today. Try again later." }];
+          loading.value = false;
+          return;
+        }
+
+        // ⚙️ Collect and sort readings chronologically
+        const readings = [];
+        readingsSnapshot.forEach(doc => readings.push(doc.data()));
+        readings.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
+
+        // ⚡ Compute deltas (accurate daily kWh)
+        let lastGrid = null, lastSolar = null;
         let gridKwh = 0, solarKwh = 0;
-        readingsSnapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.energySource === "Grid") gridKwh += data.kwhConsumed || 0;
-          else if (data.energySource === "Solar") solarKwh += data.kwhConsumed || 0;
-        });
 
+        for (const data of readings) {
+          const { energySource, kwhConsumed } = data;
+
+          if (energySource === "Grid") {
+            if (lastGrid !== null && kwhConsumed > lastGrid) {
+              gridKwh += kwhConsumed - lastGrid;
+            }
+            lastGrid = kwhConsumed;
+          } else if (energySource === "Solar") {
+            if (lastSolar !== null && kwhConsumed > lastSolar) {
+              solarKwh += kwhConsumed - lastSolar;
+            }
+            lastSolar = kwhConsumed;
+          }
+        }
+
+        // 🧮 Compute totals and percentages
         const totalKwh = gridKwh + solarKwh;
-        const solarPercentage = totalKwh > 0 ? (solarKwh / totalKwh) * 100 : 0;
-        const gridPercentage = totalKwh > 0 ? (gridKwh / totalKwh) * 100 : 0;
+        const safeTotalKwh = Math.min(totalKwh, 100); // prevent runaway sums
+        const solarPercentage = safeTotalKwh > 0 ? (solarKwh / safeTotalKwh) * 100 : 0;
+        const gridPercentage = safeTotalKwh > 0 ? (gridKwh / safeTotalKwh) * 100 : 0;
 
-        const energyData = { topConsumerName, topConsumerUsage, solarPercentage, gridPercentage, totalKwh };
+        console.log(
+          `Δ Grid: ${gridKwh.toFixed(3)} kWh | Δ Solar: ${solarKwh.toFixed(3)} kWh | Total: ${safeTotalKwh.toFixed(3)} kWh`
+        );
+
+        const energyData = {
+          topConsumerName,
+          topConsumerUsage,
+          solarPercentage,
+          gridPercentage,
+          totalKwh: safeTotalKwh
+        };
+
         await generateTip(energyData, userProfileRef);
       } catch (err) {
         console.error("Error fetching or generating tip:", err);
@@ -273,8 +333,28 @@ The tips must be personalized based on the following data:\n\n`;
       }
     };
 
+
     const closeModal = () => emit('close');
-    const openModal = async () => { emit('open'); await fetchAndGenerate(); };
+    
+    // 🌟 CRITICAL CHANGE: Automatically call fetchAndGenerate when modal opens
+    const openModal = async () => { 
+        emit('open'); 
+        // 🌟 Ensure a user is logged in before fetching data
+        if (auth.currentUser) {
+            await fetchAndGenerate(); 
+        } else {
+            // Wait for auth to resolve before fetching
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                unsubscribe(); // Stop listening after the first event
+                if (user) {
+                    fetchAndGenerate();
+                } else {
+                    tips.value = [{ description: "Please log in to receive personalized energy-saving tips." }];
+                    loading.value = false;
+                }
+            });
+        }
+    };
 
     const refreshTips = () => {
       if (!loading.value) fetchAndGenerate(true);
@@ -314,4 +394,29 @@ The tips must be personalized based on the following data:\n\n`;
   animation: spin-slow 1.5s linear infinite;
 }
 
+/* Modal and Tip Bubble Transitions (Preserved) */
+.modal-enter-active, .modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-enter-from, .modal-leave-to {
+  opacity: 0;
+}
+
+.tip-bubble-enter-active {
+  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.tip-bubble-leave-active {
+  transition: all 0.3s cubic-bezier(0.6, -0.28, 0.74, 0.05);
+}
+
+.tip-bubble-enter-from {
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+}
+
+.tip-bubble-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(-20px);
+}
 </style>

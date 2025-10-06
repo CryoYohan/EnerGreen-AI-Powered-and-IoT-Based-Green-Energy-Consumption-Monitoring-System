@@ -26,6 +26,9 @@ import {
     setDoc,
     getDocs,
     getDoc,
+    where,
+    startAfter,
+    Timestamp,
 } from "firebase/firestore";
 
 // Firebase configuration.
@@ -65,10 +68,13 @@ export {
     onSnapshot,
     query,
     orderBy,
-    limit,
     addDoc,
     doc,
     setDoc,
     getDocs,
     getDoc,
+    where,
+    startAfter,
+    limit,
+    Timestamp,
 };
