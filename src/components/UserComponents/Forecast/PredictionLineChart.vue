@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import Plotly from 'plotly.js-dist-min';
 
 const props = defineProps({
@@ -23,9 +23,77 @@ const props = defineProps({
 });
 
 const chartDiv = ref(null);
+const isDarkMode = ref(false);
+let themeObserver = null;
 
+// --- Theme Logic ---
+const checkDarkMode = () => {
+  isDarkMode.value = document.documentElement.classList.contains('dark');
+};
+
+const getThemeLayout = computed(() => {
+  if (isDarkMode.value) {
+    return {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      font_color: '#d1d5db', // light gray for text
+      grid_color: '#374151', // darker gray for grid lines
+      axis_color: '#9ca3af', // gray for axis lines and ticks
+      hover_bgcolor: '#1f2937', // dark background for hover
+      hover_bordercolor: '#4b5563' // border color for hover
+    };
+  } else {
+    return {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      font_color: '#1f2937', // dark gray for text
+      grid_color: '#e5e7eb', // very light gray for grid lines
+      axis_color: '#6b7280', // gray for axis lines and ticks
+      hover_bgcolor: '#ffffff', // white background for hover
+      hover_bordercolor: '#d1d5db' // border color for hover
+    };
+  }
+});
+
+const setupThemeObserver = () => {
+  checkDarkMode(); // Initial check
+  themeObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+        checkDarkMode();
+        // Redraw chart when theme changes
+        createPlot();
+      }
+    });
+  });
+
+  // Observe the <html> element for class attribute changes
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+};
+
+onMounted(() => {
+  setupThemeObserver();
+  createPlot();
+});
+
+onBeforeUnmount(() => {
+  if (themeObserver) {
+    themeObserver.disconnect();
+  }
+  // Optional: Purge the plot on unmount to free resources
+  if (chartDiv.value) {
+     Plotly.purge(chartDiv.value);
+  }
+});
+
+// --- Plotly Logic ---
 const createPlot = () => {
   if (!chartDiv.value) return;
+
+  const { font_color, grid_color, axis_color, paper_bgcolor, plot_bgcolor, hover_bgcolor, hover_bordercolor } = getThemeLayout.value;
 
   const xValues = props.chartData.map(d => d.timestamp);
   const yValues = props.chartData.map(d => d.yhat);
@@ -81,23 +149,47 @@ const createPlot = () => {
 
   const layout = {
     margin: { t: 20, r: 20, l: 40, b: 40 },
+    paper_bgcolor: paper_bgcolor,
+    plot_bgcolor: plot_bgcolor,
+    font: { color: font_color },
     xaxis: {
       title: 'Time',
       type: 'date',
+      color: axis_color,
+      gridcolor: grid_color,
+      linecolor: grid_color,
+      zerolinecolor: grid_color,
+      tickfont: { color: font_color }
     },
     yaxis: {
       title: 'Power (Watt)',
-      rangemode: 'tozero'
+      rangemode: 'tozero',
+      color: axis_color,
+      gridcolor: grid_color,
+      linecolor: grid_color,
+      zerolinecolor: grid_color,
+      tickfont: { color: font_color }
     },
-    legend: { orientation: 'h', y: -0.2 },
+    legend: { 
+      orientation: 'h', 
+      y: -0.2,
+      font: { color: font_color }
+    },
     hovermode: 'x unified',
-    autosize: true
+    autosize: true,
+    // Add hover label styling
+    hoverlabel: {
+      bgcolor: hover_bgcolor,
+      bordercolor: hover_bordercolor,
+      font: {
+        color: font_color,
+        size: 12
+      }
+    }
   };
 
   Plotly.react(chartDiv.value, traces, layout, { responsive: true });
 };
-
-onMounted(() => createPlot());
 
 watch(() => props.chartData, () => createPlot(), { deep: true });
 watch(() => props.activeModel, () => createPlot());
