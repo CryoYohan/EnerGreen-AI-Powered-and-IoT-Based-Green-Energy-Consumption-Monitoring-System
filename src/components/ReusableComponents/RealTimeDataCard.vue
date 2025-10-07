@@ -1,6 +1,6 @@
 <template>
-  <div class="p-5 lg:p-10 bg-gray-50 dark:bg-gray-900">
-    <h2 class="text-2xl text-gray-800 font-semibold p-2 mb-2 dark:text-gray-300">Real Time Readings</h2>
+  <div class="p-5 lg:p-10 bg-transparent dark:bg-transparent">
+    <h2 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">Real Time Readings</h2>
     <div v-if="loading" class="text-center text-gray-500 my-8 dark:text-gray-400">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
       <p class="text-lg">Loading real-time data...</p>
@@ -12,7 +12,10 @@
         class="p-6 bg-white shadow-lg rounded-xl dark:bg-gray-800 flex flex-col relative">
         <div class="flex justify-between items-start mb-2">
           <div class="flex items-center space-x-3">
-            <span v-html="chartData.icon" class="text-green-500 text-3xl"></span>
+            <component 
+              :is="chartData.iconComponent" 
+              class="w-8 h-8 text-green-500"
+            />
             <div>
               <h3 class="text-xl font-semibold text-gray-800 dark:text-white">{{ chartData.title }}</h3>
               <p class="text-sm text-gray-500 dark:text-gray-400 truncate w-full">{{ deviceId }}</p>
@@ -70,6 +73,13 @@
 <script>
 import { auth, db, doc, onAuthStateChanged, collection, onSnapshot, query, orderBy, limit } from '../../firebase';
 import { Timestamp } from 'firebase/firestore';
+import {
+  BoltIcon,
+  ArrowsRightLeftIcon,
+  SunIcon,
+  FireIcon,
+  CircleStackIcon
+} from '@heroicons/vue/24/outline'
 
 // Load Plotly.js
 const plotlyPromise = new Promise((resolve, reject) => {
@@ -87,6 +97,13 @@ const plotlyPromise = new Promise((resolve, reject) => {
 
 export default {
   name: 'EnergreenDashboard',
+  components: {
+    BoltIcon,
+    ArrowsRightLeftIcon,
+    SunIcon,
+    FireIcon,
+    CircleStackIcon
+  },
   data() {
     return {
       deviceId: null,
@@ -110,28 +127,28 @@ export default {
             { value: 253, color: '#dc2626', name: 'Upper Limit' },
             { value: 207, color: '#dc2626', name: 'Lower Limit' }
           ],
-          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>' 
+          iconComponent: 'BoltIcon'
         },
         current: { 
           title: 'Current', 
           unit: 'A', 
           dataKey: 'currentAmp', 
           color: '#60A5FA', 
-          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>' 
+          iconComponent: 'ArrowsRightLeftIcon'
         },
         power: { 
           title: 'Power', 
           unit: 'W', 
           dataKey: 'powerWatt', 
           color: '#F87171', 
-          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>' 
+          iconComponent: 'SunIcon'
         },
         energyConsumed: { 
           title: 'Energy Consumed', 
           unit: 'kWh', 
           dataKey: 'kwhConsumed', 
           color: '#A78BFA', 
-          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="2 8 22 8"></polyline><line x1="12" y1="4" x2="12" y2="20"></line><line x1="6" y1="16" x2="6" y2="16"></line><line x1="18" y1="16" x2="18" y2="16"></line></svg>' 
+          iconComponent: 'FireIcon'
         },
         powerFactor: { 
           title: 'Power Factor', 
@@ -141,7 +158,7 @@ export default {
           thresholds: [
             { value: 0.9, color: '#dc2626', name: 'Minimum Threshold' }
           ],
-          icon: '<svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2z"></path></svg>' 
+          iconComponent: 'CircleStackIcon'
         },
       },
     };
