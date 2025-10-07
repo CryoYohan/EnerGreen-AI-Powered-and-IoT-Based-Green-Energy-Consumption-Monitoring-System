@@ -21,6 +21,14 @@
           <option value="bar">Bar Chart</option>
           <option value="combined">Combined Chart</option>
         </select>
+        <!-- Refresh Button -->
+        <button 
+          @click="$emit('refresh')"
+          class="flex items-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        >
+          <ArrowPathIcon class="w-4 h-4 mr-1" />
+          Refresh
+        </button>
       </div>
     </div>
     <div class="h-64 sm:h-80 md:h-96">
@@ -33,6 +41,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import Chart from 'chart.js/auto';
 import { useDarkMode } from "@/composables/useDarkMode.js";
+import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
   chartTitle: {
@@ -82,7 +91,7 @@ const props = defineProps({
   yearlySavingsData: Array,
 });
 
-const emit = defineEmits(['update:activePeriod']);
+const emit = defineEmits(['update:activePeriod', 'refresh']);
 
 const chartCanvasRef = ref(null);
 let energyChart = null;
@@ -110,7 +119,6 @@ const currentSavingsData = computed(() => {
     default: return [];
   }
 });
-
 
 // A computed property that selects the correct data array based on the active period
 const currentData = computed(() => {
@@ -251,7 +259,6 @@ const createChart = () => {
   });
 };
 
-
 onMounted(() => {
   createChart();
 });
@@ -268,6 +275,7 @@ watch(isDarkMode, () => {
   createChart();
 });
 </script>
+
 <style scoped>
 /* You can add any additional scoped styles here if needed */
 </style>
