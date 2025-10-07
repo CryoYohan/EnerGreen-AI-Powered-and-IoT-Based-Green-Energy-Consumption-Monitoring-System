@@ -45,8 +45,30 @@
             </div>
           </div>
         </div>
-
-        <!-- Estimated Cost -->
+        <!-- Carbon Equivalent -->
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4">
+          <div class="flex items-center space-x-3">
+            <div class="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
+              <img
+                src="/src/Images/Icons/leaf.svg"
+                alt="Leaf Icon"
+                class="h-6 w-6 dark:invert"
+              />
+            </div>
+            <div>
+              <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">CO₂ Equivalent</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                {{ forecast.predicted_carbon_kg.toFixed(2) }} kg
+              </p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            Carbon Rate: <b>{{ carbonRate }}</b>
+          </p>
+        </div>
+        
+      </div>
+      <!-- Estimated Cost -->
         <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4">
           <div class="flex items-center space-x-3">
             <div class="h-12 w-12 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
@@ -67,29 +89,6 @@
             Based on utility rate: <b>{{ utilityRate }}</b>
           </p>
         </div>
-      </div>
-
-      <!-- Carbon Equivalent -->
-      <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4">
-        <div class="flex items-center space-x-3">
-          <div class="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
-            <img
-              src="/src/Images/Icons/leaf.svg"
-              alt="Leaf Icon"
-              class="h-6 w-6 dark:invert"
-            />
-          </div>
-          <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">CO₂ Equivalent</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-              {{ forecast.predicted_carbon_kg.toFixed(2) }} kg
-            </p>
-          </div>
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Carbon Rate: <b>{{ carbonRate }}</b>
-        </p>
-      </div>
 
       <!-- Trend vs Baseline -->
       <div
