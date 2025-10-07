@@ -1,107 +1,139 @@
 <template>
-  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
+  <div class="min-h-screen min-w-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 font-poppins dark:text-gray-100 transition-colors duration-300">
     <UserHeader />
-    <Heading title="Future Energy Predictions" subtitle="Forecasts for your electricity consumption" />
+    <Heading title="Future Energy Predictions" subtitle="AI-powered forecasts for your electricity consumption" />
 
-    <div class="p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Forecast Chart & Controls -->
-      <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Consumption Forecast</h3>
+    <div class="p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-6 mx-auto w-full">
+      <!-- Main Forecast Panel -->
+      <div class="lg:col-span-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 flex flex-col transition-all duration-300 hover:shadow-2xl">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h3 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">
+              Consumption Forecast
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">AI-powered predictions based on your usage patterns</p>
+          </div>
+          
           <!-- Predict Now Button -->
           <button
             @click="handlePredictNow"
             :disabled="isLoading"
-            class="px-4 py-2 text-sm font-medium rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-6 py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
           >
+            <svg v-if="!isLoading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
             <span v-if="!isLoading">Predict Now</span>
-            <span v-else class="flex items-center">
-              <svg class="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <span v-else class="flex items-center gap-2">
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
               </svg>
-              Predicting...
+              Generating...
             </span>
           </button>
         </div>
 
-        <!-- Loading -->
-        <div v-if="isLoading" class="flex flex-col justify-center items-center h-48 space-y-3">
-          <svg class="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-          </svg>
-          <p class="text-gray-500 dark:text-gray-400">Loading predictions...</p>
-        </div>
-
-        <!-- No Data -->
-        <div v-else-if="!chartData.length" class="flex justify-center items-center h-48">
-          <p class="text-gray-500 dark:text-gray-400">No sufficient data for forecast chart.</p>
-        </div>
-
-        <!-- Chart -->
-        <PredictionLineChart
-          v-else
-          :chartData="chartData"
-          :activeModel="activeModel"
-          :forecasts="forecastsForDisplay"
-        />
-
-        <!-- Interval Buttons -->
-        <div class="mt-4 flex flex-wrap gap-2 justify-center">
-          <button
-            v-for="interval in ['Immediate', 'Next Hour', 'Next Day', 'Next Week', 'Next Month']"
-            :key="interval"
-            @click="currentInterval = interval"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-              currentInterval === interval
-                ? 'bg-green-600 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-green-100 dark:hover:bg-gray-600'
-            ]"
-          >
-            {{ interval }}
-          </button>
-        </div>
-
-        <!-- Model Buttons -->
-        <div class="mt-6 flex flex-wrap gap-2 justify-center">
-          <button
-            @click="activeModel = 'prophet'"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-              activeModel === 'prophet'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-600'
-            ]"
-          >
-            Prophet (with Confidence)
-          </button>
-          <button
-            @click="activeModel = 'lightgbm'"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-              activeModel === 'lightgbm'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-purple-100 dark:hover:bg-gray-600'
-            ]"
-          >
-            LightGBM
-          </button>
-        </div>
-
-        <!-- Future Cost and Emission -->
-        <div v-if="activeForecast" class="mt-4 flex flex-col items-center">
-          <div class="text-lg font-medium">
-            Future Cost: <span class="text-green-700 dark:text-green-300">{{ pesoFormatter.format(activeForecast.predicted_cost) }}</span>
+        <!-- Loading State -->
+        <div v-if="isLoading" class="flex flex-col justify-center items-center h-64 space-y-4">
+          <div class="relative">
+            <div class="w-16 h-16 border-4 border-green-200 dark:border-green-800 rounded-full"></div>
+            <div class="w-16 h-16 border-4 border-transparent border-t-green-600 rounded-full animate-spin absolute top-0 left-0"></div>
           </div>
-          <div class="text-lg font-medium">
-            Future Carbon Emission: <span class="text-blue-700 dark:text-blue-300">{{ activeForecast.predicted_carbon_kg.toFixed(2) }} kg</span>
+          <div class="text-center">
+            <p class="text-gray-600 dark:text-gray-400 font-medium">Analyzing your energy patterns</p>
+            <p class="text-gray-500 dark:text-gray-500 text-sm mt-1">This may take a few moments...</p>
+          </div>
+        </div>
+
+        <!-- No Data State -->
+        <div v-else-if="!chartData.length" class="flex flex-col justify-center items-center h-64 space-y-4 text-center">
+          <div class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-gray-600 dark:text-gray-400 font-medium">No forecast data available</p>
+            <p class="text-gray-500 dark:text-gray-500 text-sm mt-1">Click "Predict Now" to generate your first forecast</p>
+          </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div v-else class="space-y-6">
+          <PredictionLineChart
+            :chartData="chartData"
+            :activeModel="activeModel"
+            :forecasts="forecastsForDisplay"
+          />
+
+          <!-- Quick Stats -->
+          <div v-if="activeForecast" class="grid grid-cols-2 gap-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-green-100 dark:border-gray-600">
+            <div class="text-center">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Estimated Cost</p>
+              <p class="text-xl font-bold text-green-700 dark:text-green-300">{{ pesoFormatter.format(activeForecast.predicted_cost) }}</p>
+            </div>
+            <div class="text-center">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Carbon Impact</p>
+              <p class="text-xl font-bold text-blue-700 dark:text-blue-300">{{ activeForecast.predicted_carbon_kg.toFixed(2) }} kg</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interval Selector -->
+        <div class="mt-6">
+          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Time Interval</h4>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="interval in ['Immediate', 'Next Hour', 'Next Day', 'Next Week', 'Next Month']"
+              :key="interval"
+              @click="currentInterval = interval"
+              :class="[
+                'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border-2',
+                currentInterval === interval
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md border-green-500 scale-105'
+                  : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-gray-600 border-transparent hover:border-green-200 dark:hover:border-gray-500'
+              ]"
+            >
+              {{ interval }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Model Selector -->
+        <div class="mt-6">
+          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">AI Model</h4>
+          <div class="flex flex-wrap gap-3">
+            <button
+              @click="activeModel = 'prophet'"
+              :class="[
+                'px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border-2 flex items-center gap-2',
+                activeModel === 'prophet'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg border-blue-500 scale-105'
+                  : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-600 border-transparent hover:border-blue-200 dark:hover:border-gray-500'
+              ]"
+            >
+              <div class="w-2 h-2 rounded-full bg-current"></div>
+              Prophet (with Confidence)
+            </button>
+            <button
+              @click="activeModel = 'lightgbm'"
+              :class="[
+                'px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border-2 flex items-center gap-2',
+                activeModel === 'lightgbm'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg border-purple-500 scale-105'
+                  : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-gray-600 border-transparent hover:border-purple-200 dark:hover:border-gray-500'
+              ]"
+            >
+              <div class="w-2 h-2 rounded-full bg-current"></div>
+              LightGBM
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Summary Cards -->
+      <!-- Sidebar Cards -->
       <div class="lg:col-span-1 flex flex-col gap-6">
         <PredictionSummaryCard
           v-if="activeForecast"
@@ -110,20 +142,39 @@
           :overviewMetrics="overviewMetrics"
           :activeModel="activeModel"
         />
-        <MetricsCard :metrics="overviewMetrics" size="sm" />
       </div>
 
-      <!-- Insights -->
+      <!-- Insights Section -->
       <section
         v-if="insights.length"
-        class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+        class="lg:col-span-3 mt-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 transition-all duration-300 hover:shadow-2xl"
       >
-        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
-          Smart Insights
-        </h3>
-        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2">
-          <li v-for="(insight, idx) in insights" :key="idx">{{ insight }}</li>
-        </ul>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
+            Smart Insights
+          </h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            v-for="(insight, idx) in insights"
+            :key="idx"
+            class="p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/50 dark:border-gray-600/50 hover:border-green-200 dark:hover:border-green-400 transition-all duration-300"
+          >
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <p class="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{{ insight }}</p>
+            </div>
+          </div>
+        </div>
       </section>
 
     </div>
@@ -193,7 +244,6 @@ const insights = computed(() => {
   });
 });
 
-
 // Get logged-in user's deviceId
 const fetchDeviceId = (userId) => {
   const userProfileRef = doc(db, `artifacts/default-app-id/users/${userId}/userProfile/profile`);
@@ -243,7 +293,6 @@ const triggerPredictionRun = async (deviceId) => {
     throw err;
   }
 };
-
 
 let predictionsUnsubscribe = null;
 
@@ -407,5 +456,4 @@ const handlePredictNow = async () => {
     // Firestore listener (listenToPredictions) will set isLoading = false once new predictions arrive
   }
 };
-
 </script>
