@@ -1,307 +1,324 @@
 <template>
   <header class="sticky p-4 top-0 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700">
-    <div class="container px-4 space-x-4 mx-auto dark:bg-gray-800">
-      <div class="flex items-center justify-between lg:gap-[10em] sm:gap-[8em]">
-        <div class="relative flex items-center lg:right-40">
-          <img class="h-10 w-15" src="/src/Images/logo/energreen-logo.svg" alt="logo">
-          <h1 class="text-2xl font-bold m-0 p-0 font-poppins text-[#059669]">
-            Ener<span class="text-[#0D2535] dark:text-gray-300">Green</span>
-          </h1>
-        </div>
-
-        <div class="flex items-center gap-3 md:hidden">
-          <div class="relative">
-            <img 
-              @click.stop="toggleNotifications" 
-              class="w-5 h-5 cursor-pointer dark:invert" 
-              src="/src/Images/icons/notification.svg" 
-              alt="Notifications"
-            />
-            <Notification v-if="showNotifications" :isMobile="true" @click.stop />
-          </div>
-          <img 
-            @click="navigateTo('Profile')" 
-            class="w-8 h-8 cursor-pointer rounded-full object-cover" 
-            :src="profilePic" 
-            alt="Profile Picture"
-          >
+    <div class="px-4 space-x-3 ml-3 mr-3 mx-auto dark:bg-gray-800">
+      <div class="flex items-center justify-between gap-8">
+        <div class="flex items-center gap-5 md:hidden">
           <button @click="toggleMobileMenu" class="text-gray-700 focus:outline-none dark:text-gray-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
+            <Bars3Icon v-if="!isMobileMenuOpen" class="w-6 h-6" />
+            <XMarkIcon v-else class="w-6 h-6" />
           </button>
         </div>
 
-        <div class="absolute items-center dark:bg-gray-800 hidden transform -translate-x-1/2 md:flex left-1/2">
+      <div class="relative flex m-0 sm:m-10 md:m-4 lg:m-0 items-center flex-shrink-0">
+        <img class="h-8 w-12 md:h-10 md:w-15" src="/src/Images/logo/energreen-logo.svg" alt="logo">
+        <h1 class="text-xl md:text-2xl font-bold m-0 p-0 font-poppins text-[#059669]">
+          Ener<span class="text-[#0D2535] dark:text-gray-100">Green</span>
+        </h1>
+      </div>
+
+        <div class="absolute w-[70%] items-center justify-center dark:bg-gray-800 hidden transform -translate-x-1/2 md:flex left-1/2">
           <nav id="navigation" class="dark:bg-gray-800">
-            <ul class="flex space-x-6 lg:space-x-12 font-poppins text-gray-800 dark:text-gray-100">
+            <ul class="flex space-x-6 mr-[13em] lg:space-x-12 font-poppins">
               <li>
-                <button 
-                  @click="navigateTo('Home')" 
-                  :class="['py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'Home' ? 'text-green-600 dark:text-green-500' : ''
+                <button
+                  @click="navigateTo('Home')"
+                  :class="[
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'Home'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
                   ]">
                   Home
                 </button>
               </li>
               <li>
-                <button 
-                  @click="navigateTo('Forecast')" 
+                <button
+                  @click="navigateTo('Forecast')"
                   :class="[
-                    'py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'Forecast' ? 'text-green-600 dark:text-green-500' : ''
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'Forecast'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
                   ]">
                   Forecast
                 </button>
               </li>
-
               <li>
                 <button
                   @click="navigateTo('Appliances')"
                   :class="[
-                    'py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'Appliances' ? 'text-green-600 dark:text-green-500' : ''
-                  ]"> 
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'Appliances'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
                   Appliances
                 </button>
               </li>
               <li>
-                <button 
-                  @click="navigateTo('SolarPanel')" 
+                <button
+                  @click="navigateTo('SolarPanel')"
                   :class="[
-                    'py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'SolarPanel' ?'text-green-600 dark:text-green-500' : '']">
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'SolarPanel'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
                   Solar Panel
                 </button>
               </li>
               <li>
-                <button 
-                  @click="navigateTo('Simulation')" 
+                <button
+                  @click="navigateTo('Simulation')"
                   :class="[
-                    'py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'Simulation' ? 'text-green-600 dark:text-green-500' : '']">
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'Simulation'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
                   Simulation
                 </button>
               </li>
               <li>
-                <button 
-                  @click="navigateTo('CarbonEmission')" 
+                <button
+                  @click="navigateTo('CarbonEmission')"
                   :class="[
-                    'py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'CarbonEmission' ? 'text-green-600 dark:text-green-500' : '']">
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'CarbonEmission'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
                   Carbon Emission
                 </button>
               </li>
               <li>
-                <button 
-                  @click="navigateTo('Resources')" 
+                <button
+                  @click="navigateTo('Resources')"
                   :class="[
-                    'py-2 hover:text-green-600 dark:hover:text-green-500',
-                    $route.name === 'Resources' ? 'text-green-500' : '']">
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'Resources'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
                   Resources
                 </button>
               </li>
             </ul>
-          </nav>  
+          </nav>
         </div>
-        
-        <div class="relative items-center hidden space-x-2 md:flex lg:space-x-3 font-poppins lg:left-40">
+
+        <div class="relative items-center hidden space-x-2 md:flex lg:space-x-3 font-poppins flex-shrink-0">
           <button
-              @click="openTipsModal"
-              class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-          >
-            <img src="/src/Images/icons/bulb.svg" class="w-5 h-5" alt="">
+            @click="openTipsModal"
+            class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none text-gray-800 dark:text-gray-100">
+            <LightBulbIcon class="w-5 h-5" />
             Tips
           </button>
-          <button 
-            @click="toggleDarkMode" 
-            class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-          >
-            <img 
-              :src="isDarkMode ? '/src/Images/icons/sun.svg' : '/src/Images/icons/moon.svg'" 
-              :alt="isDarkMode ? 'sun' : 'moon'" 
-              class="w-5 h-5"
-            >
-            <span class="font-poppins text-gray-800 dark:text-gray-100">
+          <button
+            @click="toggleDarkMode"
+            class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none text-gray-800 dark:text-gray-100">
+            <SunIcon v-if="isDarkMode" class="w-5 h-5" />
+            <MoonIcon v-else class="w-5 h-5" />
+            <span>
               {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
             </span>
           </button>
           <div class="relative flex items-center">
-            <img 
-              @click.stop="toggleNotifications" 
-              class="w-5 h-5 cursor-pointer dark:filter dark:[filter:brightness(0)_invert(1)]" 
-              src="/src/Images/icons/notification.svg" 
-              alt="Notifications" 
-            />
+            <BellIcon
+              @click.stop="toggleNotifications"
+              class="w-5 h-5 cursor-pointer text-gray-800 dark:text-gray-300 focus:outline-none" />
             <Notification v-if="showNotifications" :isMobile="false" @click.stop />
           </div>
-          
-          <div class="relative flex items-center space-x-2">
-            <div @click.stop="toggleProfileDropdown" class="flex items-center space-x-2 cursor-pointer">
-              <img 
-                class="w-8 h-8 rounded-full object-cover" 
-                :src="profilePic" 
-                alt="Profile Picture" 
-              />
+
+          <div class="relative">
+            <div
+              @click.stop="toggleProfileDropdown"
+              class="flex items-center space-x-2 cursor-pointer focus:outline-none">
+              <img class="w-8 h-8 rounded-full object-cover" :src="profilePic" alt="Profile Picture" />
               <a class="cursor-pointer text-gray-800 dark:text-gray-100">{{ userName }}</a>
             </div>
-            
+
             <transition
-              enter-active-class="transition duration-100 ease-out"
-              leave-active-class="transition duration-75 ease-in"
-              enter-from-class="transform scale-95 opacity-0"
-              enter-to-class="transform scale-100 opacity-100"
-              leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0"
-            >
-            <div v-if="isProfileDropdownOpen" class="absolute flex flex-col items-start top-full right-0 mt-2 w-32 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-700 rounded-md text-sm z-50">
-                <button @click="navigateTo('Profile')" class="flex items-center gap-2 w-full px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-gray-800 dark:text-gray-100">
-                    <path fill-rule="evenodd" d="M11.078 2.378a.75.75 0 0 1 .844 0 24.313 24.313 0 0 1 5.86.666c.153.033.284.116.375.245.243.332.353.766.276 1.218a.75.75 0 0 1-.375.584c-.4.225-.797.472-1.196.723a3.39 3.39 0 0 0-.498.15l-.01.004c-.31.096-.628.17-.945.234a.75.75 0 0 1-.774-.277L9.58 3.51a.75.75 0 0 1-.165-.486c-.039-.569.213-1.139.75-1.466Z" clip-rule="evenodd" />
-                    <path d="m14.938 3.27-2.986 2.986a.75.75 0 0 1-.58.217h-2.12c-.22.016-.437.072-.647.164a3.368 3.368 0 0 0-1.077.728l-2.008 2.008a.75.75 0 0 1-1.06 0l-1.06-1.06a.75.75 0 0 1 0-1.06l2.008-2.008c.553-.553.94-.954 1.258-1.296.26-.282.466-.46.602-.556a3.352 3.352 0 0 0 .741-.422 2.25 2.25 0 0 0-.256-3.896c-.655-.453-1.253-1.03-1.846-1.616l-.009-.009A2.25 2.25 0 0 0 2.25 2.25v2.247L5.594 7.595a4.838 4.838 0 0 1-.95 1.127l-3.328 3.328a.75.75 0 0 0 0 1.06l1.06 1.06a.75.75 0 0 0 1.06 0l3.328-3.328c.31-.31.6-.607.868-.888l1.01-1.01c.21-.21.439-.38.683-.518.232-.128.472-.216.712-.262a.75.75 0 0 1 .453.111l2.986 2.986a.75.75 0 0 0 1.06 0l1.06-1.06a.75.75 0 0 0 0-1.06l-2.986-2.986a.75.75 0 0 1 .277-.774c.29-.11.583-.223.875-.34.254-.102.508-.207.756-.312.22-.093.435-.18.647-.257a3.344 3.344 0 0 0 1.08-.727l2.008-2.008a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-2.008 2.008a3.398 3.398 0 0 0-.728 1.077c-.092.21-.148.428-.164.647-.034.46.223.906.75 1.171Z" />
-                    <path d="M18.89 12.016a24.625 24.625 0 0 1-2.176 4.793l-1.657 2.072a.75.75 0 0 1-1.129.083l-1.554-1.553a.75.75 0 0 0-1.104-.083l-1.552 1.553a.75.75 0 0 0-1.104.083L9.123 20.3c-.66.825-1.552 1.437-2.585 1.776a.75.75 0 0 1-.774-.277l-1.553-1.552c-.628.273-1.265.513-1.898.71a.75.75 0 0 1-.622-1.352l.02-.012c.389-.247.781-.497 1.177-.751a3.46 3.46 0 0 0 .524-.153l.01-.003c.338-.106.67-.233.996-.381a.75.75 0 0 1 .807.135l2.986 2.986a.75.75 0 0 0 1.06 0l1.06-1.06a.75.75 0 0 0 0-1.06l-2.986-2.986a.75.75 0 0 1 .277-.774c.29-.11.583-.223.875-.34.254-.102.508-.207.756-.312.22-.093.435-.18.647-.257a3.344 3.344 0 0 0 1.08-.727l2.008-2.008a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1 0 1.06l-2.008 2.008a3.398 3.398 0 0 0-.728 1.077c-.092.21-.148.428-.164.647-.034.46.223.906.75 1.171Z" />
-                  </svg>
+              enter-active-class="transition duration-150 ease-out"
+              leave-active-class="transition duration-100 ease-in"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95">
+              <div
+                v-if="isProfileDropdownOpen"
+                class="absolute flex flex-col items-start top-full right-0 mt-2 w-32 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-700 rounded-md text-sm z-50">
+                <button
+                  @click="navigateTo('Profile')"
+                  class="flex items-center gap-2 w-full px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none">
+                  <Cog6ToothIcon class="w-4 h-4" />
                   Settings
                 </button>
-                <button @click="signOutUser" class="flex items-center gap-2 w-full px-3 py-2 text-[#DB2626] hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <img src="/src/Images/icons/redlog.svg" class="w-4 h-4" alt="Sign Out icon">
+                <button
+                  @click="signOutUser"
+                  class="flex items-center gap-2 w-full px-3 py-2 text-[#DB2626] hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none">
+                  <ArrowRightOnRectangleIcon class="w-4 h-4" />
                   Sign Out
                 </button>
               </div>
             </transition>
           </div>
         </div>
+
+        <div class="flex items-center gap-3 md:hidden">
+          <div class="relative">
+            <BellIcon
+              @click.stop="toggleNotifications"
+              class="w-5 h-5 cursor-pointer text-gray-800 dark:text-gray-300 focus:outline-none" />
+            <Notification v-if="showNotifications" :isMobile="true" @click.stop />
+          </div>
+          <img
+            @click="navigateTo('Profile')"
+            class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none"
+            :src="profilePic"
+            alt="Profile Picture" />
+        </div>
       </div>
     </div>
-    
 
-    <transition
-      enter-active-class="transition-all duration-300 ease-out"
-      leave-active-class="transition-all duration-200 ease-in"
-      enter-from-class="opacity-0 max-h-0"
-      enter-to-class="max-h-screen opacity-100"
-      leave-from-class="max-h-screen opacity-100"
-      leave-to-class="opacity-0 max-h-0"
-    >
-      <div
-        v-if="isMobileMenuOpen"
-        class="fixed inset-0 z-[100] bg-black bg-opacity-40 md:hidden"
-        @click.self="toggleMobileMenu"
-      >
-        <div class="bg-white dark:bg-gray-800 shadow-lg w-full absolute top-[80px] left-0">
-          <div class="px-4 py-4 border-t dark:border-gray-700">
+    <transition name="drawer">
+      <div v-if="isMobileMenuOpen" class="fixed inset-0 z-[100] md:hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-40" @click.self="toggleMobileMenu"></div>
+        <div class="absolute top-0 left-0 h-full w-3/4 max-w-xs bg-white dark:bg-gray-800 shadow-lg overflow-y-auto">
+          <div class="p-4 flex justify-end sticky top-0 bg-white dark:bg-gray-800 z-10 border-b dark:border-gray-700">
+            <button @click="toggleMobileMenu" class="text-gray-700 focus:outline-none dark:text-gray-300 p-1">
+              <XMarkIcon class="w-6 h-6" />
+            </button>
+          </div>
+          <div class="px-4 py-4">
             <ul class="flex flex-col space-y-4 font-poppins">
               <li>
                 <button
                   @click="navigateTo('Profile')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Profile' }"
-                >
-                  <img class="w-4 h-4 dark:invert" src="/src/Images/icons/profile1.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Profile</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'Profile'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <UserCircleIcon class="w-4 h-4" />
+                  Profile
                 </button>
               </li>
               <li>
                 <button
                   @click="navigateTo('Home')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Home' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/home.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Home</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'Home'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <HomeIcon class="w-4 h-4" />
+                  Home
                 </button>
               </li>
               <li>
                 <button
                   @click="navigateTo('Appliances')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Appliances' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/appliances.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Appliances</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'Appliances'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <CubeIcon class="w-4 h-4" />
+                  Appliances
                 </button>
               </li>
               <li>
                 <button
-                    @click="navigateTo('Forecast')"
-                    class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                    :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Forecast' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/forecast.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Forecast</span>
+                  @click="navigateTo('Forecast')"
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'Forecast'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <SunIcon class="w-4 h-4" />
+                  Forecast
                 </button>
               </li>
-
               <li>
                 <button
                   @click="navigateTo('SolarPanel')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-600 dark:text-green-500': $route.name === 'SolarPanel' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/solar-panel.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Solar Panel</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'SolarPanel'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <FireIcon class="w-4 h-4" />
+                  Solar Panel
                 </button>
               </li>
               <li>
                 <button
                   @click="navigateTo('Simulation')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-600 dark:text-green-500': $route.name === 'Simulation' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/simulation.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Simulation</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'Simulation'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <LightBulbIcon class="w-4 h-4" />
+                  Simulation
                 </button>
               </li>
               <li>
                 <button
                   @click="navigateTo('CarbonEmission')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-600 dark:text-green-500': $route.name === 'CarbonEmission' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/carbon-emission.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Carbon Emission</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'CarbonEmission'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <CloudArrowUpIcon class="w-4 h-4" />
+                  Carbon Emission
                 </button>
               </li>
               <li>
                 <button
                   @click="navigateTo('Resources')"
-                  class="flex items-center w-full gap-2 py-2 hover:text-green-600 dark:hover:text-green-500"
-                  :class="{ 'text-green-500 dark:text-green-500': $route.name === 'Resources' }"
-                >
-                  <img class="w-4 h-4 dark:filter dark:invert" src="/src/Images/icons/resources.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Resources</span>
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'Resources'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <BookOpenIcon class="w-4 h-4" />
+                  Resources
                 </button>
               </li>
               <li>
-              <button
+                <button
                   @click="openTipsModal"
-                  class="flex items-center w-full gap-1 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500"
-              >
-                <img src="/src/Images/icons/bulb.svg" class="w-5 h-5" alt="">
-                Tips
-              </button>
+                  class="flex items-center w-full gap-1 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500 transition-colors duration-200">
+                  <LightBulbIcon class="w-5 h-5" />
+                  Tips
+                </button>
               </li>
               <li>
                 <button
                   @click="toggleDarkMode"
-                  class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500"
-                >
-                  <img
-                    :src="isDarkMode ? '/src/Images/icons/sun.svg' : '/src/Images/icons/moon.svg'"
-                    :alt="isDarkMode ? 'sun' : 'moon'"
-                    class="w-4 h-4"
-                  >
+                  class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500 transition-colors duration-200">
+                  <SunIcon v-if="isDarkMode" class="w-4 h-4" />
+                  <MoonIcon v-else class="w-4 h-4" />
                   {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
                 </button>
               </li>
               <li>
                 <button
                   @click="signOutUser"
-                  class="flex items-center w-full gap-2 py-2 hover:text-red-600 text-[#DB2626]"
-                >
-                  <img class="w-4 h-4 " src="/src/Images/icons/redlog.svg" alt="">
-                  <span class="text-gray-800 dark:text-gray-100">Sign Out</span>
+                  class="flex items-center w-full gap-2 py-2 text-[#DB2626] hover:text-red-600 transition-colors duration-200">
+                  <ArrowRightOnRectangleIcon class="w-4 h-4" />
+                  Sign Out
                 </button>
               </li>
             </ul>
@@ -310,20 +327,36 @@
       </div>
     </transition>
   </header>
-  
-  <Tips :showModal="showTipsModal" @close="showTipsModal = false" ref="tipsComponent" />
 
+  <Tips :showModal="showTipsModal" @close="showTipsModal = false" ref="tipsComponent" />
 </template>
+
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useDarkMode } from "@/composables/useDarkMode.js"
+// Import the Heroicons
+import {
+  Bars3Icon,
+  XMarkIcon,
+  LightBulbIcon,
+  BellIcon,
+  SunIcon,
+  MoonIcon,
+  UserCircleIcon,
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon,
+  HomeIcon,
+  CubeIcon,
+  FireIcon,
+  CloudArrowUpIcon,
+  BookOpenIcon,
+} from '@heroicons/vue/24/outline'
 
 // Import the Tips and Notification components
 import Tips from '../UserComponents/Home/Tips.vue'
 import Notification from '../ReusableComponents/Notification.vue'
-
 import {
   auth,
   db,
@@ -332,7 +365,6 @@ import {
   onSnapshot,
   signOut
 } from '../../firebase.js'
-
 // state variables
 const isMobileMenuOpen = ref(false)
 const showNotifications = ref(false)
@@ -340,15 +372,11 @@ const isProfileDropdownOpen = ref(false)
 const userName = ref('Guest')
 const profilePic = ref('/src/Images/profile/pfp.png')
 const showTipsModal = ref(false)
-
-const tipsComponent = ref(null) 
-
-const route = useRoute()
+const tipsComponent = ref(null)
 const router = useRouter()
 
 // dark mode
 const { isDarkMode, toggleDarkMode } = useDarkMode()
-
 // methods
 const openTipsModal = async () => {
   showTipsModal.value = true
@@ -359,28 +387,23 @@ const openTipsModal = async () => {
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
-
 const toggleNotifications = () => {
   showNotifications.value = !showNotifications.value
   if (showNotifications.value) isProfileDropdownOpen.value = false
 }
-
 const toggleProfileDropdown = () => {
   isProfileDropdownOpen.value = !isProfileDropdownOpen.value
   if (isProfileDropdownOpen.value) showNotifications.value = false
 }
-
 const navigateTo = (routeName) => {
   router.push({ name: routeName })
   isMobileMenuOpen.value = false
   showNotifications.value = false
   isProfileDropdownOpen.value = false
 }
-
 const closeDropdowns = (event) => {
-  const notificationIcon = document.querySelector('.relative > img[alt="Notifications"]')
+  const notificationIcon = document.querySelector('.relative > svg')
   const profileSection = document.querySelector('.relative.flex.items-center.space-x-2')
-
   if (notificationIcon && !notificationIcon.contains(event.target) && showNotifications.value) {
     showNotifications.value = false
   }
@@ -388,7 +411,6 @@ const closeDropdowns = (event) => {
     isProfileDropdownOpen.value = false
   }
 }
-
 const fetchUserProfile = (userId) => {
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
   try {
@@ -411,7 +433,6 @@ const fetchUserProfile = (userId) => {
     userName.value = 'Guest'
   }
 }
-
 const signOutUser = async () => {
   try {
     await signOut(auth)
@@ -420,7 +441,6 @@ const signOutUser = async () => {
     console.error("Error signing out:", error)
   }
 }
-
 // lifecycle
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
@@ -433,12 +453,10 @@ onMounted(() => {
     }
   })
 })
-
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeDropdowns)
 })
 </script>
-
 
 <style scoped>
 header {
@@ -451,5 +469,41 @@ header {
   position: relative;
   z-index: 50;
   background-color: white;
+}
+
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.drawer-enter-active .absolute.left-0,
+.drawer-leave-active .absolute.left-0 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer-enter-from .absolute.left-0 {
+  transform: translateX(-100%);
+}
+
+.drawer-enter-to .absolute.left-0 {
+  transform: translateX(0);
+}
+
+.drawer-leave-from .absolute.left-0 {
+  transform: translateX(0);
+}
+
+.drawer-leave-to .absolute.left-0 {
+  transform: translateX(-100%);
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+
+.drawer-enter-to,
+.drawer-leave-from {
+  opacity: 1;
 }
 </style>
