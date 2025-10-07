@@ -1,8 +1,16 @@
 <template>
   <div
     class="bg-white h-full dark:bg-gray-900 rounded-2xl shadow-lg p-6 flex flex-col transition-all duration-300 hover:shadow-xl border border-gray-100 dark:border-gray-800"
+    class="bg-white h-full dark:bg-gray-900 rounded-2xl shadow-lg p-6 flex flex-col transition-all duration-300 hover:shadow-xl border border-gray-100 dark:border-gray-800"
   >
     <!-- Header -->
+    <div class="flex items-center justify-between w-full mb-6">
+      <div class="flex items-center space-x-3">
+        <div class="h-3 w-3 rounded-full bg-blue-500"></div>
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+          {{ forecast.interval }} Forecast
+        </h3>
+      </div>
     <div class="flex items-center justify-between w-full mb-6">
       <div class="flex items-center space-x-3">
         <div class="h-3 w-3 rounded-full bg-blue-500"></div>
@@ -14,6 +22,8 @@
       <!-- Dynamic Model Accuracy -->
       <div class="flex items-center text-sm font-medium bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-full">
         <span class="mr-2 text-gray-500 dark:text-gray-400">Accuracy:</span>
+      <div class="flex items-center text-sm font-medium bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-full">
+        <span class="mr-2 text-gray-500 dark:text-gray-400">Accuracy:</span>
         <span
           class="font-bold"
           :class="accuracyClass"
@@ -23,73 +33,61 @@
       </div>
     </div>
 
-    <!-- Main Content Area -->
-    <div class="flex-1 space-y-6">
-      <!-- Main Metrics Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Predicted Usage -->
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4">
-          <div class="flex items-center space-x-3">
-            <div class="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
-              <img
-                src="/src/Images/Icons/electric.svg"
-                alt="Energy Icon"
-                class="h-6 w-6 dark:invert"
-              />
-            </div>
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Predicted Usage</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                {{ forecast.predicted_consumption_kwh.toFixed(3) }} kWh
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- CO₂ Equivalent -->
-        <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4">
-          <div class="flex items-center space-x-3">
-            <div class="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
-              <img
-                src="/src/Images/Icons/leaf.svg"
-                alt="Leaf Icon"
-                class="h-6 w-6 dark:invert"
-              />
-            </div>
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">CO₂ Equivalent</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                {{ forecast.predicted_carbon_kg.toFixed(2) }} kg
-              </p>
-            </div>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Carbon Rate: <b>{{ carbonRate }}</b>
-          </p>
-        </div>
+    <!-- Predicted Usage -->
+    <div class="flex items-center space-x-3">
+      <img
+        src="/src/Images/Icons/electric.svg"
+        alt="Energy Icon"
+        class="h-8 w-8 dark:invert"
+      />
+      <div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Predicted Usage</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          {{ forecast.predicted_consumption_kwh.toFixed(3) }} kWh
+        </p>
       </div>
+    </div>
 
-      <!-- Estimated Cost -->
-      <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4">
-        <div class="flex items-center space-x-3">
-          <div class="h-12 w-12 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
-            <img
-              src="/src/Images/Icons/Peso.svg"
-              alt="Peso Icon"
-              class="h-6 w-6 dark:invert"
-            />
-          </div>
-          <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Estimated Cost</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-              {{ pesoFormatter.format(forecast.predicted_cost) }}
-            </p>
-          </div>
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+    <!-- Sparkline -->
+    <div class="w-full h-20">
+      <div ref="sparklineDiv" class="w-full h-full"></div>
+    </div>
+
+    <!-- Estimated Cost -->
+    <div class="flex items-center space-x-3">
+      <img
+        src="/src/Images/Icons/Peso.svg"
+        alt="Peso Icon"
+        class="h-8 w-8 dark:invert"
+      />
+      <div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Estimated Cost</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          {{ pesoFormatter.format(forecast.predicted_cost) }}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
           Based on utility rate: <b>{{ utilityRate }}</b>
         </p>
       </div>
+    </div>
+
+    <!-- Carbon Equivalent -->
+    <div class="flex items-center space-x-3">
+      <img
+        src="/src/Images/Icons/leaf.svg"
+        alt="Leaf Icon"
+        class="h-8 w-8 dark:invert"
+      />
+      <div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">CO₂ Equivalent</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          {{ forecast.predicted_carbon_kg.toFixed(2) }} kg
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Carbon Rate: <b>{{ carbonRate }}</b>
+        </p>
+      </div>
+    </div>
 
       <!-- Trend vs Baseline -->
       <div
@@ -184,22 +182,47 @@ const props = defineProps({
   activeModel: { type: String, required: true },
 });
 
-// Current time for the additional info section
-const currentTime = ref(new Date().toLocaleTimeString([], { 
-  hour: '2-digit', 
-  minute: '2-digit' 
-}));
+// Sparkline
+const sparklineDiv = ref(null);
+const renderSparkline = () => {
+  if (!sparklineDiv.value || !props.forecast.history) return;
 
-// Update time every minute
-onMounted(() => {
-  setInterval(() => {
-    currentTime.value = new Date().toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }, 60000);
-});
+  const xValues = props.forecast.history.map((p) => new Date(p.timestamp));
+  const yValues = props.forecast.history.map((p) => p.predicted_consumption_kwh);
 
+  const trace = {
+    x: xValues,
+    y: yValues,
+    type: "scatter",
+    mode: "lines",
+    line: {
+      color:
+        props.activeModel === "prophet"
+          ? "rgb(59, 130, 246)"
+          : "rgb(147, 51, 234)",
+      shape: "spline",
+    },
+    hoverinfo: "none",
+  };
+
+  const layout = {
+    margin: { t: 2, b: 2, l: 2, r: 2 },
+    xaxis: { visible: false },
+    yaxis: { visible: false },
+    height: 60,
+    width: "100%",
+  };
+
+  Plotly.react(sparklineDiv.value, [trace], layout, {
+    displayModeBar: false,
+    responsive: true,
+  });
+};
+
+onMounted(() => renderSparkline());
+watch(() => [props.forecast, props.activeModel], () => renderSparkline(), { deep: true });
+
+// ---- Derived Metrics ----
 const getMetric = (label) =>
   props.overviewMetrics.find((m) => m.label === label)?.value || "N/A";
 
