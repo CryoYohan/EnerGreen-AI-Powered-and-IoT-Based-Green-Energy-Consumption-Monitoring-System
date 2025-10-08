@@ -2,7 +2,7 @@
   <div class="container max-w-full p-4 mx-auto lg:pr-12 lg:pl-12 font-poppins">
     <div class="grid gap-6 grid-cols-v1 lg:grid-cols-2">
       <div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800 dark:shadow-gray-700">
-        <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">
           Energy Source Breakdown
         </h2>
         <div class="flex flex-col items-center md:flex-row">
@@ -39,7 +39,7 @@
       </div>
 
       <div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800 dark:shadow-gray-700">
-        <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">
           Top Energy Consumers
         </h2>
         <div v-if="loadingConsumers" class="pr-2 overflow-y-auto h-80 flex items-center justify-center">

@@ -7,12 +7,13 @@
 
     <Dashboard />
 
-    <!-- REPLACED ReusableBarChart WITH THE NEW CombineCharts -->
-     <Button @click="fetchDailySummaries" variant="outline">🔄 Refresh Data</Button>
+
+
     <CombineCharts
       chartTitle="Electricity Usage"
       :activePeriod="activePeriod"
       @update:activePeriod="activePeriod = $event"
+      @refresh="fetchDailySummaries"
       :periods="['Daily', 'Weekly', 'Monthly', 'Yearly']"
       :dailyData="dailyData"
       :weeklyData="weeklyData"
@@ -29,7 +30,7 @@
       xAxisLabel="Time"
       tooltipUnit="kWh"
     />
-
+    
     <SourcesChart 
       :grid-kwh="gridKwh" 
       :solar-kwh="solarKwh" 
@@ -56,6 +57,8 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
+import { ArrowPathIcon } from '@heroicons/vue/24/outline'
+
 import {
   auth,
   db,
