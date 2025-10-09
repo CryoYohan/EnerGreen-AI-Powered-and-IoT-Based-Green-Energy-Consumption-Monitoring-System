@@ -134,15 +134,16 @@
       </div>
 
       <!-- Sidebar Cards -->
-      <div class="lg:col-span-1 flex flex-col gap-4 sm:gap-6">
-        <PredictionSummaryCard
-          v-if="activeForecast"
-          :forecast="activeForecast"
-          :pesoFormatter="pesoFormatter"
-          :overviewMetrics="overviewMetrics"
-          :activeModel="activeModel"
-        />
-      </div>
+    <div class="lg:col-span-1 flex flex-col gap-4 sm:gap-6">
+      <PredictionSummaryCard
+        v-if="activeForecast"
+        :forecast="activeForecast"
+        :pesoFormatter="pesoFormatter"
+        :overviewMetrics="overviewMetrics"
+        :activeModel="activeModel"
+        :predictionTimestamp="latestPredictionTimestamp"
+      />
+    </div>
 
       <!-- Insights Section -->
       <section
@@ -199,9 +200,10 @@ const rawPredictions = ref({ lightgbm: [], prophet: [] });
 const activeModel = ref('prophet');
 const currentInterval = ref('Next Day');
 const isLoading = ref(true);
-const currentRate = ref(0); // ₱ per kWh
-const carbonRateKg = ref(0.7); // fallback default
-const overviewMetrics = ref([]); // ✅ fixed
+const currentRate = ref(0);
+const carbonRateKg = ref(0.7);
+const overviewMetrics = ref([]);
+const latestPredictionTimestamp = ref(null); 
 
 // Pesos formatter
 const pesoFormatter = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 });
@@ -302,7 +304,6 @@ const listenToPredictions = (id) => {
 
   isLoading.value = true;
 
-  // 👉 fetch 2 docs: latest + previous
   const predictionsQuery = query(
     collection(db, `devices/${id}/predictions`),
     orderBy("timestamp", "desc"),
@@ -313,14 +314,20 @@ const listenToPredictions = (id) => {
     predictionsQuery,
     (snapshot) => {
       if (!snapshot.empty) {
-        const docs = snapshot.docs.map(d => d.data());
+        const docs = snapshot.docs.map(d => ({
+          data: d.data(),
+          timestamp: d.data().timestamp // 👈 Get the document timestamp
+        }));
         const latest = docs[0];
         const previous = docs[1];
 
-        console.log("Latest prediction doc:", latest);
-        if (previous) console.log("Previous prediction doc:", previous);
+        console.log("Latest prediction doc:", latest.data);
+        if (previous) console.log("Previous prediction doc:", previous.data);
 
-        rawPredictions.value = latest.predictions || { lightgbm: [], prophet: [] };
+        // 👇 Store the timestamp from Firestore document
+        latestPredictionTimestamp.value = latest.timestamp;
+        
+        rawPredictions.value = latest.data.predictions || { lightgbm: [], prophet: [] };
 
         // Fallback for hours_in_interval
         const addHours = (preds) =>
@@ -339,9 +346,9 @@ const listenToPredictions = (id) => {
         rawPredictions.value.prophet = addHours(rawPredictions.value.prophet);
 
         // ✅ Metrics with trend vs previous
-        if (latest.metrics) {
-          const m = latest.metrics;
-          const prev = previous?.metrics || {};
+        if (latest.data.metrics) {
+          const m = latest.data.metrics;
+          const prev = previous?.data.metrics || {};
 
           overviewMetrics.value = [
             {
@@ -353,25 +360,25 @@ const listenToPredictions = (id) => {
                 : null
             },
             {
-            label: "Model Accuracy (LightGBM)",
-            value: `${((m.lightgbm_accuracy ?? 0) * 100).toFixed(2)}%`,
-            description: "How accurate the LightGBM machine learning model is on past data.",
-            trend: prev.lightgbm_accuracy
-              ? `${(((m.lightgbm_accuracy ?? 0) - (prev.lightgbm_accuracy ?? 0)) * 100).toFixed(2)}% vs last run`
-              : null
-          },
-          {
-            label: "Model Accuracy (Prophet)",
-            value: `${((m.prophet_accuracy ?? 0) * 100).toFixed(2)}%`,
-            description: "How accurate the Prophet forecasting model is on past data.",
-            trend: prev.prophet_accuracy
-              ? `${(((m.prophet_accuracy ?? 0) - (prev.prophet_accuracy ?? 0)) * 100).toFixed(2)}% vs last run`
-              : null
-          },
-          {
-            label: "Carbon Rate",
-            value: `${carbonRateKg.value.toFixed(2)} kg/kWh`,
-            description: "Estimated CO₂ emissions per kWh of electricity used."
+              label: "Model Accuracy (LightGBM)",
+              value: `${((m.lightgbm_accuracy ?? 0) * 100).toFixed(2)}%`,
+              description: "How accurate the LightGBM machine learning model is on past data.",
+              trend: prev.lightgbm_accuracy
+                ? `${(((m.lightgbm_accuracy ?? 0) - (prev.lightgbm_accuracy ?? 0)) * 100).toFixed(2)}% vs last run`
+                : null
+            },
+            {
+              label: "Model Accuracy (Prophet)",
+              value: `${((m.prophet_accuracy ?? 0) * 100).toFixed(2)}%`,
+              description: "How accurate the Prophet forecasting model is on past data.",
+              trend: prev.prophet_accuracy
+                ? `${(((m.prophet_accuracy ?? 0) - (prev.prophet_accuracy ?? 0)) * 100).toFixed(2)}% vs last run`
+                : null
+            },
+            {
+              label: "Carbon Rate",
+              value: `${carbonRateKg.value.toFixed(2)} kg/kWh`,
+              description: "Estimated CO₂ emissions per kWh of electricity used."
             },
             {
               label: "Utility Rate",
@@ -385,6 +392,7 @@ const listenToPredictions = (id) => {
       } else {
         rawPredictions.value = { lightgbm: [], prophet: [] };
         overviewMetrics.value = [];
+        latestPredictionTimestamp.value = null; // 👈 Reset timestamp when no data
       }
       isLoading.value = false;
     },
@@ -392,10 +400,12 @@ const listenToPredictions = (id) => {
       console.error("Error listening to predictions:", err);
       rawPredictions.value = { lightgbm: [], prophet: [] };
       overviewMetrics.value = [];
+      latestPredictionTimestamp.value = null; // 👈 Reset timestamp on error
       isLoading.value = false;
     }
   );
 };
+
 
 watch(deviceId, (id) => { if (id) listenToPredictions(id); }, { immediate: true });
 
