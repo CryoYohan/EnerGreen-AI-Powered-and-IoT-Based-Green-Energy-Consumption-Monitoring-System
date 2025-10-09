@@ -165,7 +165,7 @@
           </div>
           <div class="text-gray-500 dark:text-gray-400 text-right">
             <p>Last Updated</p>
-            <p class="font-semibold text-gray-700 dark:text-gray-300">{{ currentTime }}</p>
+            <p class="font-semibold text-gray-700 dark:text-gray-300">{{ formattedDateTime }}</p>
           </div>
         </div>
       </div>
@@ -182,13 +182,34 @@ const props = defineProps({
   pesoFormatter: { type: Object, required: true },
   overviewMetrics: { type: Array, required: true },
   activeModel: { type: String, required: true },
+  predictionTimestamp: { type: [Object, Date, null], default: null }, // 👈 ADD THIS PROP
 });
 
-// Current time for the additional info section
-const currentTime = ref(new Date().toLocaleTimeString([], { 
-  hour: '2-digit', 
-  minute: '2-digit' 
-}));
+const formattedDateTime = computed(() => {
+  if (!props.predictionTimestamp) {
+    return "No data";
+  }
+  
+  try {
+    // Handle Firestore Timestamp objects
+    const date = props.predictionTimestamp.toDate 
+      ? props.predictionTimestamp.toDate() 
+      : new Date(props.predictionTimestamp);
+    
+    return date.toLocaleString([], { 
+      year: 'numeric',
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (error) {
+    console.error("Error formatting prediction timestamp:", error);
+    return "Invalid date";
+  }
+});
+
 
 // Update time every minute
 onMounted(() => {
@@ -200,7 +221,7 @@ onMounted(() => {
   }, 60000);
 });
 
-// ... rest of your existing script code remains the same
+
 const getMetric = (label) =>
   props.overviewMetrics.find((m) => m.label === label)?.value || "N/A";
 
