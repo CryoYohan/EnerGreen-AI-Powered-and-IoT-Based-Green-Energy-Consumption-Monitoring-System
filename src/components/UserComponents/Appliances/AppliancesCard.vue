@@ -15,7 +15,7 @@
           @click.stop="$emit('remove-device', device)"
           class="absolute p-1 transition-colors rounded-full top-4 right-4 hover:bg-gray-100"
         >
-          <img src="/src/images/icons/delete.svg" alt="Delete" class="w-5 h-5" />
+          <img src="/src/Images/icons/delete.svg" alt="Delete" class="w-5 h-5" />
         </button>
 
         <div class="space-y-2">

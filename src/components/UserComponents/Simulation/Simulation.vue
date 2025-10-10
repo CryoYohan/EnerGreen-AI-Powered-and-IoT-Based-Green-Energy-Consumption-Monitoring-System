@@ -24,7 +24,7 @@
 
         <div class="w-full mt-4 space-y-2">
           <div class="flex gap-1 items-center">
-            <img class="w-5 h-4 dark:invert" src="/src/Images/icons/size.svg" alt="" />
+            <img class="w-5 h-4 dark:invert" src="/src/Images/icons/Size.svg" alt="" />
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
               >Home Size</label
             >

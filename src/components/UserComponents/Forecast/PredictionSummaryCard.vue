@@ -32,7 +32,7 @@
           <div class="flex items-center space-x-3">
             <div class="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
               <img
-                src="/src/Images/Icons/electric.svg"
+                src="/src/Images/icons/electric.svg"
                 alt="Energy Icon"
                 class="h-6 w-6 dark:invert"
               />
@@ -51,7 +51,7 @@
           <div class="flex items-center space-x-3">
             <div class="h-12 w-12 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
               <img
-                src="/src/Images/Icons/Peso.svg"
+                src="/src/Images/icons/Peso.svg"
                 alt="Peso Icon"
                 class="h-6 w-6 dark:invert"
               />
@@ -73,7 +73,7 @@
           <div class="flex items-center space-x-3">
             <div class="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
               <img
-                src="/src/Images/Icons/leaf.svg"
+                src="/src/Images/icons/leaf.svg"
                 alt="Leaf Icon"
                 class="h-6 w-6 dark:invert"
               />
