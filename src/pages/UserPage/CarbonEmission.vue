@@ -3,7 +3,7 @@
 
     <UserHeader />
     <div class="flex flex-col items-center justify-between sm:flex-row">
-      <Heading title="Solar Panel Integration" subtitle="Monitor your carbon emission and find ways to reduce them." />
+      <Heading title="Carbon Emission" subtitle="Monitor your carbon emission and find ways to reduce them." />
       <AnalyticsBtn />
     </div>
 

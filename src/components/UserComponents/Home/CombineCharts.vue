@@ -2,10 +2,10 @@
   <div class="flex-col flex w-[96%] self-center p-5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300 my-8">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6">
       <div class="mb-4 sm:mb-0">
-        <h2 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">{{ chartTitle }}</h2>
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">{{ chartTitle }}</h2>
         <p class="text-sm md:text-base text-gray-500 dark:text-gray-400">Total kWh per {{ activePeriod }}</p>
       </div>
-      <div class="flex items-center space-x-2">
+      <div class="flex flex-wrap items-center gap-2 sm:space-x-2">
         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">View:</span>
         <select 
           :value="activePeriod" 
@@ -21,13 +21,12 @@
           <option value="bar">Bar Chart</option>
           <option value="combined">Combined Chart</option>
         </select>
-        <!-- Refresh Button -->
         <button 
           @click="$emit('refresh')"
           class="flex items-center bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
-          <ArrowPathIcon class="w-4 h-4 mr-1" />
-          Refresh
+          <ArrowPathIcon class="w-4 h-4" />
+          <span class="ml-1">Refresh</span>
         </button>
       </div>
     </div>
