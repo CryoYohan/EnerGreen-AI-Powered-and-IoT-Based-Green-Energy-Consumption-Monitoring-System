@@ -11,7 +11,7 @@
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
     @click.self="closeModal">
     <!-- Modal Container -->
-    <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-100">
+    <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-200">
       <div class="text-center text-white">
         <div
           class="w-16 h-16 border-4 border-t-4 border-white border-solid rounded-full animate-spin border-t-transparent">
