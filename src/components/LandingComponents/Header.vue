@@ -1,6 +1,6 @@
 <template>
   <header class="sticky p-4 top-0 z-50 p-1 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700">
-    <div class="container px-4 mx-auto">
+    <div class=" px-4 mx-auto">
       <div class="flex items-center justify-between">
         <div class="flex items-center">
           <img class="h-10 w-15" src="/src/Images/logo/energreen-logo.svg" alt="logo">
@@ -11,121 +11,132 @@
 
         <button @click="toggleMenu" class="text-gray-700 dark:text-gray-300 md:hidden focus:outline-none">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M4 6h16M4 12h16M4 18h16"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
         </button>
 
         <div class="absolute items-center hidden transform -translate-x-1/2 md:flex left-1/2">
           <nav id="navigation">
             <ul class="flex space-x-6 lg:space-x-12 font-poppins text-gray-800 dark:text-gray-100">
-              <li><button @click="scrollTo('home')" class="py-2 hover:text-green-600 dark:hover:text-[#059669]">Home</button></li>
-              <li><button @click="scrollTo('about')" class="py-2 hover:text-green-600 dark:hover:text-[#059669]">About</button></li>
-              <li><button @click="scrollTo('features')" class="py-2 hover:text-green-600 dark:hover:text-[#059669]">Features</button></li>
-              <li><button @click="scrollTo('contact')" class="py-2 hover:text-green-600 dark:hover:text-[#059669]">Contact</button></li>
+              <li><button @click="scrollTo('home')"
+                  class="py-2 hover:text-green-600 dark:hover:text-[#059669]">Home</button></li>
+              <li><button @click="scrollTo('about')"
+                  class="py-2 hover:text-green-600 dark:hover:text-[#059669]">About</button></li>
+              <li><button @click="scrollTo('features')"
+                  class="py-2 hover:text-green-600 dark:hover:text-[#059669]">Features</button></li>
+              <li><button @click="scrollTo('contact')"
+                  class="py-2 hover:text-green-600 dark:hover:text-[#059669]">Contact</button></li>
             </ul>
           </nav>
         </div>
 
-        <div class="items-center hidden space-x-4 md:flex lg:space-x-6 font-poppins">
-          <button 
-            @click="toggleDarkMode" 
-            class="flex items-center space-x-2 py-2 px-3 rounded-full transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-          >
-            <img 
-              :src="isDarkMode ? '/src/Images/icons/sun.svg' : '/src/Images/icons/moon.svg'" 
-              :alt="isDarkMode ? 'sun' : 'moon'" 
-              class="w-5 h-5"
-            >
-            <span class="font-poppins text-gray-800 dark:text-gray-100">
+        <div class="items-center hidden space-x-5 md:flex font-poppins">
+          <div>
+            <button @click="toggleDarkMode"
+              class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500 transition-colors duration-200">
+              <SunIcon v-if="isDarkMode" class="w-6 h-6 text-yellow-500" />
+              <MoonIcon v-else class="w-6 h-6" />
               {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
-            </span>
-          </button>
-          <button @click="openModal('login')" class="hover:text-white hover:bg-[#059669] rounded-full border px-4 lg:px-6 py-1 border-[#059669] text-[#059669] text-sm lg:text-base dark:text-gray-100 dark:border-gray-100 dark:hover:bg-[#059669]">
+            </button>
+          </div>
+
+          <button @click="openModal('login')"
+            class="hover:text-white hover:bg-[#059669] rounded-full border px-6 lg:px-6 py-1 border-[#059669] text-[#059669] text-sm lg:text-base dark:text-gray-100 dark:border-gray-100 dark:hover:bg-[#059669]">
             Log-in
           </button>
-          <button @click="openModal('register')" class="hover:bg-[#0D2535] rounded-full border px-4 lg:px-6 py-1 hover:border-[#0D2535] border-[#059669] text-white bg-[#059669] text-sm lg:text-base dark:hover:bg-[#059669] dark:hover:border-[#059669] dark:hover:text-white">
+          <button @click="openModal('register')"
+            class="hover:bg-[#0D2535] rounded-full border px-4 lg:px-6 py-1 hover:border-[#0D2535] border-[#059669] text-white bg-[#059669] text-sm lg:text-base dark:hover:bg-[#059669] dark:hover:border-[#059669] dark:hover:text-white">
             Sign-up
           </button>
         </div>
       </div>
 
- <transition
-        enter-active-class="transition-all duration-500 ease-out"
-        leave-active-class="transition-all duration-200 ease-in"
-        enter-from-class="opacity-0 max-h-0"
-        enter-to-class="max-h-screen opacity-100"
-        leave-from-class="max-h-screen opacity-100"
-        leave-to-class="opacity-0 max-h-0"
-      >
-        <div v-if="isMenuOpen" 
-            class="fixed inset-0 z-[100] bg-black bg-opacity-40 md:hidden"
-             @click.self="isMenuOpen = false"> 
-          <div class="overflow-hidden  w-11/12 md:hidden">
-          <div class="bg-white dark:bg-gray-800 shadow-lg w-full absolute top-[80px] left-0">
+      <transition enter-active-class="transition-all duration-500 ease-out"
+        leave-active-class="transition-all duration-200 ease-in" enter-from-class="opacity-0 max-h-0"
+        enter-to-class="max-h-screen opacity-100" leave-from-class="max-h-screen opacity-100"
+        leave-to-class="opacity-0 max-h-0">
+        <div v-if="isMenuOpen" class="fixed inset-0 z-[100] bg-black bg-opacity-40 md:hidden"
+          @click.self="isMenuOpen = false">
+          <div class="overflow-hidden  w-11/12 md:hidden">
+            <div class="bg-white dark:bg-gray-800 shadow-lg w-full absolute top-[80px] left-0">
               <ul class="flex flex-col space-y-4 font-poppins text-gray-800 p-4 dark:text-gray-100">
                 <div class="flex flex-row items-center gap-2 ">
-                  <img class="relative w-4 h-10 mb-1" src="/src/Images/icons/home.svg" alt="">
-                  <li><button @click="scrollTo('home'); isMenuOpen = false" class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Home</button></li>
+                  <HomeIcon class="w-6 h-6  dark:text-gray-100" />
+                  <li><button @click="scrollTo('home'); isMenuOpen = false"
+                      class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Home</button></li>
                 </div>
                 <div class="flex flex-row items-center gap-2 ">
-                  <img class="w-4 h-10" src="/src/Images/icons/about.svg" alt="">
-                  <li><button @click="scrollTo('about'); isMenuOpen = false" class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">About</button></li>
+                  <BookOpenIcon class="w-6 h-6  dark:text-gray-100" />
+                  <li><button @click="scrollTo('about'); isMenuOpen = false"
+                      class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">About</button></li>
                 </div>
                 <div class="flex flex-row items-center gap-2 ">
-                  <img class="w-4 h-10" src="/src/Images/icons/features.svg" alt="">
-                  <li><button @click="scrollTo('features'); isMenuOpen = false" class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Features</button></li>
+                  <CubeIcon class="w-6 h-6  dark:text-gray-100" />
+                  <li><button @click="scrollTo('features'); isMenuOpen = false"
+                      class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Features</button></li>
                 </div>
                 <div class="flex flex-row items-center gap-2 ">
-                  <img class="w-4 h-10" src="/src/Images/icons/contact.svg" alt="">
-                  <li><button @click="scrollTo('contact'); isMenuOpen = false" class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Contact</button></li>
+                  <BellIcon class="w-6 h-6  dark:text-gray-100" />
+                  <li><button @click="scrollTo('contact'); isMenuOpen = false"
+                      class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Contact</button></li>
                 </div>
                 <div class="flex flex-row items-center gap-2 ">
-                  <img class="w-4 h-10" src="/src/Images/icons/login.svg" alt="">
-                  <li><button @click="openModal('login')" class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Log-in</button></li>
+                  <ArrowRightOnRectangleIcon class="w-6 h-6  dark:text-gray-100" />
+                  <li><button @click="openModal('login'); isMenuOpen = false"
+                      class="block py-2 hover:text-green-600 dark:hover:text-[#059669]">Log-in</button></li>
                 </div>
 
                 <div class="flex flex-row items-center gap-2 ">
-                  <img class="w-5 h-10" src="/src/Images/icons/reg.svg" alt="">
-                  <li><button  @click="openModal('register')" class="relative block py-2 right-1 top-0.5 hover:text-green-600 dark:hover:text-[#059669]">Sign-up</button></li>
+                  <UserCircleIcon class="w-6 h-6  dark:text-gray-100" />
+                  <li><button @click="openModal('register'); isMenuOpen = false"
+                      class="relative block py-2 hover:text-green-600 dark:hover:text-[#059669]">Sign-up</button>
+                  </li>
                 </div>
               </ul>
-                    <button 
-                    @click="toggleDarkMode" 
-                    class="flex items-center space-x-1 py-4 px-3 rounded-full ml-1"
-                  >
-                    <img 
-                      :src="isDarkMode ? '/src/Images/icons/sun.svg' : '/src/Images/icons/moon.svg'" 
-                      :alt="isDarkMode ? 'sun' : 'moon'" 
-                      class="w-5 h-5"
-                    >
-                    <span class="font-poppins text-gray-800 dark:text-gray-100">
-                      {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
-                    </span>
-                  </button>
+              <button @click="toggleDarkMode"
+                class="flex items-center w-full gap-2 py-2 px-4 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500 transition-colors duration-200">
+                <SunIcon v-if="isDarkMode" class="w-6 h-6 text-yellow-500" />
+                <MoonIcon v-else class="w-6 h-6" />
+                {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
+              </button>
             </div>
           </div>
         </div>
       </transition>
 
-      <AuthModal 
-        :isOpen="modalOpen" 
-        :initialMode="modalMode"
-        @close="closeModal"
-      />
+      <AuthModal :isOpen="modalOpen" :initialMode="modalMode" @close="closeModal" />
     </div>
   </header>
 </template>
 <script>
 import AuthModal from '@/auth/AuthModal.vue';
 import { useDarkMode } from "@/composables/useDarkMode.js";
+import {
+  SunIcon,
+  MoonIcon,
+  HomeIcon, // Added
+  BookOpenIcon, // Added for About
+  CubeIcon, // Added for Features
+  BellIcon, // Added for Contact
+  ArrowRightOnRectangleIcon, // Added for Log-in
+  UserCircleIcon, // Added for Sign-up
+} from '@heroicons/vue/24/outline'
 
 export default {
-  components: { AuthModal },
+  components: { 
+    AuthModal, 
+    SunIcon, 
+    MoonIcon,
+    HomeIcon, // Added to components
+    BookOpenIcon, // Added to components
+    CubeIcon, // Added to components
+    BellIcon, // Added to components
+    ArrowRightOnRectangleIcon, // Added to components
+    UserCircleIcon, // Added to components
+  }, 
   setup() {
-    // Moved the setup function inside the export default object
     const { isDarkMode, toggleDarkMode } = useDarkMode();
-    
+
     return { isDarkMode, toggleDarkMode };
   },
   data() {
@@ -145,14 +156,14 @@ export default {
       this.isMenuOpen = false; // Close mobile menu if open
     },
     closeModal() {
-      this.modalOpen = false; 
+      this.modalOpen = false;
     },
     scrollTo(id) {
       const element = document.getElementById(id);
       if (element) {
         const headerHeight = document.querySelector('header')?.offsetHeight || 0;
         const offset = element.getBoundingClientRect().top + window.pageYOffset - headerHeight;
-        
+
         window.scrollTo({
           top: offset,
           behavior: 'smooth'

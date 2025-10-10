@@ -308,7 +308,7 @@
                 <button
                   @click="toggleDarkMode"
                   class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500 transition-colors duration-200">
-                  <SunIcon v-if="isDarkMode" class="w-4 h-4" />
+                  <SunIcon v-if="isDarkMode" class="w-4 h-4 text-yellow-500" />
                   <MoonIcon v-else class="w-4 h-4" />
                   {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
                 </button>
