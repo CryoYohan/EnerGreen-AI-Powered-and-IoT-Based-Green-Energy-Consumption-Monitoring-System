@@ -1,9 +1,18 @@
 # D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\apphosting.yaml
+server:
+  # The runCommand specifies the shell command to execute to start your server.
+  # Since the contents of your 'source' directory (./server) are copied 
+  # to the container's workspace, the entry file is simply 'index.js'.
+  runCommand: "node server/index.js"
 
 # Configuration for your Cloud Run service
 runConfig:
   minInstances: 0
-  # maxInstances: 100
+  startupProbe:
+    timeoutSeconds: 300
+    periodSeconds: 10
+    failureThreshold: 30
+
 
   # Environment variables and secrets.
 env:

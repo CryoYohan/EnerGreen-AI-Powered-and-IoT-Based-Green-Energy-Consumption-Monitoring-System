@@ -86,13 +86,20 @@ import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";
 import { useDarkMode } from "@/composables/useDarkMode.js";
 const { isDarkMode } = useDarkMode();
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-console.log("🔥 ENV VALUES:", import.meta.env);
+
+import { useAuth } from "@/composables/useAuth"; 
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Make sure this is still defined
+const { user, userProfile, isLoading: authLoading } = useAuth(appId); // Use the composable
 
 // Reactive state for user data
-const userName = ref('Guest');
+// Change userName and userFirstName to be computed properties directly tied to userProfile
+const userName = computed(() => {
+    // Read directly from the composable's state
+    return userProfile.value?.fullName || 'Guest'; 
+});
+
 const userFirstName = computed(() => {
-  return userName.value.split(' ')[0] || 'Guest';
+  return userName.value.split(' ')[0] || 'Guest';
 });
 
 // Reactive state for chart data
@@ -140,37 +147,35 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
-    icon: '/src/Images/Icons/Peso.svg',
+    icon: '/src/Images/icons/Peso.svg',
     cost: `₱${currentRate.value.toFixed(2)}`,
     definition: 'VECO Current rate'
   },
   {
     title: 'Consumption',
-    icon: '/src/Images/Icons/electric.svg',
+    icon: '/src/Images/icons/electric.svg',
     cost: `${totalKwhToday.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {
     title: "Today's Estimated Cost",
-    icon: '/src/Images/Icons/Peso.svg',
+    icon: '/src/Images/icons/Peso.svg',
     cost: pesoFormatter.format(totalKwhToday.value * currentRate.value),
     definition: 'Based on today’s usage'
   },
   {
     title: 'Solar Generation',
-    icon: '/src/Images/Icons/sun.svg',
+    icon: '/src/Images/icons/sun.svg',
     cost: `${solarKwh.value.toFixed(2)} kWh`,
     definition: 'Today'
   },
   {
     title: 'CO₂ Saved',
-    icon: '/src/Images/Icons/leaf.svg',
+    icon: '/src/Images/icons/leaf.svg',
     cost: `${(solarKwh.value * carbonRateKg.value).toFixed(2)} kg`,
     definition: 'Today'
   },
 ]);
-
-// ... (fetchUtilityRate, fetchCarbonRate, fetchDeviceId remain unchanged) ...
 
 const fetchUtilityRate = () => {
   const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates/veco`);
@@ -207,23 +212,19 @@ const fetchCarbonRate = async () => {
 
 const showOnboarding = ref(false);
 
-const fetchDeviceId = (userId) => {
-  const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-  onSnapshot(userProfileRef, (userProfileSnap) => {
-    if (userProfileSnap.exists()) {
-      const profileData = userProfileSnap.data();
-      deviceId.value = profileData.deviceId || null;
-      userName.value = profileData.fullName || 'Guest';
-    } else {
-      console.log("No user profile found!");
-      deviceId.value = null;
-      userName.value = 'Guest';
-      // If no deviceId, clear all data 
-      clearAllData();
-    }
-  }, (error) => {
-    console.error("Error listening to user profile:", error);
-  });
+// Keep fetchDeviceId to set the deviceId based on the profile data
+const fetchDeviceId = () => {
+  // We no longer need to fetch the profile document since useAuth already did it.
+  // We only need to react to userProfile.value changes.
+  if (userProfile.value) {
+    deviceId.value = userProfile.value.deviceId || null;
+    // userName is now computed, so no need to set it here
+  } else {
+    console.log("No user profile found, setting to Guest state.");
+    deviceId.value = null;
+    // userName is already 'Guest' via computed
+    clearAllData();
+  }
 };
 
 // **DELETED:** calculateKwhDelta (no longer needed for weekly/monthly/yearly)
@@ -545,10 +546,30 @@ const updateCostAndSavingsData = () => {
 };
 
 
-// Listen for device ID changes to fetch and process data
+watch(userProfile, (newProfile) => {
+    // This watcher runs whenever useAuth successfully loads or clears the profile.
+    if (newProfile && newProfile.deviceId) {
+        // User profile loaded and has a deviceId
+        deviceId.value = newProfile.deviceId;
+        // The inner watch(deviceId, ...) handles the subsequent data fetch
+    } else if (newProfile === null && user.value) {
+        // User is logged in, but profile is missing (Error or race condition on first load)
+        // We let the logic in fetchDeviceId handle the fallback.
+        fetchDeviceId();
+    } else if (user.value === null) {
+        // User logged out
+        deviceId.value = null;
+        clearAllData();
+    } else {
+        // Profile loaded, but no deviceId
+        fetchDeviceId();
+    }
+}, { immediate: true });
+
+// The watch(deviceId, ...) below is now cleaner:
 watch(deviceId, (newDeviceId) => {
   if (newDeviceId) {
-    fetchEnergyAndApplianceData(newDeviceId.value || newDeviceId); // ✅ FIXED
+    fetchEnergyAndApplianceData(newDeviceId); // Call with the raw ID
     fetchDailySummaries();
   } else {
     clearAllData();
@@ -558,29 +579,8 @@ watch(deviceId, (newDeviceId) => {
 
 
 onMounted(async () => {
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      const userId = user?.uid || user?.localId;
-      fetchDeviceId(userId);
-
-      // 🔍 DEBUG TEST: Check if Firestore document exists
-      console.log("Testing Firestore fetch for:", userId);
-      const testRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
-      getDoc(testRef)
-        .then(snap => {
-          console.log("✅ Exists:", snap.exists());
-          console.log("📄 Data:", snap.data());
-        })
-        .catch(err => {
-          console.error("❌ Firestore test error:", err);
-        });
-      // 🔍 END TEST
-    } else {
-      userName.value = 'Guest';
-      clearAllData();
-    }
-  });
-
+  // All user/profile/device ID fetching is now handled by the composable and the watcher.
+  // We only keep non-auth related fetches here.
   fetchUtilityRate();
   fetchCarbonRate();
 
@@ -590,6 +590,7 @@ onMounted(async () => {
     localStorage.setItem("hasSeenOnboarding", "true");
   }
 });
+
 </script>
 
 <style scoped>
