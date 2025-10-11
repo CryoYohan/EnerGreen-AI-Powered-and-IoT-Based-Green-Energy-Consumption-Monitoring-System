@@ -87,6 +87,7 @@ import { useDarkMode } from "@/composables/useDarkMode.js";
 const { isDarkMode } = useDarkMode();
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+console.log("🔥 ENV VALUES:", import.meta.env);
 
 // Reactive state for user data
 const userName = ref('Guest');
@@ -559,7 +560,8 @@ watch(deviceId, (newDeviceId) => {
 onMounted(async () => {
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      fetchDeviceId(user.uid);
+      const userId = user?.uid || user?.localId;
+      fetchDeviceId(userId);
     } else {
       userName.value = 'Guest';
       clearAllData();

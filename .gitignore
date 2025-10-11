@@ -32,6 +32,9 @@ coverage
 
 # Env
 .env
+.env*
+env.txt
+.firebase
 
 # Dependencies for the new server
 # This ignores the node_modules folder inside your /server directory
