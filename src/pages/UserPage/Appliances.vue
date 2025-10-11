@@ -36,7 +36,7 @@
               />
             </div>
             <div class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <img src="/src/Images/icons/filter.svg" alt="Filter Icon" class="w-5 h-5 dar:filter dark:invert" />
+              <img src="/src/Images/icons/Filter.svg" alt="Filter Icon" class="w-5 h-5 dar:filter dark:invert" />
               <span>Filter</span>
             </div>
           </div>

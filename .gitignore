@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 .DS_Store
 dist
+
 dist-ssr
 coverage
 *.local
@@ -31,3 +32,10 @@ coverage
 
 # Env
 .env
+.env*
+env.txt
+.firebase
+
+# Dependencies for the new server
+# This ignores the node_modules folder inside your /server directory
+/server/node_modules
