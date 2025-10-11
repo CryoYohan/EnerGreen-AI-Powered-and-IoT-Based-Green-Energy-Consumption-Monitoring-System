@@ -17,17 +17,16 @@ import { adminRouter } from './adminRoutes.js';
 // Note: The frontend calls /api/admin/suspend-user
 app.use('/api/admin', adminRouter);
 
-// Fallback: This is required for Firebase App Hosting to deploy properly
-// It serves the built Vue client application for all other requests.
-// If you are using your apphosting.yaml rewrites, this might be optional 
-// but often safer to include in the Express app.
+// Fallback: Handle unmatched routes
 app.use((req, res) => {
-    // For a simple setup, you would typically serve the static files from /dist
-    // Firebase App Hosting handles the static serving, so this is mainly a 
-    // placeholder for any other server-side logic you might add.
     res.status(404).send('API route not found or not handled.');
 });
 
-// CRITICAL: Export the app for Cloud Run to pick up
-// This is the function that Firebase App Hosting/Cloud Run will look for.
+// Start the server on the port specified by Cloud Run (default 8080)
+const port = process.env.PORT || 8080;
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+});
+
+// Export the app (optional, but harmless to keep for compatibility)
 export { app };

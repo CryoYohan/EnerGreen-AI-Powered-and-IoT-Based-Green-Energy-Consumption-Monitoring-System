@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "energreen-ai-powered-iot-based",
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -17,5 +18,11 @@
       "firebase-debug.*.log",
       "functions"
     ]
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-southeast1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }
