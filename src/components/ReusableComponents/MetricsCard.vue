@@ -4,7 +4,7 @@
     class="flex flex-wrap self-center justify-around w-full gap-4 p-5 font-poppins md:gap-8"
   >
     <div 
-      v-for="(metric, index) in metrics" 
+      v-for="(metric, index) in processedMetrics" 
       :key="index"
       :class="cardSizeClass"
       class="flex flex-col bg-white rounded-lg shadow dark:bg-gray-800 dark:shadow-md dark:shadow-gray-700"
@@ -28,8 +28,12 @@
 </template>
 
 <script>
-// 1. Import the useDarkMode composable.
 import { useDarkMode } from "@/composables/useDarkMode.js";
+// ALL ICONS IMPORTED HERE IN THE COMPONENT
+import PesoIcon from '@/Images/Icons/Peso.svg';
+import ElectricIcon from '@/Images/Icons/electric.svg';
+import SunIcon from '@/Images/Icons/sun.svg';
+import LeafIcon from '@/Images/Icons/leaf.svg';
 
 export default {
   name: 'MetricsCard',
@@ -40,17 +44,30 @@ export default {
     },
     size: {
       type: String,
-      default: 'base' // or 'large', 'small'
+      default: 'base'
     }
   },
   setup() {
-    // 2. Use the composable to get the reactive state.
     const { isDarkMode } = useDarkMode();
-
-    // 3. Return the state so it can be used in the template and computed properties.
     return { isDarkMode };
   },
   computed: {
+    // Icon mapping - matches iconName from parent to actual imported icon
+    iconMap() {
+      return {
+        'peso': PesoIcon,
+        'electric': ElectricIcon,
+        'sun': SunIcon,
+        'leaf': LeafIcon
+      };
+    },
+    // Process metrics to replace iconName with actual icon
+    processedMetrics() {
+      return this.metrics.map(metric => ({
+        ...metric,
+        icon: this.iconMap[metric.iconName] || metric.icon
+      }));
+    },
     cardSizeClass() {
       return {
         small: 'w-full sm:w-[250px] p-4',

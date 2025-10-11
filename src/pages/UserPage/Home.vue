@@ -140,31 +140,31 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
-    icon: '/src/Images/Icons/Peso.svg',
+    iconName: 'peso',  
     cost: `₱${currentRate.value.toFixed(2)}`,
     definition: 'VECO Current rate'
   },
   {
     title: 'Consumption',
-    icon: '/src/Images/Icons/electric.svg',
+    iconName: 'electric',  
     cost: `${totalKwhToday.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {
     title: "Today's Estimated Cost",
-    icon: '/src/Images/Icons/Peso.svg',
+    iconName: 'peso',  
     cost: pesoFormatter.format(totalKwhToday.value * currentRate.value),
     definition: 'Based on today’s usage'
   },
   {
     title: 'Solar Generation',
-    icon: '/src/Images/Icons/sun.svg',
+    iconName: 'sun',  
     cost: `${solarKwh.value.toFixed(2)} kWh`,
     definition: 'Today'
   },
   {
     title: 'CO₂ Saved',
-    icon: '/src/Images/Icons/leaf.svg',
+    iconName: 'leaf',  // Changed from icon to iconName
     cost: `${(solarKwh.value * carbonRateKg.value).toFixed(2)} kg`,
     definition: 'Today'
   },
