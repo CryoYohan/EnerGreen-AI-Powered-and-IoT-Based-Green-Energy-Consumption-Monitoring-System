@@ -562,16 +562,29 @@ onMounted(async () => {
     if (user) {
       const userId = user?.uid || user?.localId;
       fetchDeviceId(userId);
+
+      // 🔍 DEBUG TEST: Check if Firestore document exists
+      console.log("Testing Firestore fetch for:", userId);
+      const testRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
+      getDoc(testRef)
+        .then(snap => {
+          console.log("✅ Exists:", snap.exists());
+          console.log("📄 Data:", snap.data());
+        })
+        .catch(err => {
+          console.error("❌ Firestore test error:", err);
+        });
+      // 🔍 END TEST
     } else {
       userName.value = 'Guest';
       clearAllData();
     }
   });
+
   fetchUtilityRate();
   fetchCarbonRate();
 
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
-
   if (!hasSeenOnboarding) {
     showOnboarding.value = true;
     localStorage.setItem("hasSeenOnboarding", "true");
