@@ -97,34 +97,71 @@ const showNotification = (message, type = "info", duration = 3000) => {
   setTimeout(() => (showPopup.value = false), duration);
 };
 
-// Generic proxy route caller
-const callCloudFunction = async (action, uid) => {
-    console.log('Sending request with:', {
-        uid: uid,
-        adminUid: currentAdminUid.value
-    });
+// // Generic proxy route caller
+// const callCloudFunction = async (action, uid) => {
+//     console.log('Sending request with:', {
+//         uid: uid,
+//         adminUid: currentAdminUid.value
+//     });
     
-    try {
-        // --- START OF CRITICAL CHANGE ---
-        // Change: Use the secure internal proxy routes instead of environment variables
-        const proxyRoutes = {
-            suspend: '/api/admin/suspend-user',
-            enable: '/api/admin/enable-user',
-            delete: '/api/admin/delete-user'
-        };
+//     try {
+//         // --- START OF CRITICAL CHANGE ---
+//         // Change: Use the secure internal proxy routes instead of environment variables
+//         const proxyRoutes = {
+//             suspend: '/api/admin/suspend-user',
+//             enable: '/api/admin/enable-user',
+//             delete: '/api/admin/delete-user'
+//         };
 
-        const url = proxyRoutes[action];
+//         const url = proxyRoutes[action];
         
-        // You should also get and include the Firebase ID Token here for authorization!
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) {
-             return { success: false, error: 'Authorization token missing' };
-        }
-        // --- END OF CRITICAL CHANGE ---
+//         // You should also get and include the Firebase ID Token here for authorization!
+//         const idToken = await auth.currentUser?.getIdToken();
+//         if (!idToken) {
+//              return { success: false, error: 'Authorization token missing' };
+//         }
+//         // --- END OF CRITICAL CHANGE ---
 
-    const response = await fetch(url, {
+//     const response = await fetch(url, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+//       body: JSON.stringify({ 
+//         uid: uid,
+//         adminUid: currentAdminUid.value 
+//       }),
+//     });
+
+//     // Check for 405 Method Not Allowed
+//     if (response.status === 405) {
+//       console.warn("405 Method Not Allowed detected. Ignoring response.");
+//       return { success: false, error: "Method not allowed" };
+//     }
+
+//     const result = await response.json();
+//     return result;
+//   } catch (err) {
+//     console.error("Network error:", err);
+//     return { success: false, error: "Network error" };
+//   }
+// };
+
+// Generic cloud function caller
+const callCloudFunction = async (action, uid) => {
+  console.log('Sending request with:', {
+    uid: uid,
+    adminUid: currentAdminUid.value
+  });
+  
+  try {
+    const urls = {
+      suspend: import.meta.env.VITE_SUSPEND_USER_URL,
+      enable: import.meta.env.VITE_ENABLE_USER_URL,
+      delete: import.meta.env.VITE_DELETE_USER_URL
+    };
+
+    const response = await fetch(urls[action], {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         uid: uid,
         adminUid: currentAdminUid.value 
