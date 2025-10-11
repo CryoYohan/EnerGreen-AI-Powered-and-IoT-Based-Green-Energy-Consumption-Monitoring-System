@@ -26,7 +26,7 @@
       <!-- Social Media Section -->
       <div class="flex justify-center w-full gap-3 md:gap-4 sm:w-auto">
         <a href="#" class="text-gray-500 hover:text-[#059669] transition">
-          <img class="w-6 h-6 md:w-8 md:h-8 dark:filter dark:invert" src="/src/Images/icons/facebook.svg" alt="Facebook">
+          <img class="w-6 h-6 md:w-8 md:h-8 dark:filter dark:invert" src="/src/Images/icons/Facebook.svg" alt="Facebook">
         </a>
         <a href="#" class="text-gray-500 hover:text-[#059669] transition">
           <img class="w-6 h-6 md:w-8 md:h-8 dark:filter dark:invert" src="/src/Images/icons/Instagram.svg" alt="Instagram">

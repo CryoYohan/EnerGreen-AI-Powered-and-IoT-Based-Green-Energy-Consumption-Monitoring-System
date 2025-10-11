@@ -421,9 +421,8 @@ const handleLogin = async () => {
   isLoading.value = true;
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
-    const userId = userCredential.user.uid;
+    const userId = userCredential.user?.uid || userCredential.user?.localId;
     
-
     // Fetch user profile from Firestore
     const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
     const userDoc = await getDoc(userDocRef);
