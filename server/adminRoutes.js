@@ -1,4 +1,13 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+
+// Rate limiter: limit each IP to 10 requests per 15 minutes for admin actions
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 const adminRouter = express.Router();
 
@@ -13,7 +22,7 @@ const isAdminAuthorized = (adminUid) => {
 // ----------------------------------------------------------------------
 
 // POST /api/admin/suspend-user
-adminRouter.post('/suspend-user', async (req, res) => {
+adminRouter.post('/suspend-user', adminLimiter, async (req, res) => {
     const { uid, adminUid } = req.body;
 
     if (!isAdminAuthorized(adminUid)) {
@@ -40,7 +49,7 @@ adminRouter.post('/suspend-user', async (req, res) => {
 
 
 // POST /api/admin/delete-user 
-adminRouter.post('/delete-user', async (req, res) => {
+adminRouter.post('/delete-user', adminLimiter, async (req, res) => {
     const { uid, adminUid } = req.body;
 
     if (!isAdminAuthorized(adminUid)) {
@@ -67,7 +76,7 @@ adminRouter.post('/delete-user', async (req, res) => {
 
 
 // POST /api/admin/enable-user
-adminRouter.post('/enable-user', async (req, res) => {
+adminRouter.post('/enable-user', adminLimiter, async (req, res) => {
     const { uid, adminUid } = req.body;
 
     if (!isAdminAuthorized(adminUid)) {
