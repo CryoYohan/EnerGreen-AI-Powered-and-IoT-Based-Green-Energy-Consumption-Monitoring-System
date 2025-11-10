@@ -11,7 +11,7 @@
 
     <MetricsCard v-if="!loading && !error" :metrics="dynamicMetrics" size="extra" />
     
-    <EmissionDashboard :emissionSources="sources" :tips="tipsList" />
+    <EmissionDashboard :emissionSources="sources" :tips="smartTips" />
 
     <ReusableBarChart
     v-if="!loading && !error"
@@ -77,7 +77,6 @@ const carbonRateKg = ref(0.7);
 const rawSummaries = ref([]); 
 
 // Chart Data
-// 2. Rename dailyChartData -> hourlyChartData
 const hourlyChartData = ref([]); 
 const weeklyChartData = ref([]);
 const monthlyChartData = ref([]);
@@ -89,12 +88,8 @@ const sources = [
   { id: 2, name: 'Lighting', percentage: 30 },
   { id: 3, name: 'Computers', percentage: 30 }
 ];
-const tipsList = [
-  { id: 1, title: 'Optimize AC Usage', description: 'Set temperature to 24°C for optimal efficiency' },
-  { id: 2, title: 'Standby Power', description: 'Unplug devices when not in use' },
-  { id: 3, title: 'Lighting Efficiency', description: 'Use LED bulbs and natural light when possible' },
-];
 
+// 
 // -------------------------------------------------
 // --- DATA FETCHING & PROCESSING ---
 // -------------------------------------------------
@@ -130,9 +125,6 @@ const fetchCarbonSummaries = async () => {
   error.value = null;
 
   try {
-    // Note: We run fetchCarbonRate *only once* inside the watcher
-    // to avoid running it on every refresh.
-    
     const allSummariesQuery = query(
       collection(db, `devices/${deviceId.value}/daily_summaries`), 
       orderBy("date", "desc"),
@@ -144,12 +136,20 @@ const fetchCarbonSummaries = async () => {
       console.warn("No daily summaries found for this device.");
       rawSummaries.value = [];
     } else {
+      //
+      // CHANGE 3: (Minor change here)
+      // We are now storing the components of CO2 for our smart rules.
+      //
       rawSummaries.value = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const totalKwh = (data.gridKwhTotal || 0) + (data.solarKwhTotal || 0);
+        const gridKwh = data.gridKwhTotal || 0;
+        const solarKwh = data.solarKwhTotal || 0;
+        
         return {
           date: data.date, 
-          co2: totalKwh * carbonRateKg.value
+          co2_grid: gridKwh * carbonRateKg.value,
+          co2_solar: solarKwh * carbonRateKg.value, // This is "saved" CO2
+          co2_total: (gridKwh + solarKwh) * carbonRateKg.value
         };
       });
     }
@@ -164,15 +164,12 @@ const fetchCarbonSummaries = async () => {
   }
 };
 
-// 3. Add this NEW function to fetch hourly data
-let hourlyDataUnsubscribe = null; // To store the onSnapshot listener
-
+// This function is unchanged
+let hourlyDataUnsubscribe = null; 
 const fetchHourlyData = (currentDeviceId) => {
-  // Stop any previous listener
   if (hourlyDataUnsubscribe) {
     hourlyDataUnsubscribe();
   }
-  
   if (!currentDeviceId) return;
 
   const today = new Date();
@@ -186,40 +183,20 @@ const fetchHourlyData = (currentDeviceId) => {
   );
 
   hourlyDataUnsubscribe = onSnapshot(readingsQuery, (querySnapshot) => {
-    const hourlyTotals = {}; // e.g., { 8: 0.5, 9: 1.2 }
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const kwh = data.kwhConsumed || 0; 
-      const hour = data.timestamp.toDate().getHours(); // 0-23
-      
-      // Note: This logic assumes kwhConsumed is the total *for that reading*.
-      // If it's a cumulative meter reading, this logic will need to be changed
-      // to calculate deltas, just like in your Home.vue.
-      // For simplicity, we'll sum the 'kwhConsumed' field for now.
-      
-      // Let's use the delta logic from Home.vue, it's safer.
-      // We need to process *all* readings first.
-    });
-
-    // --- Using the Delta Logic from Home.vue ---
     const readings = querySnapshot.docs.map(doc => doc.data());
-    const hourlyKwh = {}; // { 8: 0.2, 9: 0.3 }
+    const hourlyKwh = {}; 
 
     for (let i = 1; i < readings.length; i++) {
       const prev = readings[i - 1];
       const curr = readings[i];
-      
-      // Calculate delta only if it's the same energy source or if source doesn't matter
       const delta = curr.kwhConsumed - prev.kwhConsumed;
       
-      if (delta > 0 && delta < 1) { // Add a small sanity check
+      if (delta > 0 && delta < 1) { 
         const hour = curr.timestamp.toDate().getHours();
         hourlyKwh[hour] = (hourlyKwh[hour] || 0) + delta;
       }
     }
     
-    // Convert to chart format and calculate CO2
     hourlyChartData.value = Array.from({ length: 24 }, (_, i) => {
       const kwh = hourlyKwh[i] || 0;
       return {
@@ -235,14 +212,13 @@ const fetchHourlyData = (currentDeviceId) => {
 };
 
 
-// 4. UPDATE processCo2Summaries
+// This function is unchanged
 const processCo2Summaries = () => {
   const summaries = rawSummaries.value;
   const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   if (!summaries || summaries.length === 0) {
-    // hourlyChartData is handled by its own function
     weeklyChartData.value = [];
     monthlyChartData.value = [];
     yearlyChartData.value = [];
@@ -250,12 +226,13 @@ const processCo2Summaries = () => {
   }
 
   // --- Weekly (Last 7 Days) ---
-  // We removed the 'dailyChartData' line from here
   const lastSevenDays = summaries
     .slice(0, 7)
     .map(s => ({
       label: weekday[new Date(s.date).getUTCDay()],
-      value: parseFloat(s.co2.toFixed(2))
+      // --- CHANGE 3: (Minor change here) ---
+      // Use the co2_total we calculated
+      value: parseFloat(s.co2_total.toFixed(2))
     }))
     .reverse(); 
   
@@ -269,7 +246,8 @@ const processCo2Summaries = () => {
     if (!monthlyTotals[monthKey]) {
       monthlyTotals[monthKey] = 0;
     }
-    monthlyTotals[monthKey] += s.co2;
+    // --- CHANGE 3: (Minor change here) ---
+    monthlyTotals[monthKey] += s.co2_total;
   });
 
   monthlyChartData.value = Object.keys(monthlyTotals)
@@ -290,7 +268,8 @@ const processCo2Summaries = () => {
     if (!yearlyTotals[yearKey]) {
       yearlyTotals[yearKey] = 0;
     }
-    yearlyTotals[yearKey] += s.co2;
+    // --- CHANGE 3: (Minor change here) ---
+    yearlyTotals[yearKey] += s.co2_total;
   });
 
   yearlyChartData.value = Object.keys(yearlyTotals)
@@ -302,19 +281,84 @@ const processCo2Summaries = () => {
 };
 
 // --- DYNAMIC COMPUTED PROPERTIES ---
-// (This is unchanged)
+
+// 
+// CHANGE 2:
+// This is the new "smartTips" computed property.
+//
+const smartTips = computed(() => {
+  const tips = [];
+  if (!rawSummaries.value.length) return []; // No data, no tips
+
+  const last30Days = rawSummaries.value.slice(0, 30);
+  if (last30Days.length < 7) return []; // Not enough data for meaningful tips
+
+  // --- Rule 1: High Base Load ---
+  // Find the lowest consumption day in the last month.
+  const minCo2Day = Math.min(...last30Days.map(s => s.co2_total));
+  // If their "lowest" day is still high (e.g., > 1 kg CO2), they have a high base load.
+  if (minCo2Day > 1.0) {
+    tips.push({
+      id: 1,
+      title: 'Reduce "Vampire" Power',
+      description: 'Your devices are using power even on low-use days. Unplug chargers and turn off electronics at the wall when not in use.'
+    });
+  }
+
+  // --- Rule 2: Recent Trend Increasing ---
+  const last7Days = last30Days.slice(0, 7);
+  const avg7Day = last7Days.reduce((acc, s) => acc + s.co2_total, 0) / 7;
+  const avg30Day = last30Days.reduce((acc, s) => acc + s.co2_total, 0) / 30;
+
+  if (avg7Day > avg30Day * 1.15) { // If 7-day avg is 15% higher than 30-day
+    tips.push({
+      id: 2,
+      title: 'Check Recent Usage',
+      description: 'Your carbon emission has been higher than usual this past week. Check for any new appliances or devices left running.'
+    });
+  }
+
+  // --- Rule 3: Poor Solar Optimization ---
+  const totalGridCo2 = last30Days.reduce((acc, s) => acc + s.co2_grid, 0);
+  const totalSolarCo2 = last30Days.reduce((acc, s) => acc + s.co2_solar, 0);
+
+  // If they use the grid more than solar (and have solar), they can optimize.
+  if (totalGridCo2 > totalSolarCo2 && totalSolarCo2 > 0) {
+    tips.push({
+      id: 3,
+      title: 'Optimize Solar Usage',
+      description: 'You are still pulling significant power from the grid. Try running high-power appliances (laundry, AC) during peak sunlight hours.'
+    });
+  }
+
+  // --- Fallback Tip ---
+  if (tips.length === 0) {
+    tips.push({
+      id: 4,
+      title: 'Great Job!',
+      description: "Your emission levels look stable. Keep exploring ways to save, like using LED bulbs and power-saving modes."
+    });
+  }
+
+  return tips;
+});
+
+
+// dynamicMetrics is updated to use co2_total for consistency
 const dynamicMetrics = computed(() => {
-  // ... (no changes here) ...
   if (!rawSummaries.value.length) return [
     { title: 'Current CO₂ Emissions (Today)', icon: '/src/Images/Icons/conditioner.svg', cost: '0.00 kg CO₂', definition: 'No data found' },
     { title: 'Tress Equivalent (Monthly)', icon: '/src/Images/Icons/tree.svg', cost: '0 trees', definition: 'No data found' },
     { title: 'Monthly Total', icon: '/src/Images/Icons/leaf.svg', cost: '0.00 kg CO₂', definition: 'No data found' },
   ];
 
-  const latestCo2 = rawSummaries.value[0]?.co2 || 0;
+  // --- CHANGE 3: (Minor change here) ---
+  const latestCo2 = rawSummaries.value[0]?.co2_total || 0;
   const last30DaysCo2 = rawSummaries.value
     .slice(0, 30)
-    .reduce((acc, s) => acc + s.co2, 0);
+    .reduce((acc, s) => acc + s.co2_total, 0);
+  // --- End of change ---
+
   const treesEquivalent = (last30DaysCo2 / (20.4 / 12)).toFixed(0);
 
   return [
@@ -341,7 +385,7 @@ const dynamicMetrics = computed(() => {
 
 // -------------------------------------------------
 // --- LIFECYCLE HOOKS ---
-// 5. UPDATE Watchers
+// (This section is unchanged)
 // -------------------------------------------------
 
 watch(userProfile, (newProfile) => {
