@@ -90,11 +90,6 @@ const sources = [
 ];
 
 // 
-// CHANGE 2: 
-// The static tipsList has been removed.
-//
-// const tipsList = [ ... ]; // <-- This is now GONE
-
 // -------------------------------------------------
 // --- DATA FETCHING & PROCESSING ---
 // -------------------------------------------------
