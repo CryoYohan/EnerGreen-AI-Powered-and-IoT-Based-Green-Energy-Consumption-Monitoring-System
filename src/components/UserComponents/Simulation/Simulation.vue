@@ -1,6 +1,6 @@
 <template>
-  <div class="p-4 md:p-6">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="p-4 md:p-10">
+    <div class=" mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
         <h3 class="text-2xl font-bold mb-6 text-green-600 dark:text-green-400">1. Your Inputs</h3>
@@ -91,9 +91,8 @@
       </div>
     </div>
     
-    <div class="max-w-6xl mx-auto mt-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
+    <div class="mx-auto mt-6 p-5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
       <strong class="font-bold">Disclaimer:</strong> This is an estimate. Actual savings vary based on your specific location, roof tilt, shading, and final system cost.
-      <br />
       Calculations assume an electricity rate of **{{ currentRate.toFixed(2) }} PHP/kWh**, an average of **{{ AVG_INSOLATION }} Peak Sun Hours**, and a system performance ratio of **{{ (PERFORMANCE_RATIO * 100).toFixed(0) }}%**.
     </div>
   </div>
