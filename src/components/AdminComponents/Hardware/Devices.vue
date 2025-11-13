@@ -5,7 +5,7 @@
         <input
           v-model="searchTerm"
           type="text"
-          placeholder="Search Devices"
+          placeholder="Search Devices (by ID, User, or Type)"
           class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400"
         >
         <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -41,12 +41,12 @@
             </tr>
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            <tr v-for="device in filteredDevices" :key="device.deviceId + device.userId">
+            <tr v-for="device in filteredDevices" :key="device.deviceId">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 {{ device.deviceId }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {{ device.userId }}
+                {{ device.userId || 'Unassigned' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 {{ device.type }}
@@ -60,7 +60,7 @@
                 {{ device.firmware }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {{ device.lastSync }}
+                {{ formatLastSync(device.lastSync) }}
               </td>
             </tr>
           </tbody>
@@ -70,76 +70,94 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed } from 'vue';
 import { useDarkMode } from '@/composables/useDarkMode.js';
-import { computed } from 'vue';
 
-export default {
-  setup() {
-    const { isDarkMode } = useDarkMode();
+// Accept the devices list from the parent
+const props = defineProps({
+  devices: {
+    type: Array,
+    default: () => []
+  }
+});
 
-    const statusClasses = computed(() => (status) => {
-      if (isDarkMode.value) {
-        return {
-          'bg-green-700 text-green-100': status === 'Active',
-          'bg-red-700 text-red-100': status === 'Offline',
-          'bg-yellow-700 text-yellow-100': status === 'Maintenance',
-        };
-      } else {
-        return {
-          'bg-green-100 text-green-800': status === 'Active',
-          'bg-red-100 text-red-800': status === 'Offline',
-          'bg-yellow-100 text-yellow-800': status === 'Maintenance',
-        };
-      }
-    });
+const { isDarkMode } = useDarkMode();
 
-    return {
-      statusClasses
-    };
-  },
-  data() {
-    return {
-      searchTerm: "",
-      selectedType: "",
-      selectedStatus: "",
-      headers: [
-        { key: "deviceId", label: "Device ID" },
-        { key: "userId", label: "User ID" },
-        { key: "type", label: "Type" },
-        { key: "status", label: "Status" },
-        { key: "firmware", label: "Firmware" },
-        { key: "lastSync", label: "Last Sync" },
-      ],
-      devices: [
-        { deviceId: "SP-001", userId: "U0001", type: "Smart-Plug", status: "Active", firmware: "v1.2", lastSync: "2 min ago" },
-        { deviceId: "SP-001", userId: "U0001", type: "Solar Panel", status: "Offline", firmware: "v1.2", lastSync: "2 min ago" },
-        { deviceId: "S-001", userId: "U0001", type: "Sensors", status: "Maintenance", firmware: "v1.2", lastSync: "2 min ago" },
-        { deviceId: "SM-002", userId: "U0002", type: "Smart-Meter", status: "Active", firmware: "v1.2", lastSync: "2 min ago" },
-        { deviceId: "SM-003", userId: "U0003", type: "Smart-Meter", status: "Active", firmware: "v1.2", lastSync: "2 min ago" },
-      ],
-    };
-  },
-  computed: {
-    uniqueTypes() {
-      return [...new Set(this.devices.map(device => device.type))];
-    },
-    uniqueStatuses() {
-      return [...new Set(this.devices.map(device => device.status))];
-    },
-    filteredDevices() {
-      return this.devices.filter((device) => {
-        const matchesSearch =
-          device.deviceId.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-          device.type.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-          device.userId.toLowerCase().includes(this.searchTerm.toLowerCase());
+// --- Filters and Search ---
+const searchTerm = ref("");
+const selectedType = ref("");
+const selectedStatus = ref("");
 
-        const matchesType = this.selectedType === "" || device.type === this.selectedType;
-        const matchesStatus = this.selectedStatus === "" || device.status === this.selectedStatus;
+// --- Table Headers ---
+const headers = [
+  { key: "deviceId", label: "Device ID" },
+  { key: "userId", label: "Assigned User" },
+  { key: "type", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "firmware", label: "Firmware" },
+  { key: "lastSync", label: "Last Sync" },
+];
 
-        return matchesSearch && matchesType && matchesStatus;
-      });
-    },
-  },
+// --- Status Styling ---
+const statusClasses = (status) => {
+  const isDark = isDarkMode.value;
+  // Fallback for null/undefined status
+  const safeStatus = status || 'Inactive'; 
+  
+  return {
+    'bg-green-700 text-green-100': safeStatus === 'Active' && isDark,
+    'bg-red-700 text-red-100': safeStatus === 'Offline' && isDark,
+    'bg-yellow-700 text-yellow-10Signature': safeStatus === 'Maintenance' && isDark,
+    'bg-gray-700 text-gray-100': safeStatus === 'Inactive' && isDark,
+    'bg-green-100 text-green-800': safeStatus === 'Active' && !isDark,
+    'bg-red-100 text-red-800': safeStatus === 'Offline' && !isDark,
+    'bg-yellow-100 text-yellow-800': safeStatus === 'Maintenance' && !isDark,
+    'bg-gray-100 text-gray-800': safeStatus === 'Inactive' && !isDark,
+  };
+};
+
+// --- Computed Properties for Filtering (THE FIX IS HERE) ---
+const uniqueTypes = computed(() => {
+  // Add '|| "Unknown"' to handle null or missing types
+  return [...new Set(props.devices.map(device => device.type || "Unknown"))];
+});
+
+const uniqueStatuses = computed(() => {
+  // Add '|| "Unknown"' to handle null or missing statuses
+  return [...new Set(props.devices.map(device => device.status || "Unknown"))];
+});
+
+const filteredDevices = computed(() => {
+  return props.devices.filter((device) => {
+    const search = searchTerm.value.toLowerCase();
+    
+    // Use optional chaining (?.) and nullish coalescing (??)
+    // to prevent errors on null/undefined properties.
+    const matchesSearch =
+      (device.deviceId?.toLowerCase().includes(search) ?? false) ||
+      (device.userId?.toLowerCase().includes(search) ?? false) ||
+      (device.type?.toLowerCase().includes(search) ?? false);
+
+    const matchesType = selectedType.value === "" || device.type === selectedType.value;
+    const matchesStatus = selectedStatus.value === "" || device.status === selectedStatus.value;
+
+    return matchesSearch && matchesType && matchesStatus;
+  });
+});
+
+// --- Helper Function ---
+const formatLastSync = (timestamp) => {
+  if (!timestamp) return 'N/A';
+  // Check if timestamp is a Firebase Timestamp object
+  if (timestamp && typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000).toLocaleString();
+  }
+  // Fallback for other date/string formats
+  try {
+    return new Date(timestamp).toLocaleString();
+  } catch (e) {
+    return 'Invalid Date';
+  }
 };
 </script>
