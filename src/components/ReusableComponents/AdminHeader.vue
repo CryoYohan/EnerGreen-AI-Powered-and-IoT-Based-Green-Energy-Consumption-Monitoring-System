@@ -263,6 +263,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { signOut } from 'firebase/auth';
 import { useDarkMode } from "@/composables/useDarkMode.js"
 import Notification from '../ReusableComponents/Notification.vue'
 
@@ -287,7 +288,6 @@ import {
   doc,
   onAuthStateChanged,
   onSnapshot,
-  signOut
 } from '../../firebase.js'
 
 // state
@@ -296,6 +296,8 @@ const showNotifications = ref(false)
 const isProfileDropdownOpen = ref(false)
 const userName = ref('Admin')
 const profilePic = ref('/src/Images/profile/pfp.png')
+
+let unsubscribeProfile = null;
 
 const route = useRoute()
 const router = useRouter()
@@ -335,7 +337,9 @@ const fetchAdminProfile = (userId) => {
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
   try {
     const adminProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`)
-    onSnapshot(adminProfileRef, (snap) => {
+    
+    // 3. STORE THE LISTENER
+    unsubscribeProfile = onSnapshot(adminProfileRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data()
         userName.value = data.fullName || 'Admin'
@@ -354,12 +358,19 @@ const fetchAdminProfile = (userId) => {
   }
 }
 
-const signOutUser = async () => {
+const signOutUser = () => {
   try {
-    await signOut(auth)
-    router.push({ name: 'Landing' })
+    // 1. REDIRECT FIRST.
+    // This tells Vue to unmount Hardware.vue immediately.
+    router.push({ name: 'Landing' }).then(() => {
+      // 2. SIGN OUT SECOND.
+      // This runs *after* the redirect has started and the 
+      // Hardware.vue listener is gone.
+      signOut(auth);
+    });
   } catch (error) {
-    console.error("Error signing out:", error)
+    // Note: signOut() itself rarely fails, but it's good to have.
+    console.error("Error starting sign-out process:", error);
   }
 }
 
@@ -371,14 +382,22 @@ onMounted(() => {
     if (user) {
       fetchAdminProfile(user.uid)
     } else {
+      // IF USER LOGS OUT, CLEAN UP
       userName.value = 'Admin'
       profilePic.value = '/src/Images/profile/pfp.png'
+      if (unsubscribeProfile) {
+        console.log("AdminHeader logging out, stopping profile listener.");
+        unsubscribeProfile();
+      }
     }
   })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeDropdowns)
+  if (unsubscribeProfile) {
+    unsubscribeProfile();
+  }
 })
 </script>
 
