@@ -14,6 +14,7 @@ import Hardware from '@/pages/AdminPage/Hardware.vue'; // Hardware Management pa
 import UserManagement from '@/pages/AdminPage/UserManagement.vue'; // User Management page
 import MonitoringAnalytics from '@/pages/AdminPage/MonitoringAnalytics.vue'; // Monitoring and Analytics page
 import AdminProfile from '@/pages/AdminPage/AdminProfile.vue'; // Admin Profile page
+import Cost from '@/pages/UserPage/CostPage.vue'
 const routes = [
   {
     path: '/',
@@ -89,6 +90,11 @@ const routes = [
     path: '/adminprofile',
     name: 'AdminProfile',
     component: AdminProfile,
+  },
+  {
+    path: '/cost',
+    name: 'Cost',
+    component: Cost,
   }
 
 ];
