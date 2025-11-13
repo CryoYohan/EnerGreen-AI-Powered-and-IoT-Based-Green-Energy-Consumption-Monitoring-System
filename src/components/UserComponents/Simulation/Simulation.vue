@@ -158,6 +158,12 @@
         </div>
       </div>
     </div>
+    
+    <div class="max-w-6xl mx-auto mt-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
+      <strong class="font-bold">Disclaimer:</strong> This is an estimate. Actual savings vary based on your specific location, roof tilt, shading, and final system cost.
+      <br />
+      Calculations assume an electricity rate of **{{ currentRate.toFixed(2) }} PHP/kWh**, an average of **{{ AVG_INSOLATION }} Peak Sun Hours**, and a system performance ratio of **{{ (PERFORMANCE_RATIO * 100).toFixed(0) }}%**.
+    </div>
   </div>
 </template>
 
