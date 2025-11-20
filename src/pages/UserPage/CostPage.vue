@@ -29,26 +29,26 @@ const dailyMetrics = [
   {
     title: 'Current Month',
     icon: '/src/Images/Icons/peso.svg',
-    cost: '4.2kWh',
-    definition: 'Current rate'
+    cost: '₱127.45',
+    definition: '-12% from last monthCurrent rate'
   },
   {
     title: 'Usage (kWh)',
     icon: '/src/Images/Icons/electric.svg',
-    cost: '1.05 kWh',
-    definition: 'Today'
+    cost: '1234',
+    definition: '+5% from last month'
   },
     {
     title: 'Avg Daily Cost',
     icon: '/src/Images/Icons/peso.svg',
-    cost: '1.05 kWh',
-    definition: 'Today'
+    cost: '₱4.25',
+    definition: '-8% from last month'
   },
     {
     title: 'Peak Hour Rate',
     icon: '/src/Images/Icons/peso.svg',
-    cost: '1.05 kWh',
-    definition: 'Today'
+    cost: '₱12.0',
+    definition: 'per kWh'
   },
 ];
 
