@@ -1,7 +1,7 @@
 // This imports modules from the installed 'firebase' package.
 import { initializeApp } from "firebase/app";
 
-// Import all necessary Auth functions from the 'firebase/auth' module
+// Import all necessary Auth functions
 import {
     getAuth,
     signInWithEmailAndPassword,
@@ -10,10 +10,10 @@ import {
     updateProfile,
     onAuthStateChanged,
     signOut,
-    sendPasswordResetEmail // Added for password recovery
+    sendPasswordResetEmail
 } from "firebase/auth";
 
-// Import all necessary Firestore functions from the 'firebase/firestore' module
+// Import all necessary Firestore functions
 import {
     getFirestore,
     collection,
@@ -31,6 +31,9 @@ import {
     Timestamp,
 } from "firebase/firestore";
 
+// 1. IMPORT STORAGE (New)
+import { getStorage } from "firebase/storage";
+
 // Firebase configuration.
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -41,20 +44,21 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-
 // Initialize Firebase with your config.
 const app = initializeApp(firebaseConfig);
 
-// Get a reference to the Auth and Firestore services.
+// Get a reference to the services.
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app); // 2. INITIALIZE STORAGE (New)
 
-// Export the initialized services and all the specific functions
-// that your components will need.
+// Export the initialized services and functions
 export {
     app,
     auth,
     db,
+    storage, // 3. EXPORT STORAGE (New)
+
     // Auth Functions
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -62,7 +66,8 @@ export {
     updateProfile,
     onAuthStateChanged,
     signOut,
-    sendPasswordResetEmail, // Added for password recovery
+    sendPasswordResetEmail,
+
     // Firestore Functions
     collection,
     onSnapshot,

@@ -9,7 +9,7 @@
     
     <InventoryDevice :devices="devices" />
     
-    <Devices :devices="devices" />
+    <Devices :devices="devices" :users="users" />
     
     <Firmware />
     <Footer />
@@ -19,9 +19,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { db, auth } from '@/firebase.js'; // Make sure auth is imported
-import { collection, query, onSnapshot } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth'; // Make sure this is imported
+import { db, auth } from '@/firebase.js'; 
+// UPDATE: Added 'collectionGroup' to fetch all users
+import { collection, query, onSnapshot, collectionGroup } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth'; 
 
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
@@ -32,61 +33,69 @@ import Devices from "@/components/AdminComponents/Hardware/Devices.vue";
 import Firmware from "@/components/AdminComponents/Hardware/Firmware.vue";
 
 const devices = ref([]);
+const users = ref([]); // New: Store users here
 const loading = ref(true);
 const router = useRouter(); 
 
 let unsubscribeDevices = null;
-let unsubscribeAuth = null; // We need this to hold the auth listener
+let unsubscribeUsers = null; // New: Listener for users
+let unsubscribeAuth = null; 
 
-// Fetch all devices with a real-time listener
 onMounted(() => {
-  // Set up an auth listener that CONTROLS the device listener
+  // 1. Auth Listener (Gatekeeper)
   unsubscribeAuth = onAuthStateChanged(auth, (user) => {
     if (user) {
-      // --- User is LOGGED IN ---
-      // Start the device listener ONLY if we are logged in
-      if (!unsubscribeDevices) { // Only start if it's not already running
+      // --- LOGGED IN ---
+      
+      // 2. Fetch Devices (if not already fetching)
+      if (!unsubscribeDevices) { 
         const devicesQuery = query(collection(db, "devices"));
-        
         unsubscribeDevices = onSnapshot(devicesQuery, (querySnapshot) => {
           devices.value = querySnapshot.docs.map(doc => doc.data());
           loading.value = false;
         }, (error) => {
           console.error("Error fetching devices:", error);
           loading.value = false;
-          // An error while logged in might mean permissions are wrong
-          router.push('/adminhome'); // Send to a safe admin page
         });
       }
+
+      // 3. Fetch Users (New Logic for Dropdowns)
+      if (!unsubscribeUsers) {
+        // collectionGroup queries all 'userProfile' collections in the DB
+        const usersQuery = query(collectionGroup(db, 'userProfile'));
+        unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
+          users.value = querySnapshot.docs.map(doc => ({
+            // The parent ID is the User UID
+            uid: doc.ref.parent.parent.id, 
+            ...doc.data()
+          }));
+        });
+      }
+
     } else {
-      // --- User is LOGGED OUT ---
-      // Stop the device listener IMMEDIATELY
+      // --- LOGGED OUT ---
+      // Clean up everything immediately
       if (unsubscribeDevices) {
-        console.log("Auth is null, stopping device listener.");
         unsubscribeDevices();
         unsubscribeDevices = null;
       }
-      // The router guard will handle redirection, but we can be safe
-      // and redirect from here too.
+      if (unsubscribeUsers) {
+        unsubscribeUsers();
+        unsubscribeUsers = null;
+      }
+      // Router guard handles redirect, but this is a safe fallback
       router.push('/');
     }
   });
 });
 
-// This code runs when the component is unmounted (i.e., when you navigate away)
+// Cleanup when leaving the page
 onUnmounted(() => {
-  if (unsubscribeDevices) {
-    console.log("Hardware.vue unmounting, stopping device listener.");
-    unsubscribeDevices(); 
-  }
-  // Also clean up the auth listener
-  if (unsubscribeAuth) {
-    console.log("Hardware.vue unmounting, stopping auth listener.");
-    unsubscribeAuth();
-  }
+  if (unsubscribeDevices) unsubscribeDevices();
+  if (unsubscribeUsers) unsubscribeUsers();
+  if (unsubscribeAuth) unsubscribeAuth();
 });
 
-// The metrics card is now computed from the live data
 const dynamicMetrics = computed(() => {
   return [
     {
