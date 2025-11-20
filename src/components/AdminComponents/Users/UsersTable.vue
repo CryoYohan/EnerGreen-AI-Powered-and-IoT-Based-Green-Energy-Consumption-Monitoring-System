@@ -1,31 +1,24 @@
 <template>
   <div class="m-4 sm:m-5 lg:m-10 font-poppins dark:bg-gray-900 dark:text-gray-100">
+    
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
       <div class="relative w-full md:w-1/3">
-        <input v-model.lazy="searchTerm" type="text" placeholder="Search by ID, Name, Location"
+        <input v-model.lazy="searchTerm" type="text" placeholder="Search by Name, Email, ID"
           class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400">
-        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24"
-          stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-        <select v-model.lazy="selectedLocation"
-          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-          <option value="" class="dark:bg-gray-800">All Location</option>
-          <option v-for="location in uniqueLocations" :key="location" :value="location" class="dark:bg-gray-800">
-            {{ location }}
-          </option>
+        <select v-model="selectedRole" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">
+          <option value="">All Roles</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
         </select>
-
-        <select v-model.lazy="selectedStatus"
-          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">
+        <select v-model.lazy="selectedStatus" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">
           <option value="" class="dark:bg-gray-800">All Status</option>
-          <option v-for="status in uniqueStatuses" :key="status" :value="status" class="dark:bg-gray-800">
-            {{ capitalize(status) }}
-          </option>
+          <option v-for="status in uniqueStatuses" :key="status" :value="status">{{ status }}</option>
         </select>
       </div>
     </div>
@@ -35,49 +28,46 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" v-if="filteredUsers.length > 0">
           <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700"><input type="checkbox" v-model="selectAll" @change="toggleSelectAll"
-                  class="rounded dark:bg-gray-800 dark:border-gray-700 text-green-500 focus:ring-green-500" /></th>
-              <th v-for="header in headers" :key="header.key"
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {{ header.label }}
-              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Device</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="user in filteredUsers" :key="user.userId">
-              <td class="px-6 py-4">
-                <input type="checkbox" v-model="selectedUsers" :value="user.userId" 
-                  class="rounded dark:bg-gray-700 dark:border-gray-600 text-green-500 focus:ring-green-500" />
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10">
+                    <img class="h-10 w-10 rounded-full object-cover" :src="user.photoURL || '/src/Images/profile/pfp.png'" />
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.email }}</div>
+                  </div>
+                </div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.userId }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">
+                <span :class="user.role === 'admin' ? 'text-purple-600 font-bold' : 'text-gray-600 dark:text-gray-400'">{{ user.role }}</span>
+              </td>
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.location }}</td>
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.smartMeterID }}</td>
-
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="statusClasses(user.status)"
-                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                  {{ capitalize(user.status) }}
-                </span>
+                <span :class="statusClasses(user.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ user.status }}</span>
               </td>
-
-              <td class="px-6 py-4 flex gap-3 text-sm">
-                <button class="text-green-600 dark:text-green-400 hover:underline" @click="openModal(user)">View</button>
-
-                <button v-if="user.status.toLowerCase() === 'active'"
-                  class="text-yellow-600 dark:text-yellow-400 hover:underline" @click="confirmAction('suspend', user)">
-                  Suspend
-                </button>
-
-                <button v-else-if="user.status.toLowerCase() === 'inactive'"
-                  class="text-blue-600 dark:text-blue-400 hover:underline" @click="confirmAction('enable', user)">
-                  Enable
-                </button>
-
-                <button v-if="user.status.toLowerCase() !== 'deleted'"
-                  class="text-red-600 dark:text-red-400 hover:underline" @click="confirmAction('delete', user)">
-                  Delete
-                </button>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="openModal(user)">Edit</button>
+                
+                <button v-if="user.status && user.status.toLowerCase() === 'active'" 
+                        @click="confirmAction('suspend', user)" 
+                        class="text-amber-600 dark:text-amber-400 hover:underline mr-3">Suspend</button>
+                <button v-else 
+                        @click="confirmAction('enable', user)" 
+                        class="text-blue-600 dark:text-blue-400 hover:underline mr-3">Enable</button>
+                
+                <button @click="confirmAction('delete', user)" class="text-red-600 hover:underline">Delete</button>
               </td>
             </tr>
           </tbody>
@@ -86,183 +76,149 @@
         <div v-else class="text-center py-16 px-4">
           <div class="max-w-md mx-auto">
             <div class="text-6xl mb-4">🔍</div>
-            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
-              No Users Found!
-            </h3>
-            <p class="text-gray-600 dark:text-gray-400 mb-6">
-              Looks like your search is playing hide and seek.
-              Try different filters or search terms to find your users!
-            </p>
-            <div class="flex justify-center gap-3">
-              <button @click="clearFilters"
-                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200"
-              >
-                Clear Filters
-              </button>
-              <button @click="searchTerm = ''"
-                class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
-              >
-                Clear Search
-              </button>
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">No Users Found!</h3>
+            <div class="flex justify-center gap-3 mt-6">
+              <button @click="clearFilters" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">Clear Filters</button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100"
-      leave-to-class="opacity-0">
-      <div v-if="showModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
-        @click.self="closeModal">
-        <Transition enter-active-class="transition ease-out duration-300 transform" enter-from-class="opacity-0 scale-95"
-          enter-to-class="opacity-100 scale-100" leave-active-class="transition ease-in duration-200 transform"
-          leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-          <div v-if="showModal"
-            class="bg-white dark:bg-gray-800 dark:text-gray-100 rounded-lg p-6 w-full max-w-md shadow-xl dark:shadow-gray-700">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">User Details</h2>
-              <button @click="closeModal"
-                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">✕</button>
-            </div>
-            <div class="space-y-4">
-              <div class="w-full flex justify-center">
-                <img class="w-20 h-20 rounded-full" src="/src/Images/profile/pfp.png" alt="User Profile">
-              </div>
-              <div v-for="field in ['userId','name','location','smartMeterID','status']" :key="field">
-                <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{{ capitalize(field) }}</label>
-                <input v-model="selectedUser[field]" :readonly="field==='userId'"
-                  class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-gray-900 bg-gray-50 dark:bg-gray-700/50" />
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6">
-              <button @click="closeModal"
-                class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">Cancel</button>
-              <button v-if="selectedUser.status && selectedUser.status.toLowerCase() !== 'deleted'"
-                @click="confirmAction('delete', selectedUser)" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                Remove
-              </button>
-            </div>
+    <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" @click.self="closeModal">
+        <div class="bg-white dark:bg-gray-800 dark:text-gray-100 rounded-lg p-6 w-full max-w-md shadow-xl dark:shadow-gray-700">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Edit User</h2>
+            <button @click="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">✕</button>
           </div>
-        </Transition>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-500">User ID</label>
+              <input :value="selectedUser.userId" readonly class="w-full px-3 py-2 border rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed" />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Full Name</label>
+              <input v-model="selectedUser.name" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Role</label>
+              <select v-model="selectedUser.role" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Location</label>
+              <input v-model="selectedUser.location" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Smart Meter Device</label>
+              <select v-model="selectedUser.smartMeterID" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="None">None / Unassigned</option>
+                <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
+                  {{ device.deviceId }} ({{ device.location || 'No Loc' }})
+                </option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <button @click="closeModal" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-white">Cancel</button>
+            <button @click="saveChanges" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+              Save Changes
+            </button>
+          </div>
+        </div>
       </div>
     </Transition>
 
-    <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100"
-      leave-to-class="opacity-0">
-      <div v-if="showConfirmModal"
-        class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
-        @click.self="showConfirmModal = false">
-        <Transition enter-active-class="transition ease-out duration-300 transform" enter-from-class="opacity-0 scale-95"
-          enter-to-class="opacity-100 scale-100" leave-active-class="transition ease-in duration-200 transform"
-          leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-          <div v-if="showConfirmModal"
-            class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm shadow-xl dark:shadow-gray-700 text-center dark:text-gray-100">
-            <h3 class="text-xl font-semibold mb-4" :class="{
-              'text-red-600 dark:text-red-400': pendingAction === 'delete',
-              'text-yellow-600 dark:text-yellow-400': pendingAction === 'suspend',
-              'text-blue-600 dark:text-blue-400': pendingAction === 'enable'
-            }">
-              Confirm {{ capitalize(pendingAction) }}
-            </h3>
-            <p class="mb-6 text-gray-700 dark:text-gray-300">
-              Are you sure you want to <strong>{{ pendingAction }}</strong> the account for user <strong>{{ confirmUser.name }}</strong> (ID: {{ confirmUser.userId }})?
-              {{ pendingAction === 'delete' ? 'This action cannot be undone.' : '' }}
-            </p>
-            <div class="flex justify-center gap-4">
-              <button @click="showConfirmModal = false"
-                class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600">
-                Cancel
-              </button>
-              <button @click="executeAction" :class="{
-                'bg-red-600 hover:bg-red-700': pendingAction === 'delete',
-                'bg-yellow-600 hover:bg-yellow-700': pendingAction === 'suspend',
-                'bg-blue-600 hover:bg-blue-700': pendingAction === 'enable'
-              }" class="px-4 py-2 text-white rounded-md transition duration-150">
-                Yes, {{ capitalize(pendingAction) }}
-              </button>
-            </div>
+    <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="showConfirmModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" @click.self="showConfirmModal = false">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm shadow-xl text-center">
+          <h3 class="text-xl font-semibold mb-4" :class="{'text-red-600': pendingAction === 'delete', 'text-amber-600': pendingAction === 'suspend', 'text-blue-600': pendingAction === 'enable'}">
+            Confirm {{ capitalize(pendingAction) }}
+          </h3>
+          <p class="mb-6 text-gray-700 dark:text-gray-300">
+            Are you sure you want to <strong>{{ pendingAction }}</strong> user <strong>{{ confirmUser.name }}</strong>?
+          </p>
+          <div class="flex justify-center gap-4">
+            <button @click="showConfirmModal = false" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 dark:bg-gray-700 dark:text-white">Cancel</button>
+            <button @click="executeAction" :class="{'bg-red-600 hover:bg-red-700': pendingAction === 'delete', 'bg-amber-600 hover:bg-amber-700': pendingAction === 'suspend', 'bg-blue-600 hover:bg-blue-700': pendingAction === 'enable'}" class="px-4 py-2 text-white rounded-md transition duration-150">
+              Yes, {{ capitalize(pendingAction) }}
+            </button>
           </div>
-        </Transition>
+        </div>
       </div>
     </Transition>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, defineEmits } from "vue";
-const props = defineProps({ users: { type: Array, required: true } });
-const emit = defineEmits(['suspend', 'enable', 'delete']);
 
-// Helper to capitalize the first letter
+// 1. Accept 'devices' prop
+const props = defineProps({ 
+  users: { type: Array, required: true },
+  devices: { type: Array, default: () => [] } 
+});
+
+const emit = defineEmits(['update-status', 'delete', 'edit-user']);
+
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
 
-// State - using .lazy for performance
+// State
 const searchTerm = ref("");
 const selectedLocation = ref("");
 const selectedStatus = ref("");
+const selectedRole = ref("");
 const selectAll = ref(false);
 const selectedUsers = ref([]);
 const showModal = ref(false);
 const selectedUser = ref({});
 const showConfirmModal = ref(false);
-const pendingAction = ref(''); // 'delete', 'suspend', or 'enable'
+const pendingAction = ref('');
 const confirmUser = ref({});
 
-// Configuration
+// Headers (No changes)
 const headers = [
-  { key: "userId", label: "User ID" },
-  { key: "name", label: "Name" },
+  { key: "user", label: "User" },
+  { key: "role", label: "Role" },
   { key: "location", label: "Location" },
-  { key: "smartMeterID", label: "Smart Meter ID" },
+  { key: "smartMeterID", label: "Device" },
   { key: "status", label: "Status" },
   { key: "action", label: "Action" },
 ];
 
-// Computed Properties - optimized with caching
-const uniqueLocations = computed(() => {
-  const locations = new Set();
-  props.users.forEach(u => {
-    if (u.location) locations.add(u.location);
-  });
-  return Array.from(locations);
-});
+// Computed (No changes)
+const uniqueLocations = computed(() => [...new Set(props.users.map(u => u.location || "Unknown"))]);
+const uniqueStatuses = computed(() => [...new Set(props.users.map(u => u.status || "Unknown"))]);
 
-const uniqueStatuses = computed(() => {
-  const statuses = new Set();
-  props.users.forEach(u => {
-    if (u.status) statuses.add(u.status);
-  });
-  return Array.from(statuses);
-});
-
-// Debounced filtered users for better performance
 const filteredUsers = computed(() => {
   const search = searchTerm.value.toLowerCase();
-  const location = selectedLocation.value;
-  const status = selectedStatus.value;
-
   return props.users.filter(u => {
-    // Early return if no match on required filters
-    if (location && u.location !== location) return false;
-    if (status && u.status !== status) return false;
-    
-    // Only search if search term exists
-    if (search) {
-      return (
-        u.userId.toLowerCase().includes(search) ||
-        u.name?.toLowerCase().includes(search) ||
-        u.smartMeterID?.toLowerCase().includes(search) ||
-        u.location?.toLowerCase().includes(search)
-      );
-    }
-    
-    return true;
+    const matchesSearch = 
+      (u.name?.toLowerCase().includes(search) ?? false) ||
+      (u.email?.toLowerCase().includes(search) ?? false) ||
+      (u.userId?.toLowerCase().includes(search) ?? false) ||
+      (u.smartMeterID?.toLowerCase().includes(search) ?? false);
+
+    const matchesRole = selectedRole.value === "" || u.role === selectedRole.value;
+    const matchesLocation = selectedLocation.value === "" || u.location === selectedLocation.value;
+    const matchesStatus = selectedStatus.value === "" || u.status === selectedStatus.value;
+
+    return matchesSearch && matchesRole && matchesLocation && matchesStatus;
   });
 });
 
-// Functions
+// Actions
 const toggleSelectAll = () => {
   selectedUsers.value = selectAll.value ? props.users.map(u => u.userId) : [];
 };
@@ -271,30 +227,33 @@ const openModal = (user) => {
   selectedUser.value = { ...user }; 
   showModal.value = true; 
 };
+const closeModal = () => { showModal.value = false; };
 
-const closeModal = () => { 
-  showModal.value = false; 
+const saveChanges = () => {
+  emit('edit-user', selectedUser.value);
+  closeModal();
 };
 
 const clearFilters = () => {
   searchTerm.value = "";
   selectedLocation.value = "";
   selectedStatus.value = "";
+  selectedRole.value = "";
 };
 
-const statusClasses = (status) => ({
-  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': status.toLowerCase() === 'active',
-  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300': status.toLowerCase() === 'inactive',
-  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300': status.toLowerCase() === 'pending',
-  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300': status.toLowerCase() === 'maintenance',
-  'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300': status.toLowerCase() === 'deleted',
-});
+const statusClasses = (status) => {
+  const s = status ? status.toLowerCase() : '';
+  return {
+    'bg-green-100 text-green-800': s === 'active',
+    'bg-red-100 text-red-800': s === 'inactive' || s === 'suspended',
+    'bg-gray-100 text-gray-800': s === 'deleted',
+    'bg-amber-100 text-amber-800': s === 'pending',
+  };
+};
 
-// Confirmation Functions
+// Confirmation Logic
 const confirmAction = (action, user) => {
-  if (showModal.value) {
-    closeModal();
-  }
+  if (showModal.value) closeModal(); // Close edit modal if open
   pendingAction.value = action;
   confirmUser.value = user;
   showConfirmModal.value = true;
@@ -302,17 +261,12 @@ const confirmAction = (action, user) => {
 
 const executeAction = () => {
   showConfirmModal.value = false;
-
-  // Emit the corresponding action to parent
   if (pendingAction.value === 'delete') {
     emit('delete', confirmUser.value);
-  } else if (pendingAction.value === 'suspend') {
-    emit('suspend', confirmUser.value);
-  } else if (pendingAction.value === 'enable') {
-    emit('enable', confirmUser.value);
+  } else {
+    const newStatus = pendingAction.value === 'suspend' ? 'Inactive' : 'Active';
+    emit('update-status', { user: confirmUser.value, status: newStatus });
   }
-  
-  // Clear state
   pendingAction.value = '';
   confirmUser.value = {};
 };
