@@ -178,8 +178,11 @@ const saveDeviceChanges = async () => {
   if (!editingDevice.value.deviceId) return;
   try {
     const deviceRef = doc(db, 'devices', editingDevice.value.deviceId);
+    const selectedUser = props.users.find(u => u.uid === editForm.userId);
+    const userName = selectedUser ? selectedUser.fullName : 'Unassigned';
     await updateDoc(deviceRef, {
       userId: editForm.userId || null,
+      ownerName:userName,
       status: editForm.status,
       location: editForm.location
     });
