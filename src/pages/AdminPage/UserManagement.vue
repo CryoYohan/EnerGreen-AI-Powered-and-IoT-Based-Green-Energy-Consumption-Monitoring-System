@@ -7,7 +7,7 @@
     <MetricsCard :metrics="dailyMetrics" size="large" />
 
     <!-- Insights + Eco Heroes -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-9">
       <UserInsights :insights="insights" />
       <EcoHeroes :heroes="ecoHeroes" />
     </div>
