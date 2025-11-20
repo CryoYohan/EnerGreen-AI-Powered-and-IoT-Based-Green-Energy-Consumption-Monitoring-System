@@ -1,86 +1,125 @@
 <template>
   <div class="grid m-4 sm:m-5 lg:m-10 grid-cols-1 md:grid-cols-2 gap-6 font-poppins dark:bg-gray-900">
     
-    <div class="p-6 bg-white dark:bg-gray-800 rounded-xl shadow dark:shadow-gray-700">
-      <div class="flex flex-row gap-2 items-center mb-4">
-        <img src="/src/Images/icons/inventory.svg" alt="">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Inventory Overview</h2>
+    <!-- Inventory Overview -->
+    <div class="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+      <div class="flex flex-row gap-3 items-center mb-6">
+        <div class="w-2 h-8 bg-emerald-500 rounded-full"></div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Inventory Overview</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Device counts by type</p>
+        </div>
       </div>
 
-      <div class="space-y-3 text-sm">
-        <div class="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-500">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">Smart Plugs</span>
-          <span class="font-semibold text-gray-700 dark:text-gray-300">{{ smartPlugCount }}</span>
+      <div class="space-y-2 text-sm">
+        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">Smart Plugs</span>
+          </div>
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ smartPlugCount }}</span>
         </div>
-        <div class="flex items-center justify-between p-3 rounded-lg">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">Solar Panels</span>
-          <span class="font-semibold text-gray-700 dark:text-gray-300">{{ solarPanelCount }}</span>
+        
+        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">Solar Panels</span>
+          </div>
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ solarPanelCount }}</span>
         </div>
-        <div class="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-500">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">Smart Meters</span>
-          <span class="font-semibold text-gray-700 dark:text-gray-300">{{ smartMeterCount }}</span>
+        
+        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">Smart Meters</span>
+          </div>
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ smartMeterCount }}</span>
         </div>
-        <div class="flex items-center justify-between p-3 rounded-lg">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">Sensors</span>
-          <span class="font-semibold text-gray-700 dark:text-gray-300">{{ sensorCount }}</span>
+        
+        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">Sensors</span>
+          </div>
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ sensorCount }}</span>
         </div>
-        <div class="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-500">
-          <span class="text-gray-800 dark:text-gray-100 font-medium">Batteries</span>
-          <span class="font-semibold text-gray-700 dark:text-gray-300">{{ batteryCount }}</span>
+        
+        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-rose-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">Batteries</span>
+          </div>
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ batteryCount }}</span>
         </div>
       </div>
     </div>
 
-    <div class="p-6 bg-white dark:bg-gray-800 rounded-xl shadow dark:shadow-gray-700">
-      <div class="flex flex-row items-center gap-2 mb-4">
-        <img src="/src/Images/icons/plusdevice.svg" alt="">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Device Registration</h2>
+    <!-- Device Registration -->
+    <div class="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+      <div class="flex flex-row gap-3 items-center mb-6">
+        <div class="w-2 h-8 bg-blue-500 rounded-full"></div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Device Registration</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Add new devices to inventory</p>
+        </div>
       </div>
       
-      <form @submit.prevent="registerDevice" class="space-y-3 text-sm">
-        <input
-          v-model="newDeviceId"
-          type="text"
-          placeholder="Device ID (e.g., SM-001)"
-          required
-          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-        />
-        <select
-          v-model="newDeviceType"
-          required
-          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        >
-          <option value="" disabled>Select Device Type</option>
-          <option>Smart Plug</option>
-          <option>Solar Panel</option>
-          <option>Smart Meter</option>
-          <option>Sensor</option>
-          <option>Battery</option>
-        </select>
-        <input
-          v-model="newLocation"
-          type="text"
-          placeholder="Location (e.g., Warehouse A)"
-          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-        />
-        <select
-          v.model="newStatus"
-          required
-          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        >
-          <option value="Inactive" disabled>Initial Status</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Active">Active</option>
-          <option value="Maintenance">Maintenance</option>
-        </select>
+      <form @submit.prevent="registerDevice" class="space-y-4 text-sm">
+        <div>
+          <input
+            v-model="newDeviceId"
+            type="text"
+            placeholder="Device ID (e.g., SM-001)"
+            required
+            class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+          />
+        </div>
+        
+        <div>
+          <select
+            v-model="newDeviceType"
+            required
+            class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+          >
+            <option value="" disabled>Select Device Type</option>
+            <option>Smart Plug</option>
+            <option>Solar Panel</option>
+            <option>Smart Meter</option>
+            <option>Sensor</option>
+            <option>Battery</option>
+          </select>
+        </div>
+        
+        <div>
+          <input
+            v-model="newLocation"
+            type="text"
+            placeholder="Location (e.g., Warehouse A)"
+            class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+          />
+        </div>
+        
+        <div>
+          <select
+            v-model="newStatus"
+            required
+            class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+          >
+            <option value="Inactive" disabled>Initial Status</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Active">Active</option>
+            <option value="Maintenance">Maintenance</option>
+          </select>
+        </div>
         
         <button 
           type="submit" 
           :disabled="isRegistering"
-          class="w-full p-2.5 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 disabled:opacity-50">
+          class="w-full p-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {{ isRegistering ? 'Registering...' : 'Register Device' }}
         </button>
-        <p v-if="regError" class="text-red-500 text-xs">{{ regError }}</p>
+        
+        <p v-if="regError" class="text-rose-500 text-xs text-center">{{ regError }}</p>
       </form>
     </div>
   </div>
@@ -111,7 +150,7 @@ const batteryCount = getCount('Battery');
 const newDeviceId = ref('');
 const newDeviceType = ref('');
 const newLocation = ref('');
-const newStatus = ref('Inactive'); // Default to Inactive
+const newStatus = ref('Inactive');
 const isRegistering = ref(false);
 const regError = ref('');
 
@@ -139,9 +178,9 @@ const registerDevice = async () => {
       type: newDeviceType.value,
       location: newLocation.value,
       status: newStatus.value,
-      firmware: 'v1.0.0', // Assign a default firmware
+      firmware: 'v1.0.0',
       lastSync: null,
-      userId: null // Unassigned by default
+      userId: null
     };
     
     // Set the new document
