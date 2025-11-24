@@ -1,7 +1,15 @@
 import express from 'express';
 import { auth } from './firebaseAdmin.js';
+import rateLimit from 'express-rate-limit';
 
 const userRouter = express.Router();
+
+// --- Rate limiter middleware for sensitive endpoints ---
+const predictLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { success: false, error: "Too many prediction requests, please try again later." }
+});
 
 // --- MIDDLEWARE (Copy of verifyToken) ---
 // Ideally, move this to a shared 'middleware.js' file later
@@ -24,7 +32,7 @@ const verifyToken = async (req, res, next) => {
 
 // POST /api/user/predict
 // This proxies the request to your Python AI Cloud Run service
-userRouter.post('/predict', verifyToken, async (req, res) => {
+userRouter.post('/predict', predictLimiter, verifyToken, async (req, res) => {
     const { deviceId } = req.body;
     const uid = req.user.uid;
 
