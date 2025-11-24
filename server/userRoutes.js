@@ -11,19 +11,26 @@ const predictLimiter = rateLimit({
     message: { success: false, error: "Too many prediction requests, please try again later." }
 });
 
-// --- MIDDLEWARE (Copy of verifyToken) ---
-// Ideally, move this to a shared 'middleware.js' file later
+// --- MIDDLEWARE ---
 const verifyToken = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // 1. Try to get token from Custom Header (Production Fix)
+    let idToken = req.headers['x-auth-token'];
+
+    // 2. Fallback to Standard Header (Localhost/Standard behavior)
+    if (!idToken && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        idToken = req.headers.authorization.split('Bearer ')[1];
+    }
+
+    if (!idToken) {
         return res.status(401).json({ success: false, error: 'No token provided' });
     }
-    const idToken = authHeader.split('Bearer ')[1];
+
     try {
         const decodedToken = await auth.verifyIdToken(idToken);
         req.user = decodedToken;
         next();
     } catch (error) {
+        console.error("Token Verification Error:", error);
         return res.status(403).json({ success: false, error: 'Invalid token' });
     }
 };
