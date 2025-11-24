@@ -47,26 +47,46 @@ const requireAdmin = async (req, res, next) => {
     }
 };
 
+
+// Input Validation
+const validateUid = (req, res, next) => {
+    const { uid } = req.body;
+    if (!uid || typeof uid !== 'string' || uid.length > 128) {
+        return res.status(400).json({ success: false, error: 'Invalid User ID format' });
+    }
+    next();
+};
+
 // Routes
-adminRouter.post('/suspend-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+adminRouter.post('/suspend-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
+    // Logic remains the same, but now we know 'uid' is safe
     try {
         await auth.updateUser(req.body.uid, { disabled: true });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) {
+        console.error(`Suspend failed for ${req.body.uid}:`, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' }); // Don't send raw error to client
+    }
 });
 
-adminRouter.post('/enable-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+adminRouter.post('/enable-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
     try {
         await auth.updateUser(req.body.uid, { disabled: false });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) {
+        console.error(`Enable failed for ${req.body.uid}:`, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
 });
 
-adminRouter.post('/delete-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+adminRouter.post('/delete-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
     try {
         await auth.deleteUser(req.body.uid);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) {
+        console.error(`Delete failed for ${req.body.uid}:`, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
 });
 
 export { adminRouter };
