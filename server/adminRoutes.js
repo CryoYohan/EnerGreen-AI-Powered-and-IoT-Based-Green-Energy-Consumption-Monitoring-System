@@ -1,7 +1,6 @@
 // server/adminRoutes.js
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-// ✅ IMPORT FROM YOUR NEW FILE
 import { db, auth } from './firebaseAdmin.js';
 
 const adminLimiter = rateLimit({
@@ -47,26 +46,49 @@ const requireAdmin = async (req, res, next) => {
     }
 };
 
-// Routes
-adminRouter.post('/suspend-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+
+// Input Validation
+const validateUid = (req, res, next) => {
+    const { uid } = req.body;
+    if (!uid || typeof uid !== 'string' || uid.length > 128) {
+        return res.status(400).json({ success: false, error: 'Invalid User ID format' });
+    }
+    next();
+};
+
+// --- SECURE ROUTES ---
+
+adminRouter.post('/suspend-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
     try {
         await auth.updateUser(req.body.uid, { disabled: true });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) {
+        // ✅ FIX: Pass input as separate argument
+        console.error('Suspend failed for user:', req.body.uid, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
 });
 
-adminRouter.post('/enable-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+adminRouter.post('/enable-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
     try {
         await auth.updateUser(req.body.uid, { disabled: false });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) {
+        // ✅ FIX: Pass input as separate argument
+        console.error('Enable failed for user:', req.body.uid, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
 });
 
-adminRouter.post('/delete-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+adminRouter.post('/delete-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
     try {
         await auth.deleteUser(req.body.uid);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) {
+        // ✅ FIX: Pass input as separate argument
+        console.error('Delete failed for user:', req.body.uid, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
 });
 
 export { adminRouter };
