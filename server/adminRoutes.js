@@ -1,7 +1,6 @@
 // server/adminRoutes.js
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-// ✅ IMPORT FROM YOUR NEW FILE
 import { db, auth } from './firebaseAdmin.js';
 
 const adminLimiter = rateLimit({
@@ -57,15 +56,16 @@ const validateUid = (req, res, next) => {
     next();
 };
 
-// Routes
+// --- SECURE ROUTES ---
+
 adminRouter.post('/suspend-user', adminLimiter, verifyToken, requireAdmin, validateUid, async (req, res) => {
-    // Logic remains the same, but now we know 'uid' is safe
     try {
         await auth.updateUser(req.body.uid, { disabled: true });
         res.json({ success: true });
     } catch (e) {
-        console.error(`Suspend failed for ${req.body.uid}:`, e.message);
-        res.status(500).json({ success: false, error: 'Internal Server Error' }); // Don't send raw error to client
+        // ✅ FIX: Pass input as separate argument
+        console.error('Suspend failed for user:', req.body.uid, e.message);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 });
 
@@ -74,7 +74,8 @@ adminRouter.post('/enable-user', adminLimiter, verifyToken, requireAdmin, valida
         await auth.updateUser(req.body.uid, { disabled: false });
         res.json({ success: true });
     } catch (e) {
-        console.error(`Enable failed for ${req.body.uid}:`, e.message);
+        // ✅ FIX: Pass input as separate argument
+        console.error('Enable failed for user:', req.body.uid, e.message);
         res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 });
@@ -84,7 +85,8 @@ adminRouter.post('/delete-user', adminLimiter, verifyToken, requireAdmin, valida
         await auth.deleteUser(req.body.uid);
         res.json({ success: true });
     } catch (e) {
-        console.error(`Delete failed for ${req.body.uid}:`, e.message);
+        // ✅ FIX: Pass input as separate argument
+        console.error('Delete failed for user:', req.body.uid, e.message);
         res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 });
