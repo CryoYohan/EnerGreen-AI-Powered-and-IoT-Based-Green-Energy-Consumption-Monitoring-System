@@ -11,19 +11,19 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json'
     },
-    // Timeout after 2 minutes (good for slow calculations like predictions)
-    timeout: 120000
+    timeout: 120000 // Keep the long timeout
 });
 
-// 2. REQUEST INTERCEPTOR (The "Token Injector")
-// Before every request is sent...
 api.interceptors.request.use(async (config) => {
     const user = auth.currentUser;
 
     if (user) {
-        // Get the valid token (Firebase SDK handles refreshing automatically)
-        // forceRefresh: false is default, which is good for performance
         const token = await user.getIdToken();
+
+        // ✅ ADD THIS: Send token in a custom header to bypass Firebase stripping
+        config.headers['X-Auth-Token'] = token;
+
+        // Keep this for local dev or standard compatibility
         config.headers.Authorization = `Bearer ${token}`;
     }
 
