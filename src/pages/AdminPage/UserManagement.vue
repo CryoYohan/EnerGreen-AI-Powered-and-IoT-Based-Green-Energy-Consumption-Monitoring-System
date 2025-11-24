@@ -312,11 +312,17 @@ const callCloudFunction = async (action, uid) => {
 };
 
 const handleStatusChange = async ({ user, status }) => {
+  // If status is 'Inactive', it means we are SUSPENDING.
+  // If status is 'Active', it means we are ENABLING.
   const action = status === 'Inactive' ? 'suspend' : 'enable';
-  showNotification(`Suspending...`, "info");
+  showNotification(`${action === 'suspend' ? 'Suspending' : 'Enabling'} ${user.name}...`, "info");
+
   const result = await callCloudFunction(action, user.userId);
-  if (result.success) showNotification("Success!", "success");
-  else showNotification(`Failed: ${result.error}`, "error");
+  if (result.success) {
+     // Success message logic...
+  } else {
+     showNotification(`Failed: ${result.error}`, "error");
+  }
 };
 
 const handleDeleteUser = async (user) => {

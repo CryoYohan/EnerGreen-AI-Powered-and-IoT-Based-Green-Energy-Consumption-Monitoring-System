@@ -1,105 +1,72 @@
+// server/adminRoutes.js
 import express from 'express';
 import rateLimit from 'express-rate-limit';
+// ✅ IMPORT FROM YOUR NEW FILE
+import { db, auth } from './firebaseAdmin.js';
 
-// Rate limiter: limit each IP to 10 requests per 15 minutes for admin actions
 const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    windowMs: 15 * 60 * 1000,
+    max: 50, // Increased for safety
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
 const adminRouter = express.Router();
 
-// ----------------------------------------------------------------------
-// *** IMPORTANT: You need a real function to check admin authorization ***
-// This is a placeholder. You must implement actual Firebase Auth token 
-// verification and check the user's role (e.g., looking up in Firestore).
-const isAdminAuthorized = (adminUid) => {
-    // Implement real authorization logic here!
-    return !!adminUid; // Example: just checking if the UID exists
+// Middleware: Verify Token
+const verifyToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'No token provided' });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decodedToken = await auth.verifyIdToken(idToken);
+        req.user = decodedToken;
+        next();
+    } catch (error) {
+        console.error("Token Error:", error);
+        return res.status(403).json({ success: false, error: 'Invalid token' });
+    }
 };
-// ----------------------------------------------------------------------
 
-// POST /api/admin/suspend-user
-adminRouter.post('/suspend-user', adminLimiter, async (req, res) => {
-    const { uid, adminUid } = req.body;
-
-    if (!isAdminAuthorized(adminUid)) {
-        return res.status(403).json({ success: false, error: 'Forbidden: Admin not authorized' });
-    }
-
-    // Access the secure secret variable from the environment
-    const BACKEND_URL = process.env.SUSPEND_USER_URL;
-
+// Middleware: Require Admin
+const requireAdmin = async (req, res, next) => {
     try {
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid, adminUid }),
-        });
+        const uid = req.user.uid;
+        // Adjust path if needed: artifacts -> default-app-id -> users...
+        const userDoc = await db.collection('artifacts').doc('default-app-id').collection('users').doc(uid).collection('userProfile').doc('profile').get();
 
-        const result = await response.json();
-        res.status(response.status).json(result);
+        if (userDoc.exists && userDoc.data().role === 'admin') {
+            next();
+        } else {
+            return res.status(403).json({ success: false, error: 'Admins only' });
+        }
     } catch (error) {
-        console.error("Error calling external SUSPEND API:", error);
-        res.status(500).json({ success: false, error: 'Internal server error calling backend' });
+        return res.status(500).json({ success: false, error: 'Server error' });
     }
+};
+
+// Routes
+adminRouter.post('/suspend-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+    try {
+        await auth.updateUser(req.body.uid, { disabled: true });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-
-// POST /api/admin/delete-user 
-adminRouter.post('/delete-user', adminLimiter, async (req, res) => {
-    const { uid, adminUid } = req.body;
-
-    if (!isAdminAuthorized(adminUid)) {
-        return res.status(403).json({ success: false, error: 'Forbidden: Admin not authorized' });
-    }
-
-    // Access the secure secret variable from the environment
-    const BACKEND_URL = process.env.DELETE_USER_URL;
-
+adminRouter.post('/enable-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
     try {
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid, adminUid }),
-        });
-
-        const result = await response.json();
-        res.status(response.status).json(result);
-    } catch (error) {
-        console.error("Error calling external DELETE API:", error);
-        res.status(500).json({ success: false, error: 'Internal server error calling backend' });
-    }
+        await auth.updateUser(req.body.uid, { disabled: false });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-
-// POST /api/admin/enable-user
-adminRouter.post('/enable-user', adminLimiter, async (req, res) => {
-    const { uid, adminUid } = req.body;
-
-    if (!isAdminAuthorized(adminUid)) {
-        return res.status(403).json({ success: false, error: 'Forbidden: Admin not authorized' });
-    }
-
-    // Access the secure secret variable from the environment
-    const BACKEND_URL = process.env.ENABLE_USER_URL;
-
+adminRouter.post('/delete-user', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
     try {
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid, adminUid }),
-        });
-
-        const result = await response.json();
-        res.status(response.status).json(result);
-    } catch (error) {
-        console.error("Error calling external ENABLE API:", error);
-        res.status(500).json({ success: false, error: 'Internal server error calling backend' });
-    }
+        await auth.deleteUser(req.body.uid);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
-
 
 export { adminRouter };

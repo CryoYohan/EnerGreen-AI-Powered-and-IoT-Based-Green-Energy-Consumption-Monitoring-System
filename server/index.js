@@ -1,32 +1,33 @@
+// server/index.js
 import express from 'express';
 import cors from 'cors';
-
-// Create the Express app
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json()); // To parse JSON bodies from your Vue app
-
-// ----------------------------------------------------------------------
-// 1. IMPORT YOUR PROXY ROUTES HERE
-// ----------------------------------------------------------------------
 import { adminRouter } from './adminRoutes.js';
 
-// Route all internal '/api/admin/*' calls to the adminRouter
-// Note: The frontend calls /api/admin/suspend-user
+const app = express();
+
+// ALLOW CORS FOR YOUR LIVE SITE
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://energreen-ai-powered-iot-based.web.app',
+    'https://energreen-ai-powered-iot-based.firebaseapp.com'
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Temporarily allow all for debugging deployment
+        }
+    }
+}));
+
+app.use(express.json());
 app.use('/api/admin', adminRouter);
 
-// Fallback: Handle unmatched routes
-app.use((req, res) => {
-    res.status(404).send('API route not found or not handled.');
-});
-
-// Start the server on the port specified by Cloud Run (default 8080)
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Backend listening on port ${port}`);
 });
 
-// Export the app (optional, but harmless to keep for compatibility)
 export { app };

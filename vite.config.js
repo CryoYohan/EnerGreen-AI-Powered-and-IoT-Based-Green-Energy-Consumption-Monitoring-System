@@ -16,9 +16,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    __app_id: mode === 'production'
-      ? '"production-app-id"'
-      : '"default-app-id"'
+    __app_id: '"default-app-id"'
   },
   build: {
     rollupOptions: {
