@@ -12,10 +12,11 @@
   "dependencies": {
     "@heroicons/vue": "^2.1.1",
     "aos": "^2.3.4",
-    "axios": "^1.11.0",
+    "axios": "^1.13.2",
     "chart.js": "^4.5.0",
     "cors": "^2.8.5",
     "docx": "^9.5.1",
+    "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "express-rate-limit": "^8.2.1",
     "file-saver": "^2.0.5",
