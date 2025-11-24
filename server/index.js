@@ -32,7 +32,7 @@ app.use(cors({
         }
     },
     methods: ['GET', 'POST'], // Only allow necessary methods
-    allowedHeaders: ['Content-Type', 'Authorization'] // Only allow these headers
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token'] // Only allow these headers
 }));
 
 app.use(express.json());
