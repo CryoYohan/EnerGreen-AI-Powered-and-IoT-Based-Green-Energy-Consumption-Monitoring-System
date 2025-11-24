@@ -227,10 +227,6 @@ const fetchDeviceId = () => {
   }
 };
 
-// **DELETED:** calculateKwhDelta (no longer needed for weekly/monthly/yearly)
-// **DELETED:** aggregateData (replaced by processDailySummaries)
-
-
 /**
  * NEW: Efficiently aggregates daily summaries into weekly, monthly, and yearly chart data.
  * @param {Array<object>} summaries An array of daily summary documents.
