@@ -20,8 +20,7 @@ jobs:
       - name: Build Vue app
         run: npm run build
         env:
-          # ⚠️ REPLACE THIS URL with your actual backend URL from the terminal earlier
-          VITE_API_BASE_URL: 'https://energreen-vue-proxy-backend-xyz.asia-southeast1.run.app'
+          VITE_API_BASE_URL: ''
 
       # 2. Deploy to Firebase Standard Hosting (Frontend)
       - name: Deploy to Firebase Hosting
