@@ -1,7 +1,9 @@
 import express from 'express';
+import dotenv from 'dotenv/config';
 import cors from 'cors';
 import helmet from 'helmet'; // 1. Import Helmet
 import { adminRouter } from './adminRoutes.js';
+import { userRouter } from './userRoutes.js';
 
 const app = express();
 
@@ -12,8 +14,8 @@ app.disable('x-powered-by'); // Hide that we use Express
 // 3. STRICT CORS: Define exactly who can talk to us
 const allowedOrigins = [
     'https://energreen-ai-powered-iot-based.web.app',
-    'https://energreen-ai-powered-iot-based.firebaseapp.com'
-    // Note: We REMOVED localhost. In Production, only Production talks to Backend.
+    'https://energreen-ai-powered-iot-based.firebaseapp.com',
+    'http://localhost:5173'
 ];
 
 app.use(cors({
@@ -37,6 +39,7 @@ app.use(express.json());
 
 // Mount Routes
 app.use('/api/admin', adminRouter);
+app.use('/api/user', userRouter);
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
