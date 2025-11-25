@@ -3,7 +3,7 @@
     class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
   >
     <AdminHeader />
-    <Heading title="Hardware Management"/>
+    <Heading title="Hardware Management" subtitle="Monitor EnerGreen Hardware Performance performance"/>
     
     <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
