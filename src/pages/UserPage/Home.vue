@@ -3,11 +3,61 @@
     <UserHeader />
     <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview"/>
 
-    <MetricsCard :metrics="dailyMetrics" size="base" />
+    <!-- Integrated Metrics Card -->
+    <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div 
+          v-for="(metric, index) in dailyMetrics" 
+          :key="index"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ metric.title }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ metric.cost }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ metric.definition }}</p>
+            </div>
+            <div class="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div 
+                v-if="metric.title === 'Current Cost' || metric.title === 'Today\'s Estimated Cost'" 
+                class="w-6 h-6 flex items-center justify-center"
+              >
+                <span class="text-2xl font-bold text-green-600 dark:text-green-400">₱</span>
+              </div>
+              <svg 
+                v-else-if="metric.title === 'Consumption'" 
+                class="w-6 h-6 text-blue-600 dark:text-blue-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              <svg 
+                v-else-if="metric.title === 'Solar Generation'" 
+                class="w-6 h-6 text-yellow-600 dark:text-yellow-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+              <svg 
+                v-else-if="metric.title === 'CO₂ Saved'" 
+                class="w-6 h-6 text-green-600 dark:text-green-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <Dashboard />
-
-
 
     <CombineCharts
       chartTitle="Electricity Usage"
@@ -57,8 +107,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
-import { ArrowPathIcon } from '@heroicons/vue/24/outline'
-
+import { ArrowPathIcon, SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'; // Imported icons here
 import {
   auth,
   db,
@@ -143,40 +192,34 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-// Metrics Card Data
+// Metrics Card Data - now using proper SVG icons
 const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
-    icon: '/src/Images/icons/Peso.svg',
     cost: `₱${currentRate.value.toFixed(2)}`,
     definition: 'VECO Current rate'
   },
   {
     title: 'Consumption',
-    icon: '/src/Images/icons/electric.svg',
     cost: `${totalKwhToday.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {
     title: "Today's Estimated Cost",
-    icon: '/src/Images/icons/Peso.svg',
     cost: pesoFormatter.format(totalKwhToday.value * currentRate.value),
-    definition: 'Based on today’s usage'
+    definition: 'Based on today\'s usage'
   },
   {
     title: 'Solar Generation',
-    icon: '/src/Images/icons/sun.svg',
     cost: `${solarKwh.value.toFixed(2)} kWh`,
     definition: 'Today'
   },
   {
     title: 'CO₂ Saved',
-    icon: '/src/Images/icons/leaf.svg',
     cost: `${(solarKwh.value * carbonRateKg.value).toFixed(2)} kg`,
     definition: 'Today'
   },
 ]);
-
 const fetchUtilityRate = () => {
   const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates/veco`);
   

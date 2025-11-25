@@ -38,7 +38,7 @@
     <div v-else class="p-4 md:p-8 space-y-6">
       
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div v-for="(metric, index) in calculatedMetrics" :key="index" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div v-for="(metric, index) in calculatedMetrics" :key="index" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
           <div class="flex justify-between items-start mb-2">
             <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ metric.title }}</p>
             <component :is="metric.icon" class="w-6 h-6" :class="metric.iconColor" />
