@@ -176,16 +176,57 @@ const closeEditModal = () => {
 
 const saveDeviceChanges = async () => {
   if (!editingDevice.value.deviceId) return;
+  
+  const deviceId = editingDevice.value.deviceId;
+  const newUserId = editForm.userId; // The new user ID (or "" if unassigned)
+  const oldUserId = editingDevice.value.userId; // The previous owner
+
   try {
-    const deviceRef = doc(db, 'devices', editingDevice.value.deviceId);
+    const deviceRef = doc(db, 'devices', deviceId);
+    
+    // 1. Find selected user object to get their Name
+    const selectedUser = props.users.find(u => u.uid === newUserId);
+    const userName = selectedUser ? selectedUser.fullName : null; // Null if unassigned
+    
+    // 2. Update Device Document
     await updateDoc(deviceRef, {
-      userId: editForm.userId || null,
+      userId: newUserId || null, // Ensure null if empty string
+      ownerName: userName,
       status: editForm.status,
       location: editForm.location
     });
+
+    // --- SYNC LOGIC ---
+
+    // 3. If there was an OLD owner, remove the device from their profile
+    if (oldUserId && oldUserId !== newUserId) {
+      // Construct path: users/{oldUserId}/userProfile/profile
+      // We assume standard path. If not found, the update will just fail silently or throw error we catch
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const oldUserRef = doc(db, `artifacts/${appId}/users/${oldUserId}/userProfile/profile`);
+      
+      // Check if doc exists before updating to prevent errors on deleted users
+      // (Optional optimization, updateDoc fails gracefully on non-existent docs usually)
+      try {
+        await updateDoc(oldUserRef, { deviceId: "None" }); 
+      } catch (e) {
+        console.warn("Could not update old user profile (maybe deleted):", e);
+      }
+    }
+
+    // 4. If there is a NEW owner, assign the device to their profile
+    if (newUserId) {
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const newUserRef = doc(db, `artifacts/${appId}/users/${newUserId}/userProfile/profile`);
+      
+      await updateDoc(newUserRef, { deviceId: deviceId });
+    }
+
     closeEditModal();
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Device updated', showConfirmButton: false, timer: 3000 });
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Device & User updated', showConfirmButton: false, timer: 3000 });
+    
   } catch (error) {
+    console.error("Error updating device:", error);
     Swal.fire('Error', error.message, 'error');
   }
 };

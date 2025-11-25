@@ -6,7 +6,6 @@ import Appliances from '@/pages/UserPage/Appliances.vue'; // Appliances page
 import SolarPanel from '@/pages/UserPage/SolarPanel.vue'; // Solar Panel Integration page
 import Simulation from '@/pages/UserPage/Simulation.vue'; // Simulation page
 import CarbonEmission from '@/pages/UserPage/CarbonEmission.vue'; // Carbon Emission page
-import PredictiveAnalytics from '@/pages/UserPage/PredictiveAnalytics.vue'; // Predictive Analytics for Carbon Emission only page
 import Resources from '@/pages/UserPage/Resources.vue'; // Resources page
 import Profile from '@/pages/UserPage/Profile.vue'; // User Profile page
 import AdminHome from '@/pages/AdminPage/AdminHome.vue'; // Admin Home page
@@ -50,11 +49,6 @@ const routes = [
     path: '/carbonemission',
     name: 'CarbonEmission',
     component: CarbonEmission,
-  },
-  {
-    path: '/predictiveanalytics',
-    name: 'PredictiveAnalytics',
-    component: PredictiveAnalytics,
   },
   {
     path: '/resources',

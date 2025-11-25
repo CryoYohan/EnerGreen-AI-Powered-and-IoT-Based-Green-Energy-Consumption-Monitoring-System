@@ -1,41 +1,18 @@
-# D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\apphosting.yaml
-server:
-  # The runCommand specifies the shell command to execute to start your server.
-  # Since the contents of your 'source' directory (./server) are copied 
-  # to the container's workspace, the entry file is simply 'index.js'.
-  runCommand: "node server/index.js"
+# apphosting.yaml
+runtime: nodejs22
+build:
+  cmd: npm install
+run:
+  cmd: node server/index.js
 
-# Configuration for your Cloud Run service
+# Configuration for Cloud Run
 runConfig:
-  minInstances: 0
-  startupProbe:
-    timeoutSeconds: 300
-    periodSeconds: 10
-    failureThreshold: 30
-
-
-  # Environment variables and secrets.
+  minInstances: 1 # Keep 1 instance alive for production speed (optional cost)
+  
 env:
-  # --------------------------------------------------------------------------
-  # 1. PUBLIC/CLIENT CONFIGURATION KEYS (Value is available to Build & Runtime)
-  # --------------------------------------------------------------------------
-  - variable: VITE_FIREBASE_API_KEY
-    value: "AIzaSyDAeHiKHEXHhbIXNnw0zqiDUIEPfDfeiuo"
-  - variable: VITE_FIREBASE_AUTH_DOMAIN
-    value: "energreen-ai-powered-iot-based.firebaseapp.com"
-  - variable: VITE_FIREBASE_PROJECT_ID
-    value: "energreen-ai-powered-iot-based"
-  - variable: VITE_FIREBASE_STORAGE_BUCKET
-    value: "energreen-ai-powered-iot-based.firebasestorage.app"
-  - variable: VITE_FIREBASE_MESSAGING_SENDER_ID
-    value: "91407391585"
-  - variable: VITE_FIREBASE_APP_ID
-    value: "1:91407391585:web:9bf0e0f013514392988320"
+  - variable: GOOGLE_CLOUD_PROJECT
+    value: energreen-ai-powered-iot-based
 
-  # --------------------------------------------------------------------------
-  # 2. SENSITIVE SECRETS (Must be stored in Secret Manager)
-  #    - The variable name IS NOT exposed to the client (browser).
-  # --------------------------------------------------------------------------
   - variable: GEMINI_API_KEY
     secret: VITE_GEMINI_API_KEY
 
@@ -65,20 +42,3 @@ env:
 
   - variable: ENABLE_USER_URL
     secret: VITE_ENABLE_USER_URL
-
-# --------------------------------------------------------------------------
-# 3. SERVICE CONFIGURATION (To deploy the Express proxy server)
-# --------------------------------------------------------------------------
-service:
-  # A name for the Cloud Run service instance, which will be created 
-  # inside the backend resource defined below.
-  name: api-server 
-
-  # Points to the directory containing your Express app (server/index.js)
-  source: ./server 
-
-  # Rewrite rule to direct internal API calls to the new Cloud Run service
-  rewrite:
-    source: /api/admin/**
-    # CRITICAL CHANGE: Use the backend resource name here
-    destination: energreen-vue-proxy-backend

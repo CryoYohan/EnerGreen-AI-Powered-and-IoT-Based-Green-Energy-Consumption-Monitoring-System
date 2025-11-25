@@ -1,55 +1,86 @@
 <template>
   <div class="p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-    <!-- Filter Buttons -->
-    <div class=" mx-auto mb-6">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-        <div class="flex flex-wrap gap-2 justify-center">
-          <button 
-            v-for="filter in timeFilters" 
-            :key="filter"
-            @click="setActiveFilter(filter)"
-            :class="[
-              'px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105',
-              activeFilter === filter 
-                ? 'bg-blue-500 text-white shadow-md scale-105' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            ]"
-          >
-            {{ filter }}
+    
+    <div v-if="loading" class="flex justify-center items-center h-64">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+
+    <div v-else-if="error" class="max-w-4xl mx-auto mb-6 bg-red-50 border-l-4 border-red-400 p-4 dark:bg-red-900/20 dark:border-red-600">
+      <p class="text-sm text-red-700 dark:text-red-200">{{ error }}</p>
+    </div>
+
+    <div v-else>
+      <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4 mx-auto">
+        
+        <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div class="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 inline-block">
+            <div class="flex flex-wrap gap-1">
+              <button 
+                v-for="filter in timeFilters" 
+                :key="filter"
+                @click="activeFilter = filter"
+                :class="[
+                  'px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200',
+                  activeFilter === filter 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ]"
+              >
+                {{ filter }}
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <span class="text-sm text-gray-500 dark:text-gray-400 mr-3">Budget:</span>
+            <span class="text-gray-500 font-bold mr-1">₱</span>
+            <input 
+              v-model.number="userBudget" 
+              type="number" 
+              class="w-24 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:outline-none text-gray-900 dark:text-white font-bold text-right"
+            />
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button @click="handleExport('csv')" class="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+            CSV
+          </button>
+          <button @click="handleExport('pdf')" class="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+            PDF
+          </button>
+          <button @click="handleExport('word')" class="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+            Word
           </button>
         </div>
       </div>
-    </div>
 
-    <div class=" mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      <!-- Cost Trend Chart -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-500 hover:shadow-xl">
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Cost Trend</h3>
-        <div class="h-80 relative">
-          <div id="cost-trend-chart" class="transition-all duration-700"></div>
-          <div v-if="isAnimating" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-80 rounded-xl">
-            <div class="flex items-center space-x-2">
-              <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-              <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-              <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            </div>
+      <CostMetricsCard :metrics="calculatedMetrics" />
+
+      <div class="mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">Cost Trend (₱)</h3>
+          <div class="h-80 relative">
+            <div id="cost-trend-chart" class="w-full h-full"></div>
           </div>
+        </div>
+        <div class="lg:col-span-1">
+          <CostBreakdown 
+            :gridCost="breakdownStats.gridCost" 
+            :solarSavings="breakdownStats.solarSavings" 
+          />
         </div>
       </div>
 
-      <!-- Usage Pattern Chart -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-500 hover:shadow-xl">
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Usage Pattern</h3>
-        <div class="h-80 relative">
-          <div id="usage-pattern-chart" class="transition-all duration-700"></div>
-          <div v-if="isAnimating" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-80 rounded-xl">
-            <div class="flex items-center space-x-2">
-              <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
-              <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-              <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            </div>
+      <div class="mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">Energy Usage (kWh)</h3>
+          <div class="h-80 relative">
+            <div id="usage-pattern-chart" class="w-full h-full"></div>
           </div>
+        </div>
+        <div class="lg:col-span-2">
+          <BillingHistory :history="billingHistory" :budget="userBudget" />
         </div>
       </div>
 
@@ -58,303 +89,223 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed, nextTick } from 'vue';
+import { db } from '@/firebase.js';
+import { collection, query, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '@/composables/useAuth'; 
 import Plotly from 'plotly.js-dist-min';
+import { CurrencyDollarIcon, BoltIcon, ChartBarIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline';
 
+// Export Libraries
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
+
+import CostMetricsCard from './CostMetricsCard.vue';
+import CostBreakdown from './CostBreakdown.vue';
+import BillingHistory from './BillingHistory.vue';
+
+// State
 const timeFilters = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
-const activeFilter = ref('Monthly');
-const isAnimating = ref(false);
+const activeFilter = ref('Weekly'); 
+const loading = ref(true);
+const error = ref(null);
+const rawData = ref([]); 
+const currentRate = ref(12.0); 
+const userBudget = ref(5000);
 
-// Enhanced sample data with more realistic patterns
-const chartData = {
-  Daily: {
-    cost: {
-      x: ['12AM', '3AM', '6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
-      y: [15, 12, 18, 35, 42, 48, 52, 45]
-    },
-    usage: {
-      x: ['12AM', '3AM', '6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
-      y: [8, 6, 12, 25, 32, 38, 42, 35]
-    }
-  },
-  Weekly: {
-    cost: {
-      x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      y: [45, 52, 48, 55, 58, 42, 38]
-    },
-    usage: {
-      x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      y: [35, 42, 38, 45, 48, 32, 28]
-    }
-  },
-  Monthly: {
-    cost: {
-      x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      y: [85, 92, 78, 105, 120, 135, 142, 128, 115, 98, 87, 75]
-    },
-    usage: {
-      x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      y: [65, 72, 58, 85, 95, 110, 118, 105, 92, 78, 67, 55]
-    }
-  },
-  Yearly: {
-    cost: {
-      x: ['2020', '2021', '2022', '2023', '2024'],
-      y: [980, 1120, 1250, 1380, 1150]
-    },
-    usage: {
-      x: ['2020', '2021', '2022', '2023', '2024'],
-      y: [850, 980, 1080, 1180, 950]
-    }
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const { userProfile, isLoading: authLoading } = useAuth(appId);
+const deviceId = ref(null);
+
+// --- Watchers ---
+watch(userProfile, (newProfile) => {
+  if (newProfile && newProfile.deviceId) deviceId.value = newProfile.deviceId;
+  else {
+    deviceId.value = null;
+    rawData.value = [];
+    if (!authLoading.value) loading.value = false;
   }
-};
+}, { immediate: true });
 
-// Chart layouts with dynamic ranges and animations
-const getChartLayouts = (filter) => {
-  const baseLayout = {
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    font: { color: '#6b7280' },
-    margin: { l: 50, r: 30, t: 30, b: 50 },
-    showlegend: false,
-    hovermode: 'closest',
-    transition: {
-      duration: 700,
-      easing: 'cubic-in-out'
-    }
-  };
-
-  const costLayout = {
-    ...baseLayout,
-    xaxis: {
-      gridcolor: 'rgba(107, 114, 128, 0.2)',
-      linecolor: 'rgba(107, 114, 128, 0.3)',
-      tickfont: { size: 12 }
-    },
-    yaxis: {
-      gridcolor: 'rgba(107, 114, 128, 0.2)',
-      linecolor: 'rgba(107, 114, 128, 0.3)',
-      tickfont: { size: 12 }
-    }
-  };
-
-  const usageLayout = {
-    ...baseLayout,
-    xaxis: {
-      gridcolor: 'rgba(107, 114, 128, 0.2)',
-      linecolor: 'rgba(107, 114, 128, 0.3)',
-      tickfont: { size: 12 }
-    },
-    yaxis: {
-      gridcolor: 'rgba(107, 114, 128, 0.2)',
-      linecolor: 'rgba(107, 114, 128, 0.3)',
-      tickfont: { size: 12 }
-    }
-  };
-
-  // Adjust ranges based on filter
-  switch(filter) {
-    case 'Daily':
-      costLayout.yaxis.range = [0, 60];
-      costLayout.yaxis.tickvals = [0, 15, 30, 45, 60];
-      usageLayout.yaxis.range = [0, 50];
-      usageLayout.yaxis.tickvals = [0, 10, 20, 30, 40, 50];
-      break;
-    case 'Weekly':
-      costLayout.yaxis.range = [0, 70];
-      costLayout.yaxis.tickvals = [0, 20, 40, 60];
-      usageLayout.yaxis.range = [0, 60];
-      usageLayout.yaxis.tickvals = [0, 15, 30, 45, 60];
-      break;
-    case 'Monthly':
-      costLayout.yaxis.range = [0, 160];
-      costLayout.yaxis.tickvals = [0, 40, 80, 120, 160];
-      usageLayout.yaxis.range = [0, 130];
-      usageLayout.yaxis.tickvals = [0, 30, 60, 90, 120];
-      break;
-    case 'Yearly':
-      costLayout.yaxis.range = [0, 1500];
-      costLayout.yaxis.tickvals = [0, 500, 1000, 1500];
-      usageLayout.yaxis.range = [0, 1300];
-      usageLayout.yaxis.tickvals = [0, 400, 800, 1200];
-      break;
+watch(deviceId, async (newId) => {
+  if (newId) {
+    await fetchUtilityRate();
+    await fetchCostData(newId);
   }
+}, { immediate: true });
 
-  return { costLayout, usageLayout };
-};
-
-const chartConfig = {
-  displayModeBar: false,
-  responsive: true
-};
-
-const setActiveFilter = async (filter) => {
-  if (filter === activeFilter.value || isAnimating.value) return;
-  
-  isAnimating.value = true;
-  activeFilter.value = filter;
-  
-  // Add a slight delay to show the loading animation
-  await new Promise(resolve => setTimeout(resolve, 300));
-  await updateCharts();
-  
-  // Keep loading state a bit longer for smooth transition
-  setTimeout(() => {
-    isAnimating.value = false;
-  }, 500);
-};
-
-const updateCharts = async () => {
-  const data = chartData[activeFilter.value];
-  const layouts = getChartLayouts(activeFilter.value);
-
-  // Update Cost Trend Chart with animation
-  const costTrace = {
-    x: data.cost.x,
-    y: data.cost.y,
-    type: 'scatter',
-    mode: 'lines+markers',
-    line: {
-      color: '#3b82f6',
-      width: 3,
-      shape: 'spline'
-    },
-    marker: {
-      color: '#3b82f6',
-      size: 6,
-      symbol: 'circle'
-    },
-    fill: 'tozeroy',
-    fillcolor: 'rgba(59, 130, 246, 0.1)',
-    transition: {
-      duration: 700,
-      easing: 'cubic-in-out'
-    }
-  };
-
-  // Update Usage Pattern Chart with animation
-  const getBarColors = (x) => {
-    if (activeFilter.value === 'Daily') {
-      return x.map((_, i) => i >= 4 && i <= 6 ? '#f59e0b' : '#10b981');
-    } else if (activeFilter.value === 'Weekly') {
-      return x.map((day, i) => ['Sat', 'Sun'].includes(day) ? '#f59e0b' : '#10b981');
-    } else {
-      return '#10b981';
-    }
-  };
-
-  const usageTrace = {
-    x: data.usage.x,
-    y: data.usage.y,
-    type: activeFilter.value === 'Yearly' ? 'scatter' : 'bar',
-    mode: activeFilter.value === 'Yearly' ? 'lines+markers' : undefined,
-    marker: {
-      color: getBarColors(data.usage.x),
-      opacity: 0.8,
-      line: activeFilter.value !== 'Yearly' ? {
-        color: 'rgba(0,0,0,0.1)',
-        width: 1
-      } : undefined
-    },
-    line: activeFilter.value === 'Yearly' ? {
-      color: '#10b981',
-      width: 3,
-      shape: 'spline'
-    } : undefined,
-    transition: {
-      duration: 700,
-      easing: 'cubic-in-out'
-    }
-  };
-
-  // Use Plotly's animate function for smooth transitions
+const fetchUtilityRate = async () => {
   try {
-    await Promise.all([
-      Plotly.react('cost-trend-chart', [costTrace], {
-        ...layouts.costLayout,
-        transition: {
-          duration: 700,
-          easing: 'cubic-in-out'
-        }
-      }, chartConfig),
-      Plotly.react('usage-pattern-chart', [usageTrace], {
-        ...layouts.usageLayout,
-        transition: {
-          duration: 700,
-          easing: 'cubic-in-out'
-        }
-      }, chartConfig)
-    ]);
-  } catch (error) {
-    console.log('Chart update completed');
-  }
-
-  updateChartsForDarkMode();
+    const rateSnap = await getDoc(doc(db, 'artifacts/default-app-id/public/data/utility_rates/veco'));
+    if (rateSnap.exists()) currentRate.value = rateSnap.data().vecoKwhRate || 12.0;
+  } catch (e) { console.error(e); }
 };
 
-const updateChartsForDarkMode = () => {
-  const isDark = document.documentElement.classList.contains('dark');
-  const textColor = isDark ? '#d1d5db' : '#6b7280';
-  const gridColor = isDark ? 'rgba(209, 213, 219, 0.2)' : 'rgba(107, 114, 128, 0.2)';
-  const lineColor = isDark ? 'rgba(209, 213, 219, 0.3)' : 'rgba(107, 114, 128, 0.3)';
+// --- BUG FIX: LOAD SEQUENCE ---
+const fetchCostData = async (id) => {
+  loading.value = true; // Hide charts
+  try {
+    const q = query(collection(db, `devices/${id}/daily_summaries`), orderBy('date', 'desc'), limit(365));
+    const snap = await getDocs(q);
+    
+    if (!snap.empty) rawData.value = snap.docs.map(doc => doc.data());
+    else rawData.value = [];
 
-  const darkModeUpdate = {
-    font: { color: textColor },
-    xaxis: { 
-      gridcolor: gridColor,
-      linecolor: lineColor
-    },
-    yaxis: { 
-      gridcolor: gridColor,
-      linecolor: lineColor
-    }
+    // 1. REVEAL DOM: Set loading to false FIRST so v-else renders
+    loading.value = false; 
+    
+    // 2. WAIT FOR RENDER: Wait 1 tick for DOM to exist
+    await nextTick();
+    
+    // 3. DRAW: Now it is safe to plot
+    updateCharts();
+
+  } catch (e) { 
+    error.value = "Failed to load data."; 
+    loading.value = false; // Ensure loading stops on error
+  } 
+};
+
+// --- Export Logic ---
+const handleExport = (format) => {
+  if (!rawData.value.length) return alert("No data to export.");
+  const filename = `EnerGreen_Cost_Report_${new Date().toISOString().split('T')[0]}`;
+  
+  // Prepare data (Chronological)
+  const exportData = [...rawData.value].reverse().map(d => ({
+    date: d.date,
+    grid: (d.gridKwhTotal || 0).toFixed(2),
+    solar: (d.solarKwhTotal || 0).toFixed(2),
+    cost: ((d.gridKwhTotal || 0) * currentRate.value).toFixed(2)
+  }));
+
+  if (format === 'csv') exportCSV(exportData, filename);
+  if (format === 'pdf') exportPDF(exportData, filename);
+  if (format === 'word') exportWord(exportData, filename);
+};
+
+const exportCSV = (data, filename) => {
+  const headers = "Date,Grid Usage (kWh),Solar Savings (kWh),Cost (PHP)\n";
+  const rows = data.map(r => `${r.date},${r.grid},${r.solar},${r.cost}`).join("\n");
+  saveAs(new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
+};
+
+const exportPDF = (data, filename) => {
+  const doc = new jsPDF();
+  doc.setFontSize(18); doc.setTextColor(40, 167, 69);
+  doc.text("EnerGreen Cost Report", 14, 20);
+  
+  autoTable(doc, {
+    startY: 30,
+    head: [['Date', 'Grid (kWh)', 'Solar (kWh)', 'Cost (PHP)']],
+    body: data.map(r => [r.date, r.grid, r.solar, r.cost]),
+    theme: 'grid',
+    headStyles: { fillColor: [40, 167, 69] }
+  });
+  doc.save(`${filename}.pdf`);
+};
+
+const exportWord = async (data, filename) => {
+  const tableRows = [
+    new TableRow({ children: ["Date", "Grid (kWh)", "Solar (kWh)", "Cost (PHP)"].map(t => new TableCell({ children: [new Paragraph({ text: t, bold: true })] })) }),
+    ...data.map(r => new TableRow({ children: [r.date, r.grid, r.solar, r.cost].map(t => new TableCell({ children: [new Paragraph(t)] })) }))
+  ];
+  const doc = new Document({ sections: [{ children: [new Paragraph({ text: "EnerGreen Cost Report", heading: HeadingLevel.HEADING_1 }), new Table({ rows: tableRows, width: { size: 100, type: "pct" } })] }] });
+  saveAs(await Packer.toBlob(doc), `${filename}.docx`);
+};
+
+// --- Logic for Charts & Metrics (Same as before) ---
+// ... [Copied from previous successful implementation] ...
+
+const calculatedMetrics = computed(() => {
+  if (!rawData.value.length) return [];
+  const now = new Date();
+  const currentMonthData = rawData.value.filter(d => new Date(d.date).getMonth() === now.getMonth());
+  
+  const monthKwh = currentMonthData.reduce((acc, c) => acc + (c.gridKwhTotal || 0), 0);
+  const monthCost = monthKwh * currentRate.value;
+  const dayAvg = now.getDate() > 0 ? monthCost / now.getDate() : 0;
+  
+  // Projected
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const projected = dayAvg * daysInMonth;
+  const isOverBudget = projected > userBudget.value;
+
+  return [
+    { title: 'Current Bill', cost: `₱${monthCost.toFixed(2)}`, definition: 'Run-rate', icon: CurrencyDollarIcon, bgClass: 'bg-blue-100 dark:bg-blue-900/30', textClass: 'text-blue-600 dark:text-blue-400' },
+    { title: 'Projected Bill', cost: `₱${projected.toFixed(2)}`, definition: isOverBudget ? '⚠️ Over Budget' : '✅ On Track', icon: ChartBarIcon, bgClass: isOverBudget ? 'bg-red-100' : 'bg-purple-100', textClass: isOverBudget ? 'text-red-600' : 'text-purple-600' },
+    { title: 'Consumption', cost: `${monthKwh.toFixed(1)} kWh`, definition: 'This Month', icon: BoltIcon, bgClass: 'bg-yellow-100 dark:bg-yellow-900/30', textClass: 'text-yellow-600' },
+    { title: 'Avg Daily', cost: `₱${dayAvg.toFixed(2)}`, definition: 'Daily Cost', icon: ArrowTrendingUpIcon, bgClass: 'bg-emerald-100 dark:bg-emerald-900/30', textClass: 'text-emerald-600' }
+  ];
+});
+
+const breakdownStats = computed(() => {
+  if (!rawData.value.length) return { gridCost: 0, solarSavings: 0 };
+  const now = new Date();
+  const monthData = rawData.value.filter(d => new Date(d.date).getMonth() === now.getMonth());
+  const grid = monthData.reduce((acc, c) => acc + (c.gridKwhTotal || 0), 0);
+  const solar = monthData.reduce((acc, c) => acc + (c.solarKwhTotal || 0), 0);
+  return { gridCost: grid * currentRate.value, solarSavings: solar * currentRate.value };
+});
+
+const billingHistory = computed(() => {
+  if (!rawData.value.length) return [];
+  const grouped = {};
+  rawData.value.forEach(d => {
+    const date = new Date(d.date);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    if (!grouped[key]) grouped[key] = { month: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), kwh: 0, cost: 0, sort: date.getTime() };
+    const val = (d.gridKwhTotal || 0);
+    grouped[key].kwh += val;
+    grouped[key].cost += val * currentRate.value;
+  });
+  return Object.values(grouped).sort((a, b) => b.sort - a.sort).map(i => ({...i, kwh: i.kwh.toFixed(1), cost: i.cost.toFixed(2)})).slice(0, 12);
+});
+
+const updateCharts = () => {
+  const costDiv = document.getElementById('cost-trend-chart');
+  const usageDiv = document.getElementById('usage-pattern-chart');
+  if (!costDiv || !usageDiv) return;
+
+  let days = 7;
+  if (activeFilter.value === 'Monthly') days = 30;
+  if (activeFilter.value === 'Yearly') days = 365;
+
+  const filtered = rawData.value.slice(0, days).reverse();
+
+  const xValues = filtered.map(d => {
+    const [y, m, day] = d.date.split('-');
+    const date = new Date(y, m - 1, day);
+    return activeFilter.value === 'Yearly' 
+      ? date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  const yCost = filtered.map(d => (d.gridKwhTotal || 0) * currentRate.value);
+  const yUsage = filtered.map(d => (d.gridKwhTotal || 0));
+
+  const commonLayout = {
+    margin: { l: 50, r: 20, t: 20, b: 50 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    xaxis: { gridcolor: '#e5e7eb', showgrid: false, tickfont: { size: 11, color: '#6b7280' } },
+    yaxis: { gridcolor: '#e5e7eb', tickfont: { size: 11, color: '#6b7280' } },
+    font: { family: 'Poppins, sans-serif' }
   };
 
-  Plotly.relayout('cost-trend-chart', darkModeUpdate);
-  Plotly.relayout('usage-pattern-chart', darkModeUpdate);
+  Plotly.newPlot('cost-trend-chart', [{
+    x: xValues, y: yCost, type: 'scatter', mode: 'lines+markers', fill: 'tozeroy',
+    line: { color: '#3b82f6', width: 3, shape: 'spline' }, marker: { color: '#3b82f6', size: 6 },
+    hovertemplate: '<b>%{x}</b><br>₱%{y:.2f}<extra></extra>'
+  }], { ...commonLayout, yaxis: { ...commonLayout.yaxis, title: 'Cost (PHP)' } }, { displayModeBar: false, responsive: true });
+
+  Plotly.newPlot('usage-pattern-chart', [{
+    x: xValues, y: yUsage, type: 'bar', marker: { color: '#10b981', opacity: 0.8 },
+    hovertemplate: '<b>%{x}</b><br>%{y:.2f} kWh<extra></extra>'
+  }], { ...commonLayout, yaxis: { ...commonLayout.yaxis, title: 'Energy (kWh)' } }, { displayModeBar: false, responsive: true });
 };
 
-onMounted(() => {
-  updateCharts();
-
-  // Watch for dark mode changes
-  const observer = new MutationObserver(updateChartsForDarkMode);
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class']
-  });
-});
-
-watch(activeFilter, () => {
-  if (!isAnimating.value) {
-    updateCharts();
-  }
-});
+watch(activeFilter, updateCharts);
 </script>
-
-<style scoped>
-#cost-trend-chart, #usage-pattern-chart {
-  width: 100%;
-  height: 100%;
-  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Custom animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.chart-container {
-  animation: fadeIn 0.7s ease-out;
-}
-
-/* Smooth transitions for chart elements */
-.plotly .trace .linepath {
-  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.plotly .bar {
-  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-}
-</style>

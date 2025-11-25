@@ -59,7 +59,6 @@ import Footer from "@/components/ReusableComponents/Footer.vue";
 import EmissionDashboard from "@/components/ReusableComponents/EmissionCard.vue";
 
 // Page-Specific Components
-import AnalyticsBtn from "@/components/UserComponents/CarbonEmission/AnalyticsBtn.vue";
 import ReusableBarChart from "@/components/ReusableComponents/BarChart.vue"; 
 
 // --- AUTH STATE ---
@@ -383,45 +382,48 @@ const dynamicMetrics = computed(() => {
   ];
 });
 
-// -------------------------------------------------
-// --- LIFECYCLE HOOKS ---
-// (This section is unchanged)
-// -------------------------------------------------
+// --- LIFECYCLE HOOKS (Robust Version) ---
 
+// Watch 1: Handle User Profile Loading State
 watch(userProfile, (newProfile) => {
-  if (newProfile && newProfile.deviceId) {
-    deviceId.value = newProfile.deviceId;
-    // The watcher below will trigger fetches
+  if (newProfile) {
+    // Profile loaded! Check for device ID.
+    if (newProfile.deviceId) {
+      deviceId.value = newProfile.deviceId;
+    } else {
+      // Profile exists but no device assigned
+      deviceId.value = null;
+      error.value = "No Smart Meter linked to your account.";
+      loading.value = false; // Stop spinner so error shows
+    }
   } else {
+    // Profile is null (either loading or logged out)
     deviceId.value = null;
-    rawSummaries.value = [];
-    hourlyChartData.value = []; // Clear hourly data
-    processCo2Summaries(); 
-    if (hourlyDataUnsubscribe) hourlyDataUnsubscribe(); // Stop listener
-    if (!authLoading.value) { 
-       error.value = "No deviceId linked to your profile.";
+    
+    // Only show error if auth is done loading and we still have no profile
+    if (!authLoading.value) {
+       error.value = "User profile not found.";
+       loading.value = false;
     }
   }
 }, { immediate: true });
 
+// Watch 2: Trigger Data Fetch when Device ID is set
 watch(deviceId, (newDeviceId) => {
   if (newDeviceId) {
-    // We fetch the rate *once*, then fetch the data.
-    // The hourly listener will use the new rate.
+    // Success path!
     fetchCarbonRate().then(() => {
-      fetchCarbonSummaries(); // Fetches W/M/Y data
-      fetchHourlyData(newDeviceId); // Starts H listener
+      fetchCarbonSummaries(); 
+      fetchHourlyData(newDeviceId); 
     });
   } else {
-    // Clear all data on logout
+    // Clear data if device ID is lost
     rawSummaries.value = [];
-    hourlyChartData.value = []; // Clear hourly data
+    hourlyChartData.value = []; 
     processCo2Summaries();
-    if (hourlyDataUnsubscribe) hourlyDataUnsubscribe(); // Stop listener
+    if (hourlyDataUnsubscribe) hourlyDataUnsubscribe();
     
-    if (!authLoading.value) { 
-      error.value = "No Device ID. Cannot load carbon data.";
-    }
+    // We don't set error here because Watch 1 already handled the specific error message
   }
 }, { immediate: true });
 

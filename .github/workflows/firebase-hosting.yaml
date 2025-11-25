@@ -1,32 +1,34 @@
-name: Firebase Hosting Deploy
+name: Deploy Frontend to Firebase Hosting
 
 on:
   push:
     branches:
-      - main  # deploy only from main
+      - main # Triggers when you push to main
 
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
+      # 1. Build the Vue App
+      # We MUST inject the Backend URL here because .env.production is ignored by Git
       - name: Build Vue app
         run: npm run build
+        env:
+          VITE_API_BASE_URL: ''
 
-      - name: Deploy to Firebase App Hosting
-        uses: Firebase/firebase-apphosting-github-action@v0
+      # 2. Deploy to Firebase Standard Hosting (Frontend)
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: "energreen-ai-powered-iot-based"
-          siteId: "energreen-vue-proxy-backend"
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          # Ensure this matches the Secret Name you created in GitHub Settings
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_ENERGREEN_AI_POWERED_IOT_BASED }}'
+          channelId: live
+          projectId: energreen-ai-powered-iot-based
+          target: hosting
