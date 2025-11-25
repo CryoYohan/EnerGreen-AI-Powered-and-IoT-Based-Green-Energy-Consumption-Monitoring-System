@@ -11,13 +11,13 @@
 
     <!-- Integrated CO₂ Emissions Metrics Card -->
     <div v-if="!loading && !error" class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 ">
         <div 
           v-for="(metric, index) in dynamicMetrics" 
           :key="index"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
         >
-          <div class="flex items-start justify-between mb-4">
+          <div class="flex items-start justify-between mb-4 ">
             <h3 class="text-base font-medium text-gray-600 dark:text-gray-300">{{ metric.title }}</h3>
             <div class="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <svg 
