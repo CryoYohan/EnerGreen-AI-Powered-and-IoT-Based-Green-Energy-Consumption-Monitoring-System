@@ -1,11 +1,14 @@
 import express from 'express';
-import dotenv from 'dotenv/config';
 import cors from 'cors';
+import 'dotenv/config'; // If you use a .env file locally
 import helmet from 'helmet'; // 1. Import Helmet
 import { adminRouter } from './adminRoutes.js';
 import { userRouter } from './userRoutes.js';
 
 const app = express();
+
+// This tells Express to trust the Load Balancer's headers (Cloud Run standard)
+app.set('trust proxy', 1);
 
 // 2. ARMOR: Use Helmet immediately
 app.use(helmet());

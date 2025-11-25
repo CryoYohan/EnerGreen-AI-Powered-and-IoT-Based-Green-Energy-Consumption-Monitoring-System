@@ -1,14 +1,24 @@
-# apphosting.yaml
-runtime: nodejs22
-build:
-  cmd: npm install
-run:
-  cmd: node server/index.js
+# apphosting.yaml (Recommended structure for Firebase App Hosting)
+
+# 1. Server Configuration (Defines the build and run process)
+server:
+  # The command to run before starting the server (e.g., installing dependencies)
+  # This is the equivalent of your 'build: cmd'
+  buildCommand: "npm install"
+
+  # The command to execute to start your production Node.js server.
+  # This is the equivalent of your 'run: cmd'
+  runCommand: "npm run start"
+  
+  # Specify the directory containing your main server code
+  # The contents of this directory (relative to the project root) 
+  # are copied to the container's /workspace.
+  source: . 
 
 # Configuration for Cloud Run
 runConfig:
   minInstances: 1 # Keep 1 instance alive for production speed (optional cost)
-  
+
 env:
   - variable: GOOGLE_CLOUD_PROJECT
     value: energreen-ai-powered-iot-based
