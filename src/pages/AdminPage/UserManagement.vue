@@ -15,8 +15,42 @@
       </button>
     </div>
 
-    <MetricsCard :metrics="dynamicMetrics" size="large" />
-
+    <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div 
+          v-for="(metric, index) in dynamicMetrics" 
+          :key="index"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ metric.title }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ metric.cost }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ metric.definition || (metric.title.includes('Users') ? 'User Accounts' : '') }}</p>
+            </div>
+            <div 
+              class="p-3 rounded-full"
+              :class="{
+                'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400': metric.title === 'Total Users',
+                'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400': metric.title === 'Active Users',
+                'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400': metric.title === 'Inactive Users',
+                'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400': metric.title === 'New Users'
+              }"
+            >
+              <svg 
+                v-if="metric.title.includes('Users')" 
+                class="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-9">
       <UserInsights :insights="insights" />
       <EcoHeroes :users="users" />
@@ -36,7 +70,7 @@
     
     <transition name="fade">
       <div v-if="showPopup" 
-           :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50', popupType==='info' ? 'bg-blue-500' : popupType==='success' ? 'bg-green-500' : 'bg-red-500']">
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50', popupType==='info' ? 'bg-blue-500' : popupType==='success' ? 'bg-green-500' : 'bg-red-500']">
         {{ popupMessage }}
       </div>
     </transition>
@@ -67,7 +101,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
+                <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
                 <input v-model="newUserForm.phoneNumber" type="tel" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
               </div>
@@ -122,7 +156,7 @@ import { db } from "@/firebase.js";
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
-import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
+// REMOVED: import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import UserInsights from "@/components/AdminComponents/Users/UserInsights.vue";
 import EcoHeroes from "@/components/AdminComponents/Users/EcoHeroes.vue"; 
 import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
@@ -319,14 +353,15 @@ const handleStatusChange = async ({ user, status }) => {
 
   const result = await callCloudFunction(action, user.userId);
   if (result.success) {
-     // Success message logic...
+      // Success message logic...
+      showNotification(`User ${user.name} successfully ${action === 'suspend' ? 'suspended' : 'enabled'}!`, "success");
   } else {
-     showNotification(`Failed: ${result.error}`, "error");
+      showNotification(`Failed: ${result.error}`, "error");
   }
 };
 
 const handleDeleteUser = async (user) => {
-  showNotification(`Deleting...`, "info");
+  showNotification(`Deleting ${user.name}...`, "info");
   const result = await callCloudFunction("delete", user.userId);
   if (result.success) showNotification("User deleted!", "success");
   else showNotification(`Failed: ${result.error}`, "error");
@@ -357,7 +392,7 @@ const handleEditUser = async (updatedUser) => {
         });
     }
 
-    showNotification("Updated!", "success");
+    showNotification("User profile updated!", "success");
   } catch (error) {
     showNotification(`Edit failed: ${error.message}`, "error");
   }
@@ -365,10 +400,11 @@ const handleEditUser = async (updatedUser) => {
 
 const dynamicMetrics = computed(() => {
   return [
-    { title: "Total Users", icon: "/src/Images/Icons/totalusers.svg", cost: users.value.length.toString() },
-    { title: "Active Users", icon: "/src/Images/Icons/users.svg", cost: users.value.filter(u => u.status === 'Active').length.toString() },
-    { title: "Inactive Users", icon: "/src/Images/Icons/inactiveusers.svg", cost: users.value.filter(u => u.status === 'Inactive').length.toString() },
-    { title: "New Users", icon: "/src/Images/Icons/newusers.svg", cost: users.value.filter(u => u.createdAt > new Date(Date.now() - 30*24*60*60*1000)).length.toString() },
+    { title: "Total Users", cost: users.value.length.toString() },
+    { title: "Active Users", cost: users.value.filter(u => u.status === 'Active').length.toString() },
+    { title: "Inactive Users", cost: users.value.filter(u => u.status === 'Inactive').length.toString() },
+    // Filter for users created in the last 30 days
+    { title: "New Users", cost: users.value.filter(u => u.createdAt > new Date(Date.now() - 30*24*60*60*1000)).length.toString() },
   ];
 });
 </script>
