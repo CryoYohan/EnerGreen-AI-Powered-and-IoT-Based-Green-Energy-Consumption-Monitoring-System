@@ -11,7 +11,7 @@
       {
         "source": "/api/**",
         "run": {
-          "serviceId": "energreen-vue-proxy-backend",
+          "serviceId": "api-energreen-backend",
           "region": "us-central1"
         }
       },
@@ -24,5 +24,18 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
-  }
+  },
+  "apphosting": [
+    {
+      "id": "api-energreen-backend",
+      "root": "./server",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    }
+  ]
 }

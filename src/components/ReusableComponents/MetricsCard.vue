@@ -30,7 +30,6 @@
 <script>
 import { useDarkMode } from "@/composables/useDarkMode.js";
 // ALL ICONS IMPORTED HERE IN THE COMPONENT
-import PesoIcon from '@/Images/Icons/Peso.svg';
 import ElectricIcon from '@/Images/Icons/electric.svg';
 import SunIcon from '@/Images/Icons/sun.svg';
 import LeafIcon from '@/Images/Icons/leaf.svg';
