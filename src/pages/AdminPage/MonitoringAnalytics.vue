@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
     <AdminHeader />
-    <Heading title="Monitoring & Analytics" />
+    <Heading title="Monitoring & Analytics" subtitle="Monitor your key metrics and subscription performance" />
 
     <div class="w-full flex flex-col lg:flex-row justify-between items-stretch gap-2 sm:px-6 lg:px-8 flex-1">
       <div class="w-full lg:w-[70%]">

@@ -2,11 +2,11 @@
   <div class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
     <AdminHeader />
     
-    <div class="flex flex-col md:flex-row justify-between items-center px-6 pt-6 mb-2">
-      <Heading title="User Management" />
+    <div class="flex flex-col md:flex-row justify-between items-center ">
+      <Heading title="User Management" subtitle="Monitor EnerGreen's Green Energy User" />
       <button 
         @click="openAddUserModal"
-        class="bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-md"
+        class="bg-emerald-500 hover:bg-emerald-600 text-white mr-6 font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-md"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -15,7 +15,76 @@
       </button>
     </div>
 
-    <MetricsCard :metrics="dynamicMetrics" size="large" />
+    <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div 
+          v-for="(metric, index) in dynamicMetrics" 
+          :key="index"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ metric.title }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ metric.cost }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ metric.definition || (metric.title.includes('Users') ? 'User Accounts' : '') }}</p>
+            </div>
+            <div 
+              class="p-3 rounded-full"
+              :class="{
+                'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400': metric.title === 'Total Users',
+                'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400': metric.title === 'Active Users',
+                'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400': metric.title === 'Inactive Users',
+                'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400': metric.title === 'New Users'
+              }"
+            >
+              <!-- Total Users Icon -->
+              <svg 
+                v-if="metric.title === 'Total Users'" 
+                class="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              
+              <!-- Active Users Icon -->
+              <svg 
+                v-else-if="metric.title === 'Active Users'" 
+                class="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
+              </svg>
+              
+              <!-- Inactive Users Icon -->
+              <svg 
+                v-else-if="metric.title === 'Inactive Users'" 
+                class="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+              </svg>
+              
+              <!-- New Users Icon -->
+              <svg 
+                v-else-if="metric.title === 'New Users'" 
+                class="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-9">
       <UserInsights :insights="insights" />
@@ -36,7 +105,7 @@
     
     <transition name="fade">
       <div v-if="showPopup" 
-           :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50', popupType==='info' ? 'bg-blue-500' : popupType==='success' ? 'bg-green-500' : 'bg-red-500']">
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50', popupType==='info' ? 'bg-blue-500' : popupType==='success' ? 'bg-green-500' : 'bg-red-500']">
         {{ popupMessage }}
       </div>
     </transition>
@@ -67,7 +136,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
+                <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
                 <input v-model="newUserForm.phoneNumber" type="tel" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
               </div>
@@ -110,7 +179,6 @@
 
   </div>
 </template>
-
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
 // IMPORTANT: We need 'initializeApp' to create a secondary app instance
@@ -122,7 +190,7 @@ import { db } from "@/firebase.js";
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
-import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
+// REMOVED: import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import UserInsights from "@/components/AdminComponents/Users/UserInsights.vue";
 import EcoHeroes from "@/components/AdminComponents/Users/EcoHeroes.vue"; 
 import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
@@ -319,14 +387,15 @@ const handleStatusChange = async ({ user, status }) => {
 
   const result = await callCloudFunction(action, user.userId);
   if (result.success) {
-     // Success message logic...
+      // Success message logic...
+      showNotification(`User ${user.name} successfully ${action === 'suspend' ? 'suspended' : 'enabled'}!`, "success");
   } else {
-     showNotification(`Failed: ${result.error}`, "error");
+      showNotification(`Failed: ${result.error}`, "error");
   }
 };
 
 const handleDeleteUser = async (user) => {
-  showNotification(`Deleting...`, "info");
+  showNotification(`Deleting ${user.name}...`, "info");
   const result = await callCloudFunction("delete", user.userId);
   if (result.success) showNotification("User deleted!", "success");
   else showNotification(`Failed: ${result.error}`, "error");
@@ -357,7 +426,7 @@ const handleEditUser = async (updatedUser) => {
         });
     }
 
-    showNotification("Updated!", "success");
+    showNotification("User profile updated!", "success");
   } catch (error) {
     showNotification(`Edit failed: ${error.message}`, "error");
   }
@@ -365,10 +434,11 @@ const handleEditUser = async (updatedUser) => {
 
 const dynamicMetrics = computed(() => {
   return [
-    { title: "Total Users", icon: "/src/Images/Icons/totalusers.svg", cost: users.value.length.toString() },
-    { title: "Active Users", icon: "/src/Images/Icons/users.svg", cost: users.value.filter(u => u.status === 'Active').length.toString() },
-    { title: "Inactive Users", icon: "/src/Images/Icons/inactiveusers.svg", cost: users.value.filter(u => u.status === 'Inactive').length.toString() },
-    { title: "New Users", icon: "/src/Images/Icons/newusers.svg", cost: users.value.filter(u => u.createdAt > new Date(Date.now() - 30*24*60*60*1000)).length.toString() },
+    { title: "Total Users", cost: users.value.length.toString() },
+    { title: "Active Users", cost: users.value.filter(u => u.status === 'Active').length.toString() },
+    { title: "Inactive Users", cost: users.value.filter(u => u.status === 'Inactive').length.toString() },
+    // Filter for users created in the last 30 days
+    { title: "New Users", cost: users.value.filter(u => u.createdAt > new Date(Date.now() - 30*24*60*60*1000)).length.toString() },
   ];
 });
 </script>

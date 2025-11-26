@@ -85,6 +85,18 @@
                   Monitoring & Analytics
                 </button>
               </li>
+              <li>
+                <button 
+                  @click="navigateTo('SalesManagement')" 
+                  :class="[
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'SalesManagement' 
+                      ? 'text-green-600 dark:text-green-500' 
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  Sales Management
+                </button>
+              </li>
             </ul>
           </nav>
         </div>

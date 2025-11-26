@@ -13,7 +13,8 @@ import Hardware from '@/pages/AdminPage/Hardware.vue'; // Hardware Management pa
 import UserManagement from '@/pages/AdminPage/UserManagement.vue'; // User Management page
 import MonitoringAnalytics from '@/pages/AdminPage/MonitoringAnalytics.vue'; // Monitoring and Analytics page
 import AdminProfile from '@/pages/AdminPage/AdminProfile.vue'; // Admin Profile page
-import Cost from '@/pages/UserPage/CostPage.vue'
+import Cost from '@/pages/UserPage/CostPage.vue';
+import SalesManagement from '@/pages/AdminPage/SalesManagement.vue'
 const routes = [
   {
     path: '/',
@@ -89,6 +90,11 @@ const routes = [
     path: '/cost',
     name: 'Cost',
     component: Cost,
+  },
+  {
+    path: '/salesmanagement',
+    name: 'SalesManagement',
+    component: SalesManagement,
   }
 
 ];

@@ -149,7 +149,7 @@
             </div>
             <div class="mb-2">
               <label class="block text-white">Email</label>
-              <input type="text" v-model="email" required
+              <input type="email" v-model="email" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
