@@ -264,7 +264,7 @@ const executeAction = () => {
   if (pendingAction.value === 'delete') {
     emit('delete', confirmUser.value);
   } else {
-    const newStatus = pendingAction.value === 'suspend' ? 'Inactive' : 'Active';
+    const newStatus = pendingAction.value === 'suspend' ? 'inactive' : 'active';
     emit('update-status', { user: confirmUser.value, status: newStatus });
   }
   pendingAction.value = '';
