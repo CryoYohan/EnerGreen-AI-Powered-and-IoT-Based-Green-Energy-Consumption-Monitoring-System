@@ -346,8 +346,6 @@ const handleStatusChange = async ({ user, status }) => {
 };
 
 const handleDeleteUser = async (user) => {
-  if (!confirm(`Are you sure you want to delete ${user.name}? This cannot be undone.`)) return;
-
   showNotification(`Deleting ${user.name}...`, "info");
   const result = await callCloudFunction("delete", user.userId);
   
