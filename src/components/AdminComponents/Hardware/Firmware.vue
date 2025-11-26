@@ -182,14 +182,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { db, storage } from '@/firebase.js';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db } from '@/firebase.js'; // Keep db for the LISTENER (Read-only)
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import api from '@/services/api'; // Import your configured Axios instance
 import Swal from 'sweetalert2';
 
 const showUploadModal = ref(false);
 const uploading = ref(false);
-const uploadProgress = ref(0);
+const uploadProgress = ref(0); // Note: Axios upload progress is different from Firebase
 const isDragging = ref(false);
 
 const newVersion = ref('');
@@ -197,7 +197,7 @@ const newDescription = ref('');
 const selectedFile = ref(null);
 const releaseHistory = ref([]);
 
-// --- File Handling ---
+// --- File Handling (Same as before) ---
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
   validateFile(file);
@@ -217,78 +217,70 @@ const validateFile = (file) => {
   }
 };
 
-// --- Upload Logic ---
+// --- NEW: Proxy Upload Logic ---
 const handleUpload = async () => {
   if (!selectedFile.value) return;
   
   uploading.value = true;
-  uploadProgress.value = 0;
+  uploadProgress.value = 0; // Reset progress
 
   try {
-    // 1. Create Storage Reference (e.g., firmware/v1.2.0_17150000.bin)
-    const filename = `firmware_${newVersion.value}_${Date.now()}.bin`;
-    const firmwareStorageRef = storageRef(storage, `firmware/${filename}`);
-    
-    // 2. Start Upload Task
-    const uploadTask = uploadBytesResumable(firmwareStorageRef, selectedFile.value);
+    // 1. Prepare Form Data
+    const formData = new FormData();
+    formData.append('firmware', selectedFile.value); // Key must match multer config
+    formData.append('version', newVersion.value);
+    formData.append('description', newDescription.value);
 
-    uploadTask.on('state_changed', 
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        uploadProgress.value = progress;
-      }, 
-      (error) => {
-        console.error("Upload error:", error);
-        Swal.fire('Upload Failed', error.message, 'error');
-        uploading.value = false;
-      }, 
-      async () => {
-        // 3. Upload Complete - Get URL
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        
-        // 4. Save Metadata to Firestore
-        await addDoc(collection(db, 'firmware_releases'), {
-          version: newVersion.value,
-          description: newDescription.value,
-          downloadURL: downloadURL,
-          filename: filename,
-          size: selectedFile.value.size,
-          uploadedAt: serverTimestamp(),
-          status: 'Active' // You can use this to toggle which one is the "Current" one
-        });
-
-        // 5. Cleanup
-        uploading.value = false;
-        showUploadModal.value = false;
-        selectedFile.value = null;
-        newVersion.value = '';
-        newDescription.value = '';
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Deployment Successful',
-          text: 'The new firmware is now available for devices.',
-          timer: 2000,
-          showConfirmButton: false
-        });
+    // 2. Send to Proxy Server
+    // Note: 'api' automatically attaches the Authentication Token
+    const response = await api.post('/api/admin/upload-firmware', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data' // Required for file uploads
+      },
+      onUploadProgress: (progressEvent) => {
+        // Calculate percentage for the UI bar
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        uploadProgress.value = percentCompleted;
       }
-    );
+    });
+
+    // 3. Success Handling
+    uploading.value = false;
+    showUploadModal.value = false;
+    
+    // Reset Form
+    selectedFile.value = null;
+    newVersion.value = '';
+    newDescription.value = '';
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'Deployment Successful',
+      text: 'Firmware uploaded securely via Proxy.',
+      timer: 2000,
+      showConfirmButton: false
+    });
 
   } catch (error) {
     console.error("Deployment error:", error);
     uploading.value = false;
-    Swal.fire('Error', error.message, 'error');
+    // Extract error message from backend response if available
+    const errMsg = error.response?.data?.error || error.message;
+    Swal.fire('Upload Failed', errMsg, 'error');
   }
 };
 
-// --- Fetch History ---
+// --- Listener (Keep this!) ---
+// Reading the list is fine to do on the client, provided Rules allow it.
 let unsubscribe = null;
 
 onMounted(() => {
-  // Fetch releases ordered by newest first
   const q = query(collection(db, 'firmware_releases'), orderBy('uploadedAt', 'desc'));
   unsubscribe = onSnapshot(q, (snapshot) => {
     releaseHistory.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }, (error) => {
+      console.error("Error fetching firmware history:", error);
+      // This helps debug Permission Denied errors
   });
 });
 
@@ -296,7 +288,7 @@ onUnmounted(() => {
   if (unsubscribe) unsubscribe();
 });
 
-// --- Computed Stats ---
+// --- Computed Stats & Helpers (Same as before) ---
 const latestVersion = computed(() => releaseHistory.value[0]?.version || 'v0.0.0');
 const totalReleases = computed(() => releaseHistory.value.length);
 const lastDeployed = computed(() => {
@@ -304,9 +296,9 @@ const lastDeployed = computed(() => {
   return last ? formatDate(last.uploadedAt) : 'Never';
 });
 
-// --- Helpers ---
 const formatDate = (timestamp) => {
   if (!timestamp) return '';
+  // Handle both Firestore Timestamp (toDate) and ISO Strings (from Proxy)
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
