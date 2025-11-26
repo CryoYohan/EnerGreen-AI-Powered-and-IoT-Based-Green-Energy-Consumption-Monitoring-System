@@ -1,7 +1,7 @@
 # apphosting.yaml (Recommended structure for Firebase App Hosting)
 
 # 1. Server Configuration (Defines the build and run process)
-server:
+server: 
   # The command to run before starting the server (e.g., installing dependencies)
   # This is the equivalent of your 'build: cmd'
   buildCommand: "npm install"
@@ -52,3 +52,6 @@ env:
 
   - variable: ENABLE_USER_URL
     secret: VITE_ENABLE_USER_URL
+
+  - variable: STORAGE_BUCKET
+    value: energreen-ai-powered-iot-based.firebasestorage.app
