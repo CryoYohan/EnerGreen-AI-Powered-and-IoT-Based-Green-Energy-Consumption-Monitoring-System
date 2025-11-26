@@ -182,7 +182,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { db } from '@/firebase.js'; // Keep db for the LISTENER (Read-only)
+import { db, storage, auth } from '@/firebase.js'; 
+import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import api from '@/services/api'; // Import your configured Axios instance
 import Swal from 'sweetalert2';
@@ -270,22 +271,37 @@ const handleUpload = async () => {
   }
 };
 
-// --- Listener (Keep this!) ---
-// Reading the list is fine to do on the client, provided Rules allow it.
+// --- LISTENER LOGIC (FIXED) ---
 let unsubscribe = null;
+let authUnsubscribe = null;
 
 onMounted(() => {
-  const q = query(collection(db, 'firmware_releases'), orderBy('uploadedAt', 'desc'));
-  unsubscribe = onSnapshot(q, (snapshot) => {
-    releaseHistory.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  }, (error) => {
-      console.error("Error fetching firmware history:", error);
-      // This helps debug Permission Denied errors
+  // 1. Wait for Auth to initialize BEFORE attaching listener
+  authUnsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // User is logged in, safe to attach listener
+      if (!unsubscribe) {
+        const q = query(collection(db, 'firmware_releases'), orderBy('uploadedAt', 'desc'));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          releaseHistory.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }, (error) => {
+            console.error("Error fetching firmware history:", error);
+        });
+      }
+    } else {
+      // User logged out, detach listener
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      releaseHistory.value = [];
+    }
   });
 });
 
 onUnmounted(() => {
   if (unsubscribe) unsubscribe();
+  if (authUnsubscribe) authUnsubscribe();
 });
 
 // --- Computed Stats & Helpers (Same as before) ---
