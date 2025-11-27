@@ -85,7 +85,6 @@
 
 <script>
 import { ref, computed, defineExpose } from 'vue';
-// 🌟 CRITICAL CHANGE: Added necessary Firestore imports for a standalone component
 import { 
   doc, 
   collection, 
@@ -95,11 +94,10 @@ import {
   query, 
   where,
   Timestamp
-  // Added query, orderBy, limit if your fetchAndGenerate logic needed them, 
-  // though getDocs is being used here for simplicity.
 } from 'firebase/firestore'; 
-// 🌟 CRITICAL CHANGE: Use db and auth directly
-import { db, auth } from '../../../firebase.js'; 
+import { db, auth } from '@/firebase.js';
+// 1. Import API Service
+import api from '@/services/api.js';
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -144,56 +142,30 @@ export default {
       }
     };
 
-    // ✅ Stable generateTip logic
+    // ✅ REFACTORED: Use Proxy Backend for Gemini API
     const generateTip = async (energyData, userProfileRef) => {
-      let prompt = `Act as an energy efficiency expert. Generate three concise, practical energy-saving tips based on the user's daily energy data.\n\n`;
-      if (energyData.topConsumerName === "No major appliances monitored") {
-        prompt += `Note: The system currently has no smart plug data, so the readings represent the total household consumption — including possible phantom or standby loads.\n`;
-      } else {
-        prompt += `- Top Energy Consumer: ${energyData.topConsumerName} using ${energyData.topConsumerUsage.toFixed(2)} kWh\n`;
-      }
-
-      prompt += `- Energy Source Breakdown: ${energyData.solarPercentage.toFixed(0)}% Solar, ${energyData.gridPercentage.toFixed(0)}% Grid\n`;
-      prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
-      prompt += `Each tip must be an object with a "description" field in valid JSON format (array of objects). Do not include greetings, explanations, or extra commentary.`;
-
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "ARRAY",
-            items: { type: "OBJECT", properties: { "description": { "type": "STRING" } } }
-          }
-        }
-      };
-
       try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        // Call the secure proxy endpoint
+        // Ensure you have created this route in your backend!
+        const response = await api.post('/api/user/generate-tips', {
+          energyData: energyData
         });
 
-        if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
-
-        const result = await response.json();
-        const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (jsonText) {
-          const generatedTips = JSON.parse(jsonText);
-          tips.value = generatedTips;
-          await setDoc(userProfileRef, { tips: generatedTips, tipTimestamp: Date.now() }, { merge: true });
+        const result = response.data;
+        
+        if (result.success && result.tips) {
+          tips.value = result.tips;
+          // Save to Firestore (Client-side write is fine here as per rules, 
+          // or move this to backend if you prefer strict "backend-only writes")
+          await setDoc(userProfileRef, { tips: result.tips, tipTimestamp: Date.now() }, { merge: true });
         } else {
           tips.value = [{ description: "Could not generate a tip based on current data." }];
         }
+
       } catch (e) {
-        console.error("Error generating tip:", e);
+        console.error("Error generating tip via proxy:", e);
         error.value = e.message;
-        tips.value = [{ description: "An error occurred while generating the tips." }];
+        tips.value = [{ description: "An error occurred while contacting the energy wizard." }];
       } finally {
         loading.value = false;
         if (tips.value.length > 0) currentTipIndex.value = 0;
@@ -311,10 +283,6 @@ export default {
         const solarPercentage = safeTotalKwh > 0 ? (solarKwh / safeTotalKwh) * 100 : 0;
         const gridPercentage = safeTotalKwh > 0 ? (gridKwh / safeTotalKwh) * 100 : 0;
 
-        console.log(
-          `Δ Grid: ${gridKwh.toFixed(3)} kWh | Δ Solar: ${solarKwh.toFixed(3)} kWh | Total: ${safeTotalKwh.toFixed(3)} kWh`
-        );
-
         const energyData = {
           topConsumerName,
           topConsumerUsage,
@@ -378,7 +346,6 @@ export default {
   },
 };
 </script>
-
 <style scoped>
 /* 🔹 Slow spin animation for wizardly effect */
 @keyframes spin-slow {
