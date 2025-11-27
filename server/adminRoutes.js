@@ -242,4 +242,87 @@ adminRouter.post('/edit-user', adminLimiter, verifyToken, requireAdmin, async (r
     }
 });
 
+// UPDATE UTILITY RATE
+adminRouter.post('/update-utility-rate', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { providerId, providerName, rate } = req.body;
+
+        if (!providerId || !rate) {
+            return res.status(400).json({ success: false, error: "Provider ID and Rate are required." });
+        }
+
+        // Path: artifacts/default-app-id/public/data/utility_rates/{providerId}
+        const rateRef = db.collection('artifacts').doc('default-app-id')
+            .collection('public').doc('data')
+            .collection('utility_rates').doc(providerId);
+
+        const updateData = {
+            providerName: providerName || providerId.toUpperCase(),
+            // Standardize on 'kwhRate' for new providers, but support legacy fields below
+            kwhRate: parseFloat(rate),
+            date_updated: FieldValue.serverTimestamp(), // Matching your schema
+            updatedBy: req.user.uid
+        };
+
+        // Specific Field Handling for VECO as per your schema
+        if (providerId === 'veco') {
+            updateData.vecoKwhRate = parseFloat(rate);
+        }
+
+        await rateRef.set(updateData, { merge: true });
+
+        // Audit Log
+        await db.collection('admin_audit_logs').add({
+            action: 'UPDATE_UTILITY_RATE',
+            adminUid: req.user.uid,
+            details: { providerId, rate },
+            timestamp: FieldValue.serverTimestamp()
+        });
+
+        res.json({ success: true, message: `${providerName} rate updated to ₱${rate}/kWh` });
+
+    } catch (e) {
+        console.error('Utility Rate Update Error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// UPDATE CARBON RATE
+adminRouter.post('/update-carbon-rate', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { rate } = req.body;
+
+        if (!rate) {
+            return res.status(400).json({ success: false, error: "Carbon rate is required." });
+        }
+
+        // Path: artifacts/default-app-id/public/data/carbon_emission_rates/{auto-id}
+        const carbonCollection = db.collection('artifacts').doc('default-app-id')
+            .collection('public').doc('data')
+            .collection('carbon_emission_rates');
+
+        // We use .add() to create a new document with history, matching your {uid} schema structure
+        await carbonCollection.add({
+            carbonRateKg: parseFloat(rate),
+            date_updated: FieldValue.serverTimestamp(),
+            updatedBy: req.user.uid,
+            note: "Admin manual update"
+        });
+
+        // Audit Log
+        await db.collection('admin_audit_logs').add({
+            action: 'UPDATE_CARBON_RATE',
+            adminUid: req.user.uid,
+            details: { rate },
+            timestamp: FieldValue.serverTimestamp()
+        });
+
+        res.json({ success: true, message: `Carbon rate updated to ${rate} kg/kWh` });
+
+    } catch (e) {
+        console.error('Carbon Rate Update Error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 export { adminRouter };
