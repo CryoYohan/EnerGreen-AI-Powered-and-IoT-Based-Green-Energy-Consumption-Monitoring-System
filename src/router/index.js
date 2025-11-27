@@ -25,6 +25,7 @@ import UserManagement from '@/pages/AdminPage/UserManagement.vue';
 import MonitoringAnalytics from '@/pages/AdminPage/MonitoringAnalytics.vue';
 import AdminProfile from '@/pages/AdminPage/AdminProfile.vue';
 import SalesManagement from '@/pages/AdminPage/SalesManagement.vue';
+import RatesManagement from '@/pages/AdminPage/RatesManagement.vue';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -109,6 +110,12 @@ const routes = [
     path: '/hardware',
     name: 'Hardware',
     component: Hardware,
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+    path: '/ratesmanagement',
+    name: 'RatesManagement',
+    component: RatesManagement,
     meta: { requiresAuth: true, role: 'admin' }
   },
   {
