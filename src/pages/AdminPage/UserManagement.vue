@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins">
+  <div class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins transition-colors duration-300">
     <AdminHeader />
     
     <div class="flex flex-col md:flex-row justify-between items-center ">
@@ -55,27 +55,35 @@
     </div>
 
     <div class="px-6 pb-20">
+      <!-- Table Component -->
+      <!-- ✅ FIX: Listen to @edit-user event from child -->
       <UsersTable
         :users="users"
         :devices="devices"
         @update-status="handleStatusChange"
         @delete="handleDeleteUser"
-        @edit-user="handleEditUser" 
+        @edit-user="openEditModal" 
       />
     </div>
 
     <Footer />
     
+    <!-- Notifications -->
     <transition name="fade">
       <div v-if="showPopup" 
-        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50', popupType==='info' ? 'bg-blue-500' : popupType==='success' ? 'bg-green-500' : 'bg-red-500']">
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popupType === 'success'">✅</span>
+        <span v-else-if="popupType === 'error'">⚠️</span>
+        <span v-else>ℹ️</span>
         {{ popupMessage }}
       </div>
     </transition>
 
+    <!-- ADD USER MODAL -->
     <transition name="fade">
       <div v-if="showAddModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white">Register New User</h3>
             <button @click="showAddModal = false" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">✕</button>
@@ -112,6 +120,25 @@
               </div>
             </div>
 
+            <!-- NEW FIELDS: Provider & Subscription -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Electricity Provider</label>
+                <select v-model="newUserForm.electricityProvider" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  <option value="veco">Visayan Electric (VECO)</option>
+                  <option value="cebeco">CEBECO</option>
+                  <option value="meralco">MERALCO</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Subscription Tier</label>
+                <select v-model="newUserForm.subscriptionTier" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  <option value="Free">Free</option>
+                  <option value="Premium">Premium</option>
+                </select>
+              </div>
+            </div>
+
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
               <input v-model="newUserForm.address" type="text" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
@@ -140,17 +167,91 @@
       </div>
     </transition>
 
+    <!-- EDIT USER MODAL -->
+    <transition name="fade">
+      <div v-if="showEditModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Edit User</h3>
+            <button @click="showEditModal = false" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">✕</button>
+          </div>
+
+          <form @submit.prevent="handleEditUserSubmit" class="space-y-4">
+            <!-- Read Only Email -->
+             <div>
+                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Email (Cannot Change)</label>
+                <input :value="editUserForm.email" disabled class="mt-1 w-full p-2 border rounded-md bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 cursor-not-allowed" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+              <input v-model="editUserForm.name" type="text" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
+                <select v-model="editUserForm.role" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <!-- Provider -->
+               <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
+                <select v-model="editUserForm.electricityProvider" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  <option value="veco">Visayan Electric (VECO)</option>
+                  <option value="cebeco">CEBECO</option>
+                  <option value="meralco">MERALCO</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Subscription -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Subscription Tier</label>
+                <select v-model="editUserForm.subscriptionTier" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  <option value="Free">Free</option>
+                  <option value="Premium">Premium</option>
+                </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
+              <input v-model="editUserForm.location" type="text" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Assign Smart Meter</label>
+              <select v-model="editUserForm.smartMeterID" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="None">None</option>
+                <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
+                  {{ device.deviceId }} ({{ device.location || 'No Loc' }})
+                </option>
+              </select>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+              <button type="button" @click="showEditModal = false" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-white">Cancel</button>
+              <button type="submit" :disabled="isEditingUser" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
+                <span v-if="isEditingUser" class="animate-spin mr-2">⏳</span>
+                {{ isEditingUser ? 'Updating...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
-// InitializeApp is needed for the secondary app logic (Create User)
 import { initializeApp } from "firebase/app"; 
 import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { collectionGroup, collection, query, onSnapshot, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase.js";
-// 1. Import API Proxy
 import api from "@/services/api"; 
 
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
@@ -160,9 +261,6 @@ import UserInsights from "@/components/AdminComponents/Users/UserInsights.vue";
 import EcoHeroes from "@/components/AdminComponents/Users/EcoHeroes.vue"; 
 import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
 
-// --- Firebase Config Re-declaration ---
-// We need this to initialize a 'Secondary App' instance for creating users without logging out.
-// Even though firebase.js initializes the main app, it doesn't export the raw config object.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -195,8 +293,15 @@ const newUserForm = reactive({
   phoneNumber: '',
   address: '',
   role: 'user',
-  deviceId: 'None'
+  deviceId: 'None',
+  electricityProvider: 'veco', // Default
+  subscriptionTier: 'Free'     // Default
 });
+
+// Edit User State (New)
+const showEditModal = ref(false);
+const isEditingUser = ref(false);
+const editUserForm = reactive({}); // Will be populated on open
 
 const showNotification = (message, type = "info", duration = 3000) => {
   popupMessage.value = message;
@@ -227,6 +332,9 @@ onMounted(() => {
               status: data.status || "Active",
               role: data.role || "user",
               photoURL: data.photoURL,
+              // Map new fields if present
+              electricityProvider: data.electricityProvider || 'veco',
+              subscriptionTier: data.subscriptionTier || 'Free',
               createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
             };
           });
@@ -254,9 +362,12 @@ onUnmounted(() => {
   if (unsubscribeAuth) unsubscribeAuth();
 });
 
-// --- 2. CREATE USER LOGIC (Secondary App Trick) ---
+// --- 2. CREATE USER LOGIC ---
 const openAddUserModal = () => {
-  Object.assign(newUserForm, { email: '', password: '', fullName: '', phoneNumber: '', address: '', role: 'user', deviceId: 'None' });
+  Object.assign(newUserForm, { 
+      email: '', password: '', fullName: '', phoneNumber: '', address: '', 
+      role: 'user', deviceId: 'None', electricityProvider: 'veco', subscriptionTier: 'Free' 
+  });
   showAddModal.value = true;
 };
 
@@ -273,7 +384,6 @@ const handleAddUser = async () => {
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     
-    // Create User Profile (Client SDK - allowed by Admin Rules)
     const userProfileRef = doc(db, `artifacts/${appId}/users/${newUid}/userProfile/profile`);
     await setDoc(userProfileRef, {
       email: newUserForm.email,
@@ -282,14 +392,16 @@ const handleAddUser = async () => {
       address: newUserForm.address,
       role: newUserForm.role,
       deviceId: newUserForm.deviceId === 'None' ? null : newUserForm.deviceId,
+      // New Fields
+      electricityProvider: newUserForm.electricityProvider,
+      subscriptionTier: newUserForm.subscriptionTier,
+      subscriptionStatus: 'Active',
       photoURL: null,
       status: 'Active',
       createdAt: serverTimestamp()
     });
 
-    // Update Device Ownership (Client SDK - allowed by Admin Rules)
     if (newUserForm.deviceId !== 'None') {
-      // Dynamic import to keep it light since we only use it here for creation
       const { updateDoc } = await import("firebase/firestore"); 
       const deviceRef = doc(db, "devices", newUserForm.deviceId);
       await updateDoc(deviceRef, {
@@ -314,7 +426,6 @@ const handleAddUser = async () => {
 
 // --- 3. SECURE BACKEND CALLS (Proxy) ---
 const callCloudFunction = async (action, uid) => {
-  console.log(`Calling Proxy: ${action} for ${uid}`);
   try {
     const endpoints = {
       suspend: '/api/admin/suspend-user',
@@ -356,28 +467,50 @@ const handleDeleteUser = async (user) => {
   }
 };
 
-// ✅ REFACTORED: Now uses the Proxy Backend for Editing
-const handleEditUser = async (updatedUser) => {
-  showNotification(`Updating profile for ${updatedUser.name}...`, "info");
+// --- 4. EDIT USER LOGIC (New Modal & Proxy) ---
+// Triggered by @edit-user event from UsersTable
+const openEditModal = (user) => {
+    // Populate the form with existing user data
+    Object.assign(editUserForm, {
+        userId: user.userId,
+        email: user.email,
+        name: user.name,
+        location: user.location,
+        role: user.role,
+        smartMeterID: user.smartMeterID,
+        electricityProvider: user.electricityProvider,
+        subscriptionTier: user.subscriptionTier
+    });
+    showEditModal.value = true;
+};
+
+const handleEditUserSubmit = async () => {
+  isEditingUser.value = true;
+  showNotification(`Updating profile for ${editUserForm.name}...`, "info");
+  
   try {
-    // Call the Proxy Route we created in adminRoutes.js
     const response = await api.post('/api/admin/edit-user', {
-      uid: updatedUser.userId,
+      uid: editUserForm.userId,
       updates: {
-        name: updatedUser.name,
-        location: updatedUser.location, // backend maps this to 'address'
-        role: updatedUser.role,
-        deviceId: updatedUser.smartMeterID // backend maps this to 'deviceId'
+        name: editUserForm.name,
+        location: editUserForm.location, 
+        role: editUserForm.role,
+        deviceId: editUserForm.smartMeterID,
+        electricityProvider: editUserForm.electricityProvider,
+        subscriptionTier: editUserForm.subscriptionTier
       }
     });
 
     if (response.data.success) {
         showNotification("User profile updated successfully!", "success");
+        showEditModal.value = false;
     }
   } catch (error) {
     console.error("Edit failed:", error);
     const msg = error.response?.data?.error || error.message || "Unknown error";
     showNotification(`Edit failed: ${msg}`, "error");
+  } finally {
+    isEditingUser.value = false;
   }
 };
 
