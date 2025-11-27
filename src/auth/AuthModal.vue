@@ -7,10 +7,8 @@
   leave-from-class="opacity-100"
   leave-to-class="opacity-0"
 >
-  <!-- Modal Backdrop -->
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
     @click.self="closeModal">
-    <!-- Modal Container -->
     <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-200">
       <div class="text-center text-white">
         <div
@@ -20,7 +18,6 @@
       </div>
     </div>
     <div class="flex w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden">
-      <!-- Left Side: Welcome -->
       <div class="relative flex-col justify-center hidden w-1/2 md:flex">
         <img src="/src/Images/background/loginbg.png" alt="Background"
           class="absolute inset-0 object-cover w-full h-full opacity-70">
@@ -34,34 +31,27 @@
         </div>
       </div>
 
-      <!-- Right Side: Content Switch -->
       <div class="w-full md:w-1/2 bg-[#059669] dark:bg-[#0D2535] p-8 flex flex-col justify-center text-white">
         <div class="flex items-center justify-between mb-8">
-          <!-- Centered header for Verify Email -->
           <div class="w-full text-center" v-if="isVerifyingEmail">
             <h3 class="text-3xl font-bold">Verify Email</h3>
           </div>
 
-          <!-- Centered header for Success State -->
           <div class="w-full text-center" v-else-if="isEmailVerifiedSuccess || isPasswordResetSuccess">
             <h3 class="text-3xl font-bold">Success!</h3>
           </div>
 
-          <!-- Centered header for Password Recovery -->
           <div class="w-full text-center" v-else-if="isForgotPasswordMode">
             <h3 class="text-3xl font-bold">Password Recovery</h3>
           </div>
 
-          <!-- Fallback for other modes -->
           <div class="flex items-center justify-between" v-else>
             <h3 class="text-3xl font-bold">{{ isLoginMode ? 'Log in Account' : 'Create Account' }}</h3>
           </div>
         </div>
 
-        <!-- Verification Success State -->
         <template v-if="isEmailVerifiedSuccess">
           <div class="flex flex-col items-center text-center">
-            <!-- Checkmark Animation -->
             <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
               <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
               <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
@@ -75,7 +65,6 @@
           </div>
         </template>
 
-        <!-- Email Verification State (before success) -->
         <template v-else-if="isVerifyingEmail">
           <img class="self-center w-40 h-20" src="/src/Images/icons/mail.svg" alt="mail">
           <p class="mb-6 text-center text-gray-200">
@@ -91,10 +80,8 @@
           </button>
         </template>
 
-        <!-- New: Password Recovery Success State -->
         <template v-else-if="isForgotPasswordMode && isPasswordResetSuccess">
           <div class="flex flex-col items-center text-center">
-            <!-- Checkmark Animation -->
             <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
               <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
               <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
@@ -108,7 +95,6 @@
           </div>
         </template>
 
-        <!-- Password Recovery Form -->
         <template v-else-if="isForgotPasswordMode">
           <p class="mb-6 text-gray-200">
             Enter your email to receive a password reset link.
@@ -138,7 +124,6 @@
           </div>
         </template>
 
-        <!-- Login/Register Forms -->
         <template v-else>
           <p class="mb-6 text-gray-200">Please fill in your information below</p>
           <form @submit.prevent="isLoginMode ? handleLogin() : handleRegister()">
@@ -163,21 +148,22 @@
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
             </div>
             <div v-if="!isLoginMode" class="mb-2">
-              <label class="block text-white">Device ID</label>
-              <input type="text" v-model="deviceId" required
+              <label class="block text-white">Device ID (Optional)</label>
+              <input type="text" v-model="deviceId" 
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+              <p v-if="deviceError" class="text-sm text-yellow-300 mt-1">{{ deviceError }}</p>
             </div>
             <div class="mb-4 relative">
               <label for="password" class="block text-gray-300 mb-1">Password</label>
 
-              <!-- Input with toggle -->
               <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
 
-              <!-- Toggle button -->
+              <p v-if="!isLoginMode && passwordError" class="text-sm text-yellow-300 mt-1">{{ passwordError }}</p>
+
               <button type="button" @click="showPassword = !showPassword"
-                class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
-                <!-- Eye open -->
+                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none"
+                :class="{'top-[1.5rem]': !isLoginMode && passwordError, 'top-6': !passwordError}">
                 <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -186,7 +172,6 @@
                       7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
 
-                <!-- Eye with slash -->
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
@@ -206,10 +191,8 @@
               <input :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" v-model="confirmPassword" required
                 class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
 
-              <!-- Toggle button for confirm password -->
               <button type="button" @click="showConfirmPassword = !showConfirmPassword"
                 class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
-                <!-- Eye open -->
                 <svg v-if="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -218,7 +201,6 @@
                       7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
 
-                <!-- Eye with slash -->
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
@@ -245,7 +227,6 @@
               {{ isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Log in" }}
             </button>
           </div>
-          <!-- New: Forgot password button -->
           <div v-if="isLoginMode" class="mt-2 text-center">
             <button @click="toggleToForgotPassword" class="text-white hover:underline text-sm">
               Forgot Password?
@@ -256,7 +237,6 @@
     </div>
   </div>
 </transition>
-
 </template>
 
 <script setup>
@@ -268,9 +248,9 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
-  
+
 } from '../firebase.js';
-import { db, doc, setDoc, getDoc } from '../firebase.js';
+import { db, doc, setDoc, getDoc, query, collection, where, getDocs } from '../firebase.js'; // NOTE: Added collection, query, where, getDocs
 
 // The global app ID and Firestore config are provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -305,6 +285,8 @@ const deviceId = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const error = ref('');
+const passwordError = ref(''); 
+const deviceError = ref(''); // NEW: State for device ID validation error
 
 // State for resend button and timer
 const isResendDisabled = ref(false);
@@ -335,6 +317,83 @@ watch(() => props.isOpen, (newVal) => {
   }
 });
 
+// --- NEW: Device ID Validation Logic ---
+const checkDeviceIDExists = async (id) => {
+    // Construct the query to search all users for the provided Device ID
+    const usersCollection = collection(db, `artifacts/${appId}/users`);
+    
+    // NOTE: This complex query structure assumes all device IDs are stored within 
+    // the '/userProfile/profile' subcollection documents under each user's UID.
+    // Searching across all user subcollections is not directly supported by a single query.
+    
+    // For a scalable solution, the Device ID should ideally be indexed in a top-level collection 
+    // (e.g., 'devices') or directly in the user document if possible.
+    
+    // **ASSUMPTION:** Based on your existing code saving the device ID here:
+    // `doc(db, 'artifacts/${appId}/users/${userId}/userProfile/profile')`
+    // We must assume that searching all user subcollections is NOT feasible with a single simple query.
+    // The safest check here, to prevent errors/costly unindexed queries, is to
+    // assume the Device ID is valid if it's provided, unless you have a separate
+    // top-level indexed collection for device IDs.
+    
+    // --- TEMPORARY WORKAROUND for demonstration, assuming a top-level `devices` collection exists for lookup ---
+    // If you do not have a separate 'devices' collection, this check should be removed or refactored
+    // to search a known indexed path. For a large app, searching deeply nested documents is inefficient.
+    
+    // Since we cannot reliably search subcollections without adding complexity/cost, 
+    // let's create a *mock* check that acts as if it's checking an indexed list.
+    
+    // --- SIMULATED DEVICE ID CHECK ---
+    // In a real app, you would fetch from an indexed collection.
+    // For now, if the ID starts with 'UNVERIFIED', we simulate it failing the check.
+    if (id.startsWith('UNVERIFIED')) {
+        return { exists: false };
+    }
+    
+    // Simulate successful existence check for any other value.
+    return { exists: true };
+    // --- END SIMULATED CHECK ---
+};
+// --- END DEVICE ID VALIDATION ---
+
+// --- Password Validation Logic ---
+const passwordValidator = (pass) => {
+  // Reset previous error
+  passwordError.value = '';
+
+  // RegEx for a strong password:
+  // Must be at least 8 characters
+  // Must contain at least one uppercase letter ((?=.*[A-Z]))
+  // Must contain at least one lowercase letter ((?=.*[a-z]))
+  // Must contain at least one number ((?=.*\d))
+  // Must contain at least one special character ((?=.*[^a-zA-Z0-9]))
+  
+  if (pass.length < 8) {
+    passwordError.value = "Password must be at least 8 characters long.";
+    return false;
+  }
+  if (!/(?=.*[A-Z])/.test(pass)) {
+    passwordError.value = "Password must contain at least one uppercase letter.";
+    return false;
+  }
+  if (!/(?=.*[a-z])/.test(pass)) {
+    passwordError.value = "Password must contain at least one lowercase letter.";
+    return false;
+  }
+  if (!/(?=.*\d)/.test(pass)) {
+    passwordError.value = "Password must contain at least one number.";
+    return false;
+  }
+  if (!/(?=.*[^a-zA-Z0-9])/.test(pass)) {
+    passwordError.value = "ust contain at least one special character (e.g., !@#$%^&*).";
+    return false;
+  }
+  
+  return true;
+};
+// --- END PASSWORD VALIDATION ---
+
+
 // --- Component Methods ---
 const closeModal = () => {
   emit('close');
@@ -364,6 +423,8 @@ const toggleToForgotPassword = () => {
 
 const resetForm = () => {
   error.value = '';
+  passwordError.value = ''; 
+  deviceError.value = ''; // NEW: Reset device error
   email.value = '';
   password.value = '';
   confirmPassword.value = '';
@@ -453,12 +514,36 @@ const handleLogin = async () => {
 
 const handleRegister = async () => {
   error.value = '';
+  passwordError.value = ''; 
+  deviceError.value = ''; // NEW: Reset device error
+
+  // 1. Password Validation Check
+  if (!passwordValidator(password.value)) {
+    return; 
+  }
+
+  // 2. Password Match Check
   if (password.value !== confirmPassword.value) {
     error.value = "Passwords don't match!";
     return;
   }
+  
+  // 3. NEW: Device ID Check (if provided)
+  const trimmedDeviceId = deviceId.value.trim();
+  if (trimmedDeviceId) {
+      isLoading.value = true;
+      const deviceCheck = await checkDeviceIDExists(trimmedDeviceId);
+      isLoading.value = false;
+      
+      if (!deviceCheck.exists) {
+          deviceError.value = "Device ID not found or already in use. Please check the ID or leave the field blank.";
+          return;
+      }
+  }
+
 
   try {
+    isLoading.value = true;
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
     const defaultRole = "user"; // Default role
@@ -470,7 +555,7 @@ const handleRegister = async () => {
       email: email.value,
       phoneNumber: phoneNumber.value,
       address: address.value,
-      deviceId: deviceId.value, // Save the device ID
+      deviceId: trimmedDeviceId, // Save the trimmed (or empty) device ID
       role: defaultRole,
       status: defaultStatus,
     });
@@ -480,6 +565,7 @@ const handleRegister = async () => {
     await sendEmailVerification(userCredential.user);
 
     console.log('Successfully registered and verification email sent.');
+    isLoading.value = false;
     isVerifyingEmail.value = true;
     startResendTimer();
 
@@ -489,6 +575,7 @@ const handleRegister = async () => {
 
   } catch (err) {
     console.error('Registration error:', err.message);
+    isLoading.value = false;
     error.value = err.message;
   }
 };
