@@ -200,7 +200,10 @@ adminRouter.post('/edit-user', adminLimiter, verifyToken, requireAdmin, async (r
             fullName: updates.name,
             address: updates.location,
             role: updates.role,
-            deviceId: newDeviceId
+            deviceId: newDeviceId,
+            electricityProvider: updates.electricityProvider || 'veco',
+            subscriptionTier: updates.subscriptionTier || 'Free',
+            subscriptionStatus: updates.subscriptionStatus || 'Active'
         });
 
         // B. Handle Device Switching
@@ -213,12 +216,12 @@ adminRouter.post('/edit-user', adminLimiter, verifyToken, requireAdmin, async (r
             if (newDeviceId !== 'None') {
                 await db.collection('devices').doc(newDeviceId).update({
                     userId: uid,
-                    ownerName: updates.name,
+                    ownerName: updates.name, // This field marks it as SOLD in Sales Dashboard
                     location: updates.location
                 });
             }
         } else if (newDeviceId === 'None' && oldDeviceId && oldDeviceId !== 'None') {
-            // Just unassign
+            // Just unassign (Back to Inventory)
             await db.collection('devices').doc(oldDeviceId).update({ userId: null, ownerName: null });
         }
 
