@@ -328,4 +328,68 @@ adminRouter.post('/update-carbon-rate', adminLimiter, verifyToken, requireAdmin,
     }
 });
 
+// --- SALES & SUBSCRIPTION MANAGEMENT APIs ---
+
+// UPDATE INSTALLATION ORDER
+// adminRouter.post('/sales/update-order', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+//     try {
+//         const { orderId, status, details } = req.body;
+
+//         if (!orderId || !status) return res.status(400).json({ error: "Order ID and Status required." });
+
+//         const orderRef = db.collection('hardware_orders').doc(orderId);
+
+//         await orderRef.set({
+//             status: status,
+//             lastUpdated: FieldValue.serverTimestamp(),
+//             updatedBy: req.user.uid,
+//             ...details
+//         }, { merge: true });
+
+//         await db.collection('admin_audit_logs').add({
+//             action: 'UPDATE_ORDER',
+//             adminUid: req.user.uid,
+//             details: { orderId, status },
+//             timestamp: FieldValue.serverTimestamp()
+//         });
+
+//         res.json({ success: true, message: "Order updated successfully." });
+//     } catch (e) {
+//         console.error('Order Update Error:', e);
+//         res.status(500).json({ success: false, error: e.message });
+//     }
+// });
+
+// UPDATE SUBSCRIPTION TIER (Manual Override)
+adminRouter.post('/sales/update-subscription', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { targetUid, tier, status, notes } = req.body;
+
+        const userRef = db.collection('artifacts').doc('default-app-id')
+            .collection('users').doc(targetUid)
+            .collection('userProfile').doc('profile');
+
+        await userRef.update({
+            subscriptionTier: tier,
+            subscriptionStatus: status,
+            subscriptionNotes: notes || '',
+            lastSubscriptionUpdate: FieldValue.serverTimestamp()
+        });
+
+        await db.collection('admin_audit_logs').add({
+            action: 'OVERRIDE_SUBSCRIPTION',
+            adminUid: req.user.uid,
+            targetUid: targetUid,
+            details: { tier, status },
+            timestamp: FieldValue.serverTimestamp()
+        });
+
+        res.json({ success: true, message: "Subscription updated." });
+
+    } catch (e) {
+        console.error('Subscription Update Error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 export { adminRouter };
