@@ -2,13 +2,13 @@
   <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <UserHeader class="print:hidden" />
 
-    <div class="flex flex-col md:flex-row justify-between items-end gap-4 p-4 md:p-8 pb-0">
+    <div class="flex flex-col md:flex-row justify-between items-end gap-4 pb-0">
       <Heading
         title="Solar Generation"
         subtitle="Monitor your solar energy production and independence"
       />
       
-      <div class="flex gap-2 print:hidden md:mr-8">
+      <div class="flex gap-2 print:hidden md:mr-4">
         <!-- Time Filters -->
         <div class="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
           <div class="flex flex-wrap gap-1">
