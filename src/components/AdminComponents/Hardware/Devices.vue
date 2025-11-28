@@ -1,5 +1,5 @@
 <template>
-  <div class="m-4 sm:m-5 lg:m-10 font-poppins dark:bg-gray-900">
+  <div class="m-4 sm:m-5 lg:m-8 font-poppins dark:bg-gray-900">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
       <div class="relative w-full md:w-full">
         <input v-model="searchTerm" type="text" placeholder="Search Devices..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white">

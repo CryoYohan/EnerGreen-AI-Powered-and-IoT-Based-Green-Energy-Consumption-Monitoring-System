@@ -42,7 +42,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import Rankings from '@/components/ReusableComponents/Rankings.vue';
+import Rankings from '@/components/ReusableComponents/SystemHealth.vue';
 
 const props = defineProps({
   users: { type: Array, default: () => [] }

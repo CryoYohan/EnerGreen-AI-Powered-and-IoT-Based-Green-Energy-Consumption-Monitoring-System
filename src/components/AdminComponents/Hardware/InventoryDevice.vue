@@ -1,5 +1,5 @@
 <template>
-  <div class="grid m-4 sm:m-5 lg:m-10 grid-cols-1 md:grid-cols-2 gap-6 font-poppins dark:bg-gray-900">
+  <div class="grid m-4 sm:m-5 lg:m-8 grid-cols-1 md:grid-cols-2 gap-6 font-poppins dark:bg-gray-900">
     
     <!-- Inventory Overview -->
     <div class="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
