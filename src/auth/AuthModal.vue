@@ -1,262 +1,237 @@
 <template>
   <transition
-  enter-active-class="transition-opacity duration-300 ease-out"
-  enter-from-class="opacity-0"
-  enter-to-class="opacity-100"
-  leave-active-class="transition-opacity duration-200 ease-in"
-  leave-from-class="opacity-100"
-  leave-to-class="opacity-0"
->
-  <!-- Modal Backdrop -->
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
-    @click.self="closeModal">
-    <!-- Modal Container -->
-    <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-200">
-      <div class="text-center text-white">
-        <div
-          class="w-16 h-16 border-4 border-t-4 border-white border-solid rounded-full animate-spin border-t-transparent">
-        </div>
-        <p class="mt-4 text-lg font-semibold">Logging in...</p>
-      </div>
-    </div>
-    <div class="flex w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden">
-      <!-- Left Side: Welcome -->
-      <div class="relative flex-col justify-center hidden w-1/2 md:flex">
-        <img src="/src/Images/background/loginbg.png" alt="Background"
-          class="absolute inset-0 object-cover w-full h-full opacity-70">
-        <div class="relative z-10 p-8 text-black">
-          <div class="flex items-center mb-6">
-            <img src="/src/Images/logo/energreen-logo.svg" alt="EnerGreen Logo" class="w-12 h-12 mr-3">
-            <h2 class="text-3xl font-bold"><span class="text-[#059669]">Ener</span>Green</h2>
+    enter-active-class="transition-opacity duration-300 ease-out"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition-opacity duration-200 ease-in"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+      @click.self="closeModal">
+      <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-200">
+        <div class="text-center text-white">
+          <div
+            class="w-16 h-16 border-4 border-t-4 border-white border-solid rounded-full animate-spin border-t-transparent">
           </div>
-          <h3 class="mb-4 text-2xl font-bold">Welcome to EnerGreen!</h3>
-          <p class="text-base leading-relaxed">Register now to start tracking your energy and make a difference.</p>
+          <p class="mt-4 text-lg font-semibold">Loading...</p>
         </div>
       </div>
-
-      <!-- Right Side: Content Switch -->
-      <div class="w-full md:w-1/2 bg-[#059669] dark:bg-[#0D2535] p-8 flex flex-col justify-center text-white">
-        <div class="flex items-center justify-between mb-8">
-          <!-- Centered header for Verify Email -->
-          <div class="w-full text-center" v-if="isVerifyingEmail">
-            <h3 class="text-3xl font-bold">Verify Email</h3>
-          </div>
-
-          <!-- Centered header for Success State -->
-          <div class="w-full text-center" v-else-if="isEmailVerifiedSuccess || isPasswordResetSuccess">
-            <h3 class="text-3xl font-bold">Success!</h3>
-          </div>
-
-          <!-- Centered header for Password Recovery -->
-          <div class="w-full text-center" v-else-if="isForgotPasswordMode">
-            <h3 class="text-3xl font-bold">Password Recovery</h3>
-          </div>
-
-          <!-- Fallback for other modes -->
-          <div class="flex items-center justify-between" v-else>
-            <h3 class="text-3xl font-bold">{{ isLoginMode ? 'Log in Account' : 'Create Account' }}</h3>
+      <div class="flex w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden">
+        <div class="relative flex-col justify-center hidden w-1/2 md:flex">
+          <img src="/src/Images/background/loginbg.png" alt="Background"
+            class="absolute inset-0 object-cover w-full h-full opacity-70">
+          <div class="relative z-10 p-8 text-black">
+            <div class="flex items-center mb-6">
+              <img src="/src/Images/logo/energreen-logo.svg" alt="EnerGreen Logo" class="w-12 h-12 mr-3">
+              <h2 class="text-3xl font-bold"><span class="text-[#059669]">Ener</span>Green</h2>
+            </div>
+            <h3 class="mb-4 text-2xl font-bold">Welcome to EnerGreen!</h3>
+            <p class="text-base leading-relaxed">Register now to start tracking your energy and make a difference.</p>
           </div>
         </div>
 
-        <!-- Verification Success State -->
-        <template v-if="isEmailVerifiedSuccess">
-          <div class="flex flex-col items-center text-center">
-            <!-- Checkmark Animation -->
-            <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
-              <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-              <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-            </svg>
-            <p class="mb-4 text-gray-200 text-lg">Your email has been successfully verified!</p>
-            <p class="mb-6 text-gray-200">You can now log in with your new account.</p>
-            <button @click="switchToLogin"
-              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
-              Go to Login
-            </button>
+        <div class="w-full md:w-1/2 bg-[#059669] dark:bg-[#0D2535] p-8 flex flex-col justify-center text-white">
+          <div class="flex items-center justify-between mb-8">
+            <div class="w-full text-center" v-if="isVerifyingEmail">
+              <h3 class="text-3xl font-bold">Verify Email</h3>
+            </div>
+
+            <div class="w-full text-center" v-else-if="isEmailVerifiedSuccess || isPasswordResetSuccess">
+              <h3 class="text-3xl font-bold">Success!</h3>
+            </div>
+
+            <div class="w-full text-center" v-else-if="isForgotPasswordMode">
+              <h3 class="text-3xl font-bold">Password Recovery</h3>
+            </div>
+
+            <div class="flex items-center justify-between" v-else>
+              <h3 class="text-3xl font-bold">{{ isLoginMode ? 'Log in Account' : 'Create Account' }}</h3>
+            </div>
           </div>
-        </template>
 
-        <!-- Email Verification State (before success) -->
-        <template v-else-if="isVerifyingEmail">
-          <img class="self-center w-40 h-20" src="/src/Images/icons/mail.svg" alt="mail">
-          <p class="mb-6 text-center text-gray-200">
-            Email verification has been sent to <span class="font-bold">{{ maskedEmail }}</span>.
-          </p>
-          <div class="flex justify-center mb-6 space-x-2">
-            <p>Verification link has been sent to your email.</p>
-          </div>
-          <button type="button" @click="handleResendVerification" :disabled="isResendDisabled"
-            class="w-full py-2 mt-2 font-bold transition rounded-md"
-            :class="{ 'bg-gray-400 text-gray-700 cursor-not-allowed': isResendDisabled, 'bg-white text-black hover:bg-gray-200': !isResendDisabled }">
-            {{ isResendDisabled ? `Resend in ${resendTimer}s` : 'Resend Verification Email' }}
-          </button>
-        </template>
-
-        <!-- New: Password Recovery Success State -->
-        <template v-else-if="isForgotPasswordMode && isPasswordResetSuccess">
-          <div class="flex flex-col items-center text-center">
-            <!-- Checkmark Animation -->
-            <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
-              <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-              <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-            </svg>
-            <p class="mb-4 text-gray-200 text-lg">Password reset link sent!</p>
-            <p class="mb-6 text-gray-200">Check your email and sign in with your new password.</p>
-            <button @click="switchToLogin"
-              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
-              Go to Login
-            </button>
-          </div>
-        </template>
-
-        <!-- Password Recovery Form -->
-        <template v-else-if="isForgotPasswordMode">
-          <p class="mb-6 text-gray-200">
-            Enter your email to receive a password reset link.
-          </p>
-          <form @submit.prevent="handleForgotPassword">
-            <div class="mb-2">
-              <label class="block text-white">Email</label>
-              <input type="email" v-model="email" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-            </div>
-            <button type="submit" :disabled="passwordResetCountdown > 0"
-              class="w-full py-2 mt-2 font-bold text-black transition rounded-lg" :class="{
-                'bg-white hover:bg-gray-200': passwordResetCountdown === 0,
-                'bg-gray-400 cursor-not-allowed text-gray-700': passwordResetCountdown > 0
-              }">
-              <span v-if="passwordResetCountdown === 0">Send Reset Link</span>
-              <span v-else>Resend in {{ passwordResetCountdown }}s</span>
-            </button>
-            <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
-              {{ error }}
-            </div>
-          </form>
-          <div class="mt-6 text-center">
-            <button @click="switchToLogin" class="text-white hover:underline">
-              Back to Login
-            </button>
-          </div>
-        </template>
-
-        <!-- Login/Register Forms -->
-        <template v-else>
-          <p class="mb-6 text-gray-200">Please fill in your information below</p>
-          <form @submit.prevent="isLoginMode ? handleLogin() : handleRegister()">
-            <div v-if="!isLoginMode" class="mb-2">
-              <label class="block text-white">Full Name</label>
-              <input type="text" v-model="fullName" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-            </div>
-            <div class="mb-2">
-              <label class="block text-white">Email</label>
-              <input type="email" v-model="email" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-            </div>
-            <div v-if="!isLoginMode" class="mb-2">
-              <label class="block text-white">Phone Number</label>
-              <input type="tel" v-model="phoneNumber" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-            </div>
-            <div v-if="!isLoginMode" class="mb-2">
-              <label class="block text-white">Address</label>
-              <input type="text" v-model="address" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-            </div>
-            <div v-if="!isLoginMode" class="mb-2">
-              <label class="block text-white">Device ID</label>
-              <input type="text" v-model="deviceId" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-            </div>
-            <div class="mb-4 relative">
-              <label for="password" class="block text-gray-300 mb-1">Password</label>
-
-              <!-- Input with toggle -->
-              <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-
-              <!-- Toggle button -->
-              <button type="button" @click="showPassword = !showPassword"
-                class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
-                <!-- Eye open -->
-                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
-                      8.268 2.943 9.542 7-1.274 4.057-5.064 
-                      7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-
-                <!-- Eye with slash -->
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
-                      0-8.268-2.943-9.542-7a9.956 9.956 
-                      0 012.38-3.882m3.184-2.3A9.956 9.956 
-                      0 0112 5c4.478 0 8.268 2.943 
-                      9.542 7a9.956 9.956 0 01-4.338 
-                      5.223M15 12a3 3 0 11-6 0 3 3 
-                      0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
-                </svg>
+          <template v-if="isEmailVerifiedSuccess">
+            <div class="flex flex-col items-center text-center">
+              <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
+                <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
+                <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+              </svg>
+              <p class="mb-4 text-gray-200 text-lg">Your email has been successfully verified!</p>
+              <p class="mb-6 text-gray-200">You can now log in with your new account.</p>
+              <button @click="switchToLogin"
+                class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
+                Go to Login
               </button>
             </div>
+          </template>
 
-            <div v-if="!isLoginMode" class="mb-2 relative">
-              <label for="confirmPassword" class="block text-white mb-1">Confirm Password</label>
-              <input :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" v-model="confirmPassword" required
-                class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+          <template v-else-if="isVerifyingEmail">
+            <img class="self-center w-40 h-20" src="/src/Images/icons/mail.svg" alt="mail">
+            <p class="mb-6 text-center text-gray-200">
+              Email verification has been sent to <span class="font-bold">{{ maskedEmail }}</span>.
+            </p>
+            <div class="flex justify-center mb-6 space-x-2">
+              <p>Verification link has been sent to your email.</p>
+            </div>
+            <button type="button" @click="handleResendVerification" :disabled="isResendDisabled"
+              class="w-full py-2 mt-2 font-bold transition rounded-md"
+              :class="{ 'bg-gray-400 text-gray-700 cursor-not-allowed': isResendDisabled, 'bg-white text-black hover:bg-gray-200': !isResendDisabled }">
+              {{ isResendDisabled ? `Resend in ${resendTimer}s` : 'Resend Verification Email' }}
+            </button>
+          </template>
 
-              <!-- Toggle button for confirm password -->
-              <button type="button" @click="showConfirmPassword = !showConfirmPassword"
-                class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
-                <!-- Eye open -->
-                <svg v-if="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 
-                      8.268 2.943 9.542 7-1.274 4.057-5.064 
-                      7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-
-                <!-- Eye with slash -->
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 
-                      0-8.268-2.943-9.542-7a9.956 9.956 
-                      0 012.38-3.882m3.184-2.3A9.956 9.956 
-                      0 0112 5c4.478 0 8.268 2.943 
-                      9.542 7a9.956 9.956 0 01-4.338 
-                      5.223M15 12a3 3 0 11-6 0 3 3 
-                      0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
-                </svg>
+          <template v-else-if="isForgotPasswordMode && isPasswordResetSuccess">
+            <div class="flex flex-col items-center text-center">
+              <svg class="checkmark mb-4 w-20 h-20 text-white" viewBox="0 0 52 52">
+                <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
+                <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+              </svg>
+              <p class="mb-4 text-gray-200 text-lg">Password reset link sent!</p>
+              <p class="mb-6 text-gray-200">Check your email and sign in with your new password.</p>
+              <button @click="switchToLogin"
+                class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
+                Go to Login
               </button>
             </div>
-            <button type="submit"
-              class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
-              {{ isLoginMode ? 'Log in' : 'Sign up' }}
-            </button>
-            <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
-              {{ error }}
+          </template>
+
+          <template v-else-if="isForgotPasswordMode">
+            <p class="mb-6 text-gray-200">
+              Enter your email to receive a password reset link.
+            </p>
+            <form @submit.prevent="handleForgotPassword">
+              <div class="mb-2">
+                <label class="block text-white">Email</label>
+                <input type="email" v-model="email" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+              </div>
+              <button type="submit" :disabled="passwordResetCountdown > 0"
+                class="w-full py-2 mt-2 font-bold text-black transition rounded-lg" :class="{
+                  'bg-white hover:bg-gray-200': passwordResetCountdown === 0,
+                  'bg-gray-400 cursor-not-allowed text-gray-700': passwordResetCountdown > 0
+                }">
+                <span v-if="passwordResetCountdown === 0">Send Reset Link</span>
+                <span v-else>Resend in {{ passwordResetCountdown }}s</span>
+              </button>
+              <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
+                {{ error }}
+              </div>
+            </form>
+            <div class="mt-6 text-center">
+              <button @click="switchToLogin" class="text-white hover:underline">
+                Back to Login
+              </button>
             </div>
-          </form>
-          <div class="mt-6 text-center">
-            <button @click="toggleMode" class="text-white hover:underline">
-              {{ isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Log in" }}
-            </button>
-          </div>
-          <!-- New: Forgot password button -->
-          <div v-if="isLoginMode" class="mt-2 text-center">
-            <button @click="toggleToForgotPassword" class="text-white hover:underline text-sm">
-              Forgot Password?
-            </button>
-          </div>
-        </template>
+          </template>
+
+          <template v-else>
+            <p class="mb-6 text-gray-200">Please fill in your information below</p>
+            <form @submit.prevent="isLoginMode ? handleLogin() : handleRegister()">
+              <div v-if="!isLoginMode" class="mb-2">
+                <label class="block text-white">Full Name</label>
+                <input type="text" v-model="fullName" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+              </div>
+              <div class="mb-2">
+                <label class="block text-white">Email</label>
+                <input type="email" v-model="email" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+              </div>
+              <div v-if="!isLoginMode" class="mb-2">
+                <label class="block text-white">Phone Number</label>
+                <input type="tel" v-model="phoneNumber" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+              </div>
+              <div v-if="!isLoginMode" class="mb-2">
+                <label class="block text-white">Address</label>
+                <input type="text" v-model="address" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+              </div>
+
+              <div v-if="!isLoginMode" class="mb-2">
+                <label class="block text-white">Electricity Provider</label>
+                <select v-model="electricityProvider" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                  <option value="" disabled>Select your provider</option>
+                  <option value="Veco">Veco</option>
+                  <option value="Cebeco">Cebeco</option>
+                </select>
+              </div>
+
+              <div v-if="!isLoginMode" class="mb-2">
+                <label class="block text-white">Device ID (optional)</label>
+                <input type="text" v-model="deviceId"
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                <p v-if="deviceError" class="text-sm text-yellow-300 mt-1">{{ deviceError }}</p>
+              </div>
+              <div class="mb-4 relative">
+                <label for="password" class="block text-gray-300 mb-1">Password</label>
+
+                <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+
+                <p v-if="!isLoginMode && passwordError" class="text-sm text-yellow-300 mt-1">{{ passwordError }}</p>
+
+                <button type="button" @click="showPassword = !showPassword"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none"
+                  :class="{'top-[1.5rem]': !isLoginMode && passwordError, 'top-6': !passwordError}">
+                  <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.38-3.882m3.184-2.3A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.338 5.223M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                  </svg>
+                </button>
+              </div>
+
+              <div v-if="!isLoginMode" class="mb-2 relative">
+                <label for="confirmPassword" class="block text-white mb-1">Confirm Password</label>
+                <input :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" v-model="confirmPassword" required
+                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+
+                <button type="button" @click="showConfirmPassword = !showConfirmPassword"
+                  class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
+                  <svg v-if="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.38-3.882m3.184-2.3A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.338 5.223M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                  </svg>
+                </button>
+              </div>
+              <button type="submit"
+                class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
+                {{ isLoginMode ? 'Log in' : 'Sign up' }}
+              </button>
+              <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
+                {{ error }}
+              </div>
+            </form>
+            <div class="mt-6 text-center">
+              <button @click="toggleMode" class="text-white hover:underline">
+                {{ isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Log in" }}
+              </button>
+            </div>
+            <div v-if="isLoginMode" class="mt-2 text-center">
+              <button @click="toggleToForgotPassword" class="text-white hover:underline text-sm">
+                Forgot Password?
+              </button>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
-  </div>
-</transition>
-
+  </transition>
 </template>
 
 <script setup>
@@ -268,9 +243,9 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
-  
 } from '../firebase.js';
-import { db, doc, setDoc, getDoc } from '../firebase.js';
+// NOTE: Added collectionGroup for querying subcollections across users
+import { db, doc, setDoc, getDoc, query, collection, where, getDocs, collectionGroup } from '../firebase.js'; 
 
 // The global app ID and Firestore config are provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -302,9 +277,12 @@ const email = ref('');
 const phoneNumber = ref('');
 const address = ref('');
 const deviceId = ref('');
+const electricityProvider = ref(''); // NEW: State for Electricity Provider
 const password = ref('');
 const confirmPassword = ref('');
 const error = ref('');
+const passwordError = ref(''); 
+const deviceError = ref(''); 
 
 // State for resend button and timer
 const isResendDisabled = ref(false);
@@ -335,6 +313,65 @@ watch(() => props.isOpen, (newVal) => {
   }
 });
 
+// --- UPDATED: Device ID Validation Logic ---
+const checkDeviceIDExists = async (id) => {
+    // NOTE: This requires a Firestore index on the 'profile' collection group.
+    // The path is 'artifacts/{appId}/users/{userId}/userProfile/profile'
+    try {
+        // Create a query to search the 'profile' collection group for the Device ID.
+        // The path structure is assumed to be `.../users/{userId}/userProfile/profile`.
+        // We use collectionGroup('profile') and filter by the 'deviceId' field.
+        
+        // This query specifically looks for documents where the 'deviceId' field
+        // is NOT an empty string and matches the input 'id'.
+        const profilesRef = collectionGroup(db, 'profile'); 
+        const q = query(
+            profilesRef, 
+            where('deviceId', '==', id)
+        );
+
+        const querySnapshot = await getDocs(q);
+        
+        // If the snapshot is not empty, a user with this Device ID already exists.
+        return { exists: !querySnapshot.empty };
+    } catch (e) {
+        console.error("Error checking device ID existence:", e);
+        // Treat an error as non-existence or handle specifically based on policy
+        return { exists: false };
+    }
+};
+// --- END UPDATED DEVICE ID VALIDATION ---
+
+// --- Password Validation Logic (Unchanged) ---
+const passwordValidator = (pass) => {
+  // Reset previous error
+  passwordError.value = '';
+  // RegEx checks (length, uppercase, lowercase, number, special character)
+  if (pass.length < 8) {
+    passwordError.value = "Password must be at least 8 characters long.";
+    return false;
+  }
+  if (!/(?=.*[A-Z])/.test(pass)) {
+    passwordError.value = "Password must contain at least one uppercase letter.";
+    return false;
+  }
+  if (!/(?=.*[a-z])/.test(pass)) {
+    passwordError.value = "Password must contain at least one lowercase letter.";
+    return false;
+  }
+  if (!/(?=.*\d)/.test(pass)) {
+    passwordError.value = "Password must contain at least one number.";
+    return false;
+  }
+  if (!/(?=.*[^a-zA-Z0-9])/.test(pass)) {
+    passwordError.value = "Must contain at least one special character (e.g., !@#$%^&*).";
+    return false;
+  }
+  return true;
+};
+// --- END PASSWORD VALIDATION ---
+
+
 // --- Component Methods ---
 const closeModal = () => {
   emit('close');
@@ -364,6 +401,8 @@ const toggleToForgotPassword = () => {
 
 const resetForm = () => {
   error.value = '';
+  passwordError.value = ''; 
+  deviceError.value = ''; 
   email.value = '';
   password.value = '';
   confirmPassword.value = '';
@@ -371,6 +410,7 @@ const resetForm = () => {
   phoneNumber.value = '';
   address.value = '';
   deviceId.value = '';
+  electricityProvider.value = ''; // NEW: Reset provider field
   isVerifyingEmail.value = false;
   isEmailVerifiedSuccess.value = false;
   isPasswordResetSuccess.value = false;
@@ -453,33 +493,65 @@ const handleLogin = async () => {
 
 const handleRegister = async () => {
   error.value = '';
+  passwordError.value = ''; 
+  deviceError.value = ''; 
+
+  // 1. Password Validation Check
+  if (!passwordValidator(password.value)) {
+    return; 
+  }
+
+  // 2. Password Match Check
   if (password.value !== confirmPassword.value) {
     error.value = "Passwords don't match!";
     return;
   }
+  
+  // 3. Device ID Check (if provided)
+  const trimmedDeviceId = deviceId.value.trim();
+  if (trimmedDeviceId) {
+      isLoading.value = true;
+      const deviceCheck = await checkDeviceIDExists(trimmedDeviceId);
+      isLoading.value = false;
+      
+      if (deviceCheck.exists) {
+          // Error: Device ID found, meaning it's already registered.
+          deviceError.value = "Device ID already registered to an account.";
+          return;
+      }
+  }
+
+  // 4. Electricity Provider Check (Required, based on template 'required' attribute)
+  if (!electricityProvider.value) {
+    error.value = "Please select an Electricity Provider.";
+    return;
+  }
 
   try {
+    isLoading.value = true;
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
     const defaultRole = "user"; // Default role
     const defaultStatus = "active"; // Default status
 
-    // Create a new document in Firestore with user profile data, including the device ID
+    // Create a new document in Firestore with user profile data, including the device ID and provider
     await setDoc(doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`), {
       fullName: fullName.value,
       email: email.value,
       phoneNumber: phoneNumber.value,
       address: address.value,
-      deviceId: deviceId.value, // Save the device ID
+      deviceId: trimmedDeviceId, // Save the trimmed (or empty) device ID
+      electricityProvider: electricityProvider.value, // NEW: Save the electricity provider
       role: defaultRole,
       status: defaultStatus,
     });
-    console.log('User profile and device ID data saved to Firestore.');
+    console.log('User profile and data saved to Firestore.');
 
     // Immediately send a verification email
     await sendEmailVerification(userCredential.user);
 
     console.log('Successfully registered and verification email sent.');
+    isLoading.value = false;
     isVerifyingEmail.value = true;
     startResendTimer();
 
@@ -489,6 +561,7 @@ const handleRegister = async () => {
 
   } catch (err) {
     console.error('Registration error:', err.message);
+    isLoading.value = false;
     error.value = err.message;
   }
 };
