@@ -43,4 +43,41 @@ publicRouter.post('/check-device', async (req, res) => {
     }
 });
 
+// CLAIM ENDPOINT
+// Call this AFTER registration is successful
+publicRouter.post('/claim-device', async (req, res) => {
+    const { deviceId, userId, fullName } = req.body;
+
+    const cleanDeviceId = deviceId ? deviceId.trim() : null;
+
+    if (!cleanDeviceId || !userId || !fullName) {
+        return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    try {
+        const docRef = db.collection('devices').doc(cleanDeviceId);
+
+        // Double check it hasn't been taken in the last few seconds
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+            const data = docSnap.data();
+            if (data.userId) {
+                return res.status(409).json({ error: "Device was just claimed by someone else." });
+            }
+        }
+
+        // Update the Device Document
+        await docRef.update({
+            userId: userId,
+            ownerName: fullName,
+        });
+
+        return res.json({ success: true, message: "Device successfully linked to user." });
+
+    } catch (e) {
+        console.error("Claim device error:", e);
+        res.status(500).json({ error: "Failed to link device." });
+    }
+});
+
 export { publicRouter };
