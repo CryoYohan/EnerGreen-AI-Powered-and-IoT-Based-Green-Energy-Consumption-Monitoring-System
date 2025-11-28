@@ -2,27 +2,58 @@
   <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <UserHeader />
 
-    <div class=" flex flex-col md:flex-row justify-between items-end gap-4">
+     <div class="flex flex-col md:flex-row justify-between items-end gap-4">
       <Heading
         title="Solar Generation"
         subtitle="Monitor your solar energy production and independence"
       />
       
-      <div class="bg-white dark:bg-gray-800 p-1 md:mr-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-        <div class="flex flex-wrap gap-1">
+      <div class="flex gap-2 print:hidden md:mr-8">
+        <!-- Time Filters -->
+        <div class="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div class="flex flex-wrap gap-1">
+            <button 
+              v-for="filter in timeFilters" 
+              :key="filter"
+              @click="activeFilter = filter"
+              :class="[
+                'px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200',
+                activeFilter === filter 
+                  ? 'bg-yellow-500 text-white shadow-sm' 
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ]"
+            >
+              {{ filter }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Export Dropdown -->
+        <div class="relative">
           <button 
-            v-for="filter in timeFilters" 
-            :key="filter"
-            @click="activeFilter = filter"
-            :class="[
-              'px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200',
-              activeFilter === filter 
-                ? 'bg-yellow-500 text-white shadow-sm' 
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            ]"
+            @click="showExportMenu = !showExportMenu"
+            class="h-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-sm text-gray-700 dark:text-gray-200 font-medium text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            {{ filter }}
+            <ArrowDownTrayIcon class="w-4 h-4" />
+            <span class="hidden sm:inline">Export</span>
           </button>
+
+          <!-- Dropdown Menu -->
+          <div 
+            v-if="showExportMenu" 
+            class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden"
+            @mouseleave="showExportMenu = false"
+          >
+            <button @click="exportCSV" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+              <span class="font-bold text-green-600">CSV</span> Data Spreadsheet
+            </button>
+            <button @click="exportWord" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700">
+              <span class="font-bold text-blue-600">Word</span> Report Doc
+            </button>
+            <button @click="exportPDF" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700">
+              <span class="font-bold text-red-600">PDF</span> Print View
+            </button>
+          </div>
         </div>
       </div>
     </div>
