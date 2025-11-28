@@ -1,5 +1,5 @@
 <template>
-  <div class="m-4 sm:m-5 lg:m-10 font-poppins dark:bg-gray-900 dark:text-gray-100">
+  <div class="m-4 sm:m-5 lg:m-8 font-poppins dark:bg-gray-900 dark:text-gray-100">
     
     <!-- Filters & Search -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">

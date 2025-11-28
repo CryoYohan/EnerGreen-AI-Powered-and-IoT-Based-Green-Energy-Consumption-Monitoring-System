@@ -64,8 +64,8 @@
                <li>
                 <button
                   @click="navigateTo('RatesManagement')"
-                  :class="[
-                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                 :class="[
+                    'py-2 transition-colors duration-200',
                     $route.name === 'RatesManagement'
                       ? 'text-green-600 dark:text-green-500'
                       : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
@@ -237,7 +237,7 @@
                 <button
                   @click="navigateTo('RatesManagement')"
                   :class="[
-                    'py-2 transition-colors duration-200',
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
                     $route.name === 'RatesManagement' 
                       ? 'text-green-600 dark:text-green-500' 
                       : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
