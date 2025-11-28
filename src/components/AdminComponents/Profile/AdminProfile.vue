@@ -208,8 +208,9 @@
 
 <script>
 import { onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// REMOVED: updateDoc from firestore, retained only read-only hooks
+import { doc, onSnapshot } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db } from "../../../firebase.js";
 
 export default {
@@ -229,7 +230,6 @@ export default {
       confirmNewPassword: "",
       passwordError: "",
       initialState: {},
-      // Added Password visibility states
       showCurrentPassword: false,
       showNewPassword: false,
       showConfirmNewPassword: false
@@ -258,7 +258,7 @@ export default {
       const adminId = auth.currentUser?.uid;
       if (!adminId) return;
 
-      // 🔐 Handle password update
+      // 🔐 1. Handle password update (Client SDK - Secure)
       if (this.currentPassword || this.newPassword || this.confirmNewPassword) {
         if (!this.currentPassword || !this.newPassword || !this.confirmNewPassword) {
           this.passwordError = "Fill in all password fields.";
@@ -283,27 +283,54 @@ export default {
       }
 
       const updatedFullName = `${this.firstName} ${this.lastName}`.trim();
-      const updatedData = {
+      
+      // 📦 2. Prepare Payload
+      const payload = {
+        appId: appId,
         fullName: updatedFullName,
         phoneNumber: this.phoneNumber,
         address: this.address
       };
 
       try {
+        // 📸 3. Handle Photo Upload (Client Storage - Secure)
         if (this.photoFile) {
           const storage = getStorage();
-          const storageRef = ref(storage, `profile_pictures/${adminId}/${this.photoFile.name}`);
-          await uploadBytes(storageRef, this.photoFile);
-          updatedData.photoURL = await getDownloadURL(storageRef);
+          const sRef = storageRef(storage, `profile_pictures/${adminId}/${this.photoFile.name}`);
+          await uploadBytes(sRef, this.photoFile);
+          const photoURL = await getDownloadURL(sRef);
+          
+          payload.photoURL = photoURL;
         }
 
-        const adminRef = doc(db, `artifacts/${appId}/users/${adminId}/userProfile/profile`);
-        await updateDoc(adminRef, updatedData);
+        // 🚀 4. Send to Secure Admin Backend
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch('/api/admin/update-profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
 
-        this.adminProfile = { ...this.adminProfile, ...updatedData };
-        this.initialState = { ...updatedData, photoURL: updatedData.photoURL || this.adminProfile.photoURL };
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to update profile via server.");
+        }
+
+        console.log("Admin Profile updated successfully via Server!");
+        
+        // Update local state (Snapshot listener will also catch this, but this is immediate)
+        this.adminProfile = { ...this.adminProfile, ...payload };
+        if (payload.photoURL) this.adminProfile.photoURL = payload.photoURL;
+
+        this.initialState = { ...this.adminProfile, photoURL: this.adminProfile.photoURL };
+
       } catch (err) {
         console.error("Error saving admin profile:", err);
+        alert("Failed to update profile: " + err.message);
       } finally {
         this.isSaving = false;
       }
@@ -317,7 +344,6 @@ export default {
       this.adminProfile.photoURL = this.initialState.photoURL;
       this.currentPassword = this.newPassword = this.confirmNewPassword = "";
       this.passwordError = "";
-      // 👁️ Reset password visibility states
       this.showCurrentPassword = false;
       this.showNewPassword = false;
       this.showConfirmNewPassword = false;
@@ -354,10 +380,9 @@ export default {
 </script>
 
 <style scoped>
-/* Custom focus styles for better accessibility, taken from the first file */
 input:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2); /* Use a shade of green for consistency */
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2); 
 }
 .dark input:focus {
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.5);
