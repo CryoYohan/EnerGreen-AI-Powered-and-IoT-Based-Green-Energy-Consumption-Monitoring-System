@@ -45,7 +45,8 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
-                    <img class="h-10 w-10 rounded-full object-cover" :src="user.photoURL || '/src/Images/profile/pfp.png'" />
+                    <!-- Correctly uses cloud fallback if user.photoURL is missing -->
+                    <img class="h-10 w-10 rounded-full object-cover" :src="user.photoURL || defaultProfilePicUrl" />
                   </div>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
@@ -78,7 +79,6 @@
                 <span :class="statusClasses(user.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ user.status }}</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <!-- ✅ FIX: Emit event directly to parent instead of opening local modal -->
                 <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="$emit('edit-user', user)">Edit</button>
                 
                 <button v-if="user.status && user.status.toLowerCase() === 'active'" 
@@ -106,7 +106,7 @@
       </div>
     </div>
 
-    <!-- Confirm Modal (Only for Suspend/Delete actions triggered locally) -->
+    <!-- Confirm Modal -->
     <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="showConfirmModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" @click.self="showConfirmModal = false">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm shadow-xl text-center">
@@ -130,7 +130,10 @@
 </template>
 
 <script setup>
-import { ref, computed, defineEmits } from "vue";
+import { ref, computed, defineEmits, onMounted } from "vue";
+import { getStorage, ref as storageRef, getDownloadURL } from "firebase/storage";
+import { auth } from "@/firebase.js";
+import { onAuthStateChanged } from "firebase/auth";
 
 const props = defineProps({ 
   users: { type: Array, required: true },
@@ -149,6 +152,27 @@ const selectedRole = ref("");
 const showConfirmModal = ref(false);
 const pendingAction = ref('');
 const confirmUser = ref({});
+const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png'); // Local fallback
+
+// --- Fetch Cloud Default PFP ---
+const fetchDefaultProfilePic = async () => {
+  try {
+    const storage = getStorage();
+    const pathReference = storageRef(storage, 'gs://energreen-ai-powered-iot-based.firebasestorage.app/profile_pictures/Default/pfp.png');
+    defaultProfilePicUrl.value = await getDownloadURL(pathReference);
+  } catch (error) {
+    // Silent fail to local fallback if something goes wrong to avoid console spam
+  }
+};
+
+onMounted(() => {
+  // Wait for Auth to be ready before fetching the image to avoid 403 errors
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      await fetchDefaultProfilePic();
+    }
+  });
+});
 
 const uniqueStatuses = computed(() => [...new Set(props.users.map(u => u.status || "Unknown"))]);
 
@@ -184,7 +208,6 @@ const statusClasses = (status) => {
   };
 };
 
-// Confirmation Logic (Local for simpler actions)
 const confirmAction = (action, user) => {
   pendingAction.value = action;
   confirmUser.value = user;
