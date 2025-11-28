@@ -394,7 +394,7 @@ adminRouter.post('/sales/update-subscription', adminLimiter, verifyToken, requir
 
 // 6. UPDATE ADMIN PROFILE (Self-Update)
 // Secure endpoint for admins to update their own profile details
-adminRouter.put('/update-profile', verifyToken, requireAdmin, async (req, res) => {
+adminRouter.put('/update-profile', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
     const uid = req.user.uid;
     // Added photoURL to destructuring
     const { fullName, phoneNumber, address, photoURL, appId } = req.body;
