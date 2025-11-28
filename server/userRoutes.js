@@ -18,6 +18,13 @@ const tipsLimiter = rateLimit({
     message: { success: false, error: "Too many tip generation requests. Please try again later." }
 });
 
+// Rate limiter for profile update endpoint
+const profileUpdateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // Limit to 10 profile updates per hour per IP
+    message: { success: false, error: "Too many profile updates from this IP, please try again later." }
+});
+
 // --- MIDDLEWARE ---
 const verifyToken = async (req, res, next) => {
     // 1. Try to get token from Custom Header (Production Fix)
@@ -146,7 +153,7 @@ userRouter.post('/generate-tips', tipsLimiter, verifyToken, async (req, res) => 
 });
 
 // 3. SECURE PROFILE UPDATE 
-userRouter.put('/update-profile', verifyToken, async (req, res) => {
+userRouter.put('/update-profile', profileUpdateLimiter, verifyToken, async (req, res) => {
     const uid = req.user.uid;
     // Added photoURL to destructuring
     const { fullName, phoneNumber, address, electricityProvider, photoURL, appId } = req.body;
