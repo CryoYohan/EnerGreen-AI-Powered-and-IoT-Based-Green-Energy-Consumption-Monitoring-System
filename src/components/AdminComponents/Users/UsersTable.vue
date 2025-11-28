@@ -45,7 +45,6 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
-                    <!-- Correctly uses cloud fallback if user.photoURL is missing -->
                     <img class="h-10 w-10 rounded-full object-cover" :src="user.photoURL || defaultProfilePicUrl" />
                   </div>
                   <div class="ml-4">
@@ -57,38 +56,37 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">
                 <span :class="user.role === 'admin' ? 'text-purple-600 font-bold' : 'text-gray-600 dark:text-gray-400'">{{ user.role }}</span>
               </td>
-              
-              <!-- Subscription Tier -->
               <td class="px-6 py-4 whitespace-nowrap">
-                <span 
-                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  :class="user.subscriptionTier === 'Premium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'"
-                >
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="user.subscriptionTier === 'Premium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'">
                   {{ user.subscriptionTier || 'Free' }}
                 </span>
               </td>
-
-              <!-- Electricity Provider -->
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 uppercase">
-                {{ user.electricityProvider || 'veco' }}
-              </td>
-
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 uppercase">{{ user.electricityProvider || 'veco' }}</td>
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.location }}</td>
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 font-mono">{{ user.smartMeterID }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="statusClasses(user.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ user.status }}</span>
               </td>
+              
+              <!-- ✅ MODIFIED ACTIONS COLUMN -->
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="$emit('edit-user', user)">Edit</button>
-                
-                <button v-if="user.status && user.status.toLowerCase() === 'active'" 
-                        @click="confirmAction('suspend', user)" 
-                        class="text-amber-600 dark:text-amber-400 hover:underline mr-3">Suspend</button>
-                <button v-else 
-                        @click="confirmAction('enable', user)" 
-                        class="text-blue-600 dark:text-blue-400 hover:underline mr-3">Enable</button>
-                
-                <button @click="confirmAction('delete', user)" class="text-red-600 hover:underline">Delete</button>
+                <!-- If Deleted, show VIEW only -->
+                <div v-if="user.status && user.status.toLowerCase() === 'deleted'">
+                  <button class="text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer" @click="$emit('edit-user', user)">View</button>
+                </div>
+                <!-- Else show Edit/Suspend/Delete -->
+                <div v-else>
+                  <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="$emit('edit-user', user)">Edit</button>
+                  
+                  <button v-if="user.status && user.status.toLowerCase() === 'active'" 
+                          @click="confirmAction('suspend', user)" 
+                          class="text-amber-600 dark:text-amber-400 hover:underline mr-3">Suspend</button>
+                  <button v-else 
+                          @click="confirmAction('enable', user)" 
+                          class="text-blue-600 dark:text-blue-400 hover:underline mr-3">Enable</button>
+                  
+                  <button @click="confirmAction('delete', user)" class="text-red-600 hover:underline">Delete</button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -152,25 +150,19 @@ const selectedRole = ref("");
 const showConfirmModal = ref(false);
 const pendingAction = ref('');
 const confirmUser = ref({});
-const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png'); // Local fallback
+const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png'); 
 
-// --- Fetch Cloud Default PFP ---
 const fetchDefaultProfilePic = async () => {
   try {
     const storage = getStorage();
     const pathReference = storageRef(storage, 'gs://energreen-ai-powered-iot-based.firebasestorage.app/profile_pictures/Default/pfp.png');
     defaultProfilePicUrl.value = await getDownloadURL(pathReference);
-  } catch (error) {
-    // Silent fail to local fallback if something goes wrong to avoid console spam
-  }
+  } catch (error) { }
 };
 
 onMounted(() => {
-  // Wait for Auth to be ready before fetching the image to avoid 403 errors
   onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      await fetchDefaultProfilePic();
-    }
+    if (user) await fetchDefaultProfilePic();
   });
 });
 
