@@ -344,6 +344,25 @@ const validatePasswordRealtime = (pass) => {
 };
 // --- END REALTIME VALIDATOR ---
 
+// --- Claim Device Logic ---
+const claimDeviceOnServer = async (id, uid, name) => {
+    try {
+        await fetch('/api/public/claim-device', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                deviceId: id, 
+                userId: uid, 
+                fullName: name 
+            })
+        });
+        // We don't strictly need to wait for the response or block the UI 
+        // if it fails, as the user is already created, but it's good practice.
+    } catch (e) {
+        console.error("Failed to claim device on server:", e);
+        // Optional: You could show a toast warning here saying "Account created but device link failed"
+    }
+};
 
 // DEVICE VALIDATOR FROM PROXY
 const checkDeviceIDWithServer = async (id) => {
@@ -484,7 +503,7 @@ const handleRegister = async () => {
   passwordError.value = ''; 
   deviceError.value = ''; 
 
-  // 1. Password Check
+  // Password Check
   if (!validatePasswordRealtime(password.value)) {
     return; 
   }
@@ -493,13 +512,13 @@ const handleRegister = async () => {
     return;
   }
   
-  // 2. Electricity Provider Check
+  // Electricity Provider Check
   if (!electricityProvider.value) {
     error.value = "Please select an Electricity Provider.";
     return;
   }
 
-  // 3. Device ID Check (Async - via Server)
+  // Device ID Check (Async - via Server)
   const trimmedDeviceId = deviceId.value.trim();
   
   try {
@@ -514,11 +533,11 @@ const handleRegister = async () => {
         }
     }
 
-    // 4. Create Authentication
+    // 1. Create Authentication
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
 
-    // 5. Create Profile in Firestore
+    // 2. Create Profile in Firestore
     await setDoc(doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`), {
       fullName: fullName.value,
       email: email.value,
@@ -530,6 +549,12 @@ const handleRegister = async () => {
       status: "active",
     });
 
+    // 3. NEW: Claim the Device in the Devices Collection
+    if (trimmedDeviceId) {
+        await claimDeviceOnServer(trimmedDeviceId, userId, fullName.value);
+    }
+
+    // 4. Send Verification
     await sendEmailVerification(userCredential.user);
 
     isLoading.value = false;
