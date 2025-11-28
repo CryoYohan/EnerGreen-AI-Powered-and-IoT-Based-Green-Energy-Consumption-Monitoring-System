@@ -513,7 +513,6 @@ const handleLogin = async () => {
         // Fallback for other errors
         error.value = "Login failed. Please try again.";
     }
-    error.value = err.message;
   }
 };
 
