@@ -1,332 +1,317 @@
 <template>
-    <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
-        <AdminHeader />
-        <Heading title="Subscription Management Dashboard"
-            subtitle="Monitor your key metrics and subscription performance" />
+  <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100 transition-colors duration-300">
+    <AdminHeader />
+    <Heading title="Sales & Subscriptions" subtitle="Monitor revenue from Hardware and Software" />
 
-        <!-- Key Performance Indicators -->
-        <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div v-for="(metric, index) in kpiMetrics" :key="index"
-                    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{{ metric.title }}</p>
-                            <p class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ metric.value }}</p>
-                            <div class="flex items-center">
-                                <span v-if="metric.trend"
-                                    :class="metric.trend.type === 'positive' ? 'text-green-600' : 'text-red-600'"
-                                    class="text-sm font-medium flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path v-if="metric.trend.type === 'positive'" fill-rule="evenodd"
-                                            d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
-                                            clip-rule="evenodd" />
-                                        <path v-else fill-rule="evenodd"
-                                            d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    {{ metric.trend.value }}
-                                </span>
-                                <span v-else class="text-sm text-gray-500 dark:text-gray-400">{{ metric.description
-                                    }}</span>
-                            </div>
-                        </div>
-                        <div class="p-3 rounded-lg" :class="metric.iconBg">
-                            <component :is="metric.icon" class="w-6 h-6" :class="metric.iconColor" />
-                        </div>
-                    </div>
+    <div class="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      
+      <!-- KPI Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div v-for="(metric, index) in computedKpiMetrics" :key="index" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ metric.title }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-2">{{ metric.value }}</p>
+            </div>
+            <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+               <component :is="metric.icon" class="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-4 flex items-center gap-1">
+            <component v-if="metric.trendIcon" :is="metric.trendIcon" class="w-3 h-3" :class="metric.trendColor" />
+            <span :class="metric.trendColor">{{ metric.trend }}</span>
+            {{ metric.description }}
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        <!-- LEFT: Sold Hardware Log (2/3 Width) -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-700/30">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900 dark:text-white">Sold Hardware</h3>
+                  <p class="text-xs text-gray-500">Devices with assigned owners</p>
+                </div>
+            </div>
+            
+            <!-- Inventory Status Overview -->
+            <div class="p-6 grid grid-cols-2 gap-4 text-center border-b border-gray-100 dark:border-gray-700">
+                <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-100 dark:border-emerald-800">
+                  <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ soldDevices.length }}</div>
+                  <div class="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1">Sold / Active</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-100 dark:border-gray-600">
+                  <div class="text-3xl font-bold text-gray-600 dark:text-gray-300">{{ inventoryDevices.length }}</div>
+                  <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">In Inventory</div>
                 </div>
             </div>
 
-            <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Left Column -->
-                <div class="space-y-8">
-                    <!-- Renewals & Expiries -->
-                    <div
-                        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Renewals & Expiries</h3>
+            <!-- Sold Device List -->
+            <div class="overflow-x-auto max-h-[500px] custom-scrollbar p-0">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-10">
+                  <tr>
+                    <th class="px-6 py-3 font-semibold">Device ID</th>
+                    <th class="px-6 py-3 font-semibold">Assigned Owner</th>
+                    <th class="px-6 py-3 font-semibold">Location</th>
+                    <th class="px-6 py-3 font-semibold text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                  <tr v-for="device in soldDevices" :key="device.deviceId" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td class="px-6 py-4 font-mono text-xs text-gray-500">{{ device.deviceId }}</td>
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                        <div class="flex items-center gap-2">
+                            <UserGroupIcon class="w-4 h-4 text-gray-400" />
+                            {{ device.ownerName }}
                         </div>
-                        <div class="p-6">
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead>
-                                        <tr class="border-b border-gray-200 dark:border-gray-700">
-                                            <th
-                                                class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                Customer</th>
-                                            <th
-                                                class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                Renewal Date</th>
-                                            <th
-                                                class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                Tier</th>
-                                            <th
-                                                class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="(renewal, index) in renewals" :key="index"
-                                            class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750">
-                                            <td class="py-3 text-sm text-gray-900 dark:text-white">{{ renewal.customer
-                                                }}</td>
-                                            <td class="py-3 text-sm text-gray-600 dark:text-gray-400">{{
-                                                renewal.renewalDate }}</td>
-                                            <td class="py-3 text-sm text-gray-600 dark:text-gray-400">{{ renewal.tier }}
-                                            </td>
-                                            <td class="py-3">
-                                                <span
-                                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                                    :class="getStatusClasses(renewal.status)">
-                                                    {{ renewal.status }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Gateway Status -->
-                    <div
-                        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div class="p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Gateway Status
-                            </h3>
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl font-bold text-gray-900 dark:text-white">98.5%</span>
-                                <span class="text-sm text-green-600 font-medium">+0.2%</span>
-                            </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Success rate (24h)</p>
-                            <div class="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div class="bg-green-600 h-2 rounded-full" style="width: 98.5%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="space-y-8">
-                    <!-- Installation Pipeline -->
-                    <div
-                        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Installation Pipeline</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Installation Pipeline (P4,999
-                                projects)</p>
-                        </div>
-                        <div class="p-6">
-                            <div class="grid grid-cols-4 gap-4 mb-6">
-                                <div v-for="(stage, index) in pipelineStages" :key="index" class="text-center">
-                                    <div class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ stage.count }}
-                                    </div>
-                                    <div class="text-xs text-gray-700 dark:text-gray-300 font-medium">{{ stage.label }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Installation
-                                        Revenue (LTM)</span>
-                                    <span class="text-lg font-bold text-gray-900 dark:text-white">P149,970</span>
-                                </div>
-                                <p class="text-xs text-gray-600 dark:text-gray-300">30 installations completed</p>
-                            </div>
-
-                            <!-- Installation Status -->
-                            <div>
-                                <h4 class="text-md font-semibold text-gray-900 dark:text-white mb-4">Installation Status
-                                </h4>
-                                <div class="space-y-3">
-                                    <div v-for="(installation, index) in installations" :key="index"
-                                        class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{
-                                                installation.customer }}</div>
-                                            <div class="text-xs text-gray-600 dark:text-gray-300">{{ installation.date
-                                                }}</div>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <span
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                                :class="getInstallationStatusClasses(installation.status)">
-                                                {{ installation.status }}
-                                            </span>
-                                            <button v-if="installation.status === 'Pending Invoice'"
-                                                class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
-                                                Generate Invoice
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pricing Override Log -->
-                    <div
-                        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pricing Override Log</h3>
-                        </div>
-                        <div class="p-6">
-                            <div class="space-y-4">
-                                <div v-for="(override, index) in pricingOverrides" :key="index"
-                                    class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{
-                                            override.customer }}</div>
-                                        <div class="text-xs text-gray-600 dark:text-gray-300">{{ override.reason }}
-                                        </div>
-                                    </div>
-                                    <button
-                                        class="px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
-                                        Adjust Subscription
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">{{ device.location || 'Unknown' }}</td>
+                    <td class="px-6 py-4 text-right">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold border bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+                        Sold
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="soldDevices.length === 0">
+                    <td colspan="4" class="px-6 py-12 text-center text-gray-500 flex flex-col items-center">
+                      <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-2">
+                          <ShoppingCartIcon class="w-6 h-6 text-gray-400" />
+                      </div>
+                      No devices have been sold yet.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
         </div>
 
-        <Footer />
+        <!-- RIGHT: Subscription Management (1/3 Width) -->
+        <!-- Fixed Layout: Flex column with gap to prevent overlapping -->
+        <div class="lg:col-span-1 flex flex-col gap-6 h-full">
+           
+           <!-- Active Subscriptions List -->
+           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col flex-1 min-h-[400px]">
+              <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30">
+                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">Premium Subscribers</h3>
+                 <p class="text-xs text-gray-500 mt-1">Users on paid tier (₱599/mo)</p>
+              </div>
+              
+              <div class="p-4 overflow-y-auto custom-scrollbar flex-1">
+                 <div class="space-y-3">
+                    <div v-for="sub in premiumUsers" :key="sub.userId" class="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-800 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-all group">
+                       <div class="flex items-center gap-3 overflow-hidden">
+                          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+                            {{ (sub.name && sub.name.length > 0) ? sub.name.charAt(0).toUpperCase() : 'U' }}
+                          </div>
+                          <div class="min-w-0">
+                             <p class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate">{{ sub.name }}</p>
+                             <p class="text-[11px] text-gray-500 truncate">{{ sub.email }}</p>
+                          </div>
+                       </div>
+                       <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                           <span class="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">PREMIUM</span>
+                           <button @click="openSubModal(sub)" class="text-xs text-gray-400 hover:text-blue-600 underline decoration-blue-300 underline-offset-2">Manage</button>
+                       </div>
+                    </div>
+                    
+                    <div v-if="premiumUsers.length === 0" class="h-full flex flex-col items-center justify-center text-center py-12 opacity-60">
+                        <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-full mb-3">
+                            <UserGroupIcon class="w-8 h-8 text-gray-400" />
+                        </div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">No Premium Users</p>
+                        <p class="text-xs text-gray-500 mt-1">Subscribers will appear here.</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+           
+           <!-- Revenue Insight Card -->
+           <div class="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-purple-100 dark:border-purple-800/50 shadow-sm relative overflow-hidden flex-shrink-0">
+             <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-xl"></div>
+             
+             <h4 class="text-sm font-bold text-purple-900 dark:text-purple-300 mb-3 flex items-center gap-2">
+                <ChartBarIcon class="w-4 h-4" /> Revenue Opportunity
+             </h4>
+             <p class="text-xs text-purple-700 dark:text-purple-300 leading-relaxed font-medium">
+               You have <span class="font-bold text-purple-900 dark:text-white text-lg">{{ freeUsersCount }}</span> users on the Free tier.
+             </p>
+             <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">
+               Converting just <strong>5%</strong> would increase MRR by approx <span class="font-bold text-green-600 dark:text-green-400">₱{{ (freeUsersCount * 0.05 * 599).toFixed(0) }}</span>/mo.
+             </p>
+             
+             <div class="mt-4 w-full bg-white/50 dark:bg-gray-800/50 h-1.5 rounded-full overflow-hidden">
+                <div class="h-full bg-purple-500 rounded-full" :style="{ width: Math.min((premiumUsers.length / (users.length || 1)) * 100, 100) + '%' }"></div>
+             </div>
+             <div class="flex justify-between mt-1">
+                 <span class="text-[10px] text-gray-500">Conversion Rate</span>
+                 <span class="text-[10px] font-bold text-purple-700 dark:text-purple-400">{{ ((premiumUsers.length / (users.length || 1)) * 100).toFixed(1) }}%</span>
+             </div>
+           </div>
+        </div>
+
+      </div>
     </div>
+
+    <Footer />
+
+    <!-- Notification Toast -->
+    <transition name="fade">
+      <div v-if="showPopup" 
+           class="fixed top-24 right-5 z-[100] px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-white/10 backdrop-blur-md bg-gray-900 text-white">
+        <span class="font-medium text-sm">{{ popupMessage }}</span>
+      </div>
+    </transition>
+
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import {
-    CurrencyDollarIcon,
-    UserGroupIcon,
-    ChartBarIcon,
-    ArrowTrendingUpIcon
-} from '@heroicons/vue/24/outline';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { db } from "@/firebase.js";
+import { collection, query, onSnapshot, collectionGroup } from "firebase/firestore";
+import api from "@/services/api"; 
+import Swal from "sweetalert2";
 
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
-// KPI Metrics Data
-const kpiMetrics = ref([
-    {
-        title: 'Monthly Recurring Revenue',
-        value: 'P89,850',
-        trend: { type: 'positive', value: '+12.5% vs last month' },
-        icon: CurrencyDollarIcon,
-        iconBg: 'bg-green-50 dark:bg-green-900/20',
-        iconColor: 'text-green-600 dark:text-green-400'
-    },
-    {
-        title: 'Customer Lifetime Value',
-        value: 'P14,397',
-        description: 'Average CLV',
-        icon: ChartBarIcon,
-        iconBg: 'bg-blue-50 dark:bg-blue-900/20',
-        iconColor: 'text-blue-600 dark:text-blue-400'
-    },
-    {
-        title: 'Active Subscribers',
-        value: '150',
-        trend: { type: 'positive', value: '+8 net new this month' },
-        icon: UserGroupIcon,
-        iconBg: 'bg-purple-50 dark:bg-purple-900/20',
-        iconColor: 'text-purple-600 dark:text-purple-400'
-    },
-    {
-        title: 'Churn Rate',
-        value: '2.4%',
-        description: 'Last 30 days',
-        icon: ArrowTrendingUpIcon,
-        iconBg: 'bg-orange-50 dark:bg-orange-900/20',
-        iconColor: 'text-orange-600 dark:text-orange-400'
-    }
-]);
+import { CurrencyDollarIcon, UserGroupIcon, ChartBarIcon, ShoppingCartIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline';
 
-// Renewals Data
-const renewals = ref([
-    {
-        customer: 'Marja Santos',
-        renewalDate: 'Dec 28, 2024',
-        tier: 'P599',
-        status: 'Due Soon'
-    },
-    {
-        customer: 'Juan Rodríguez',
-        renewalDate: 'Dec 25, 2024',
-        tier: 'P599',
-        status: 'Overdue'
-    },
-    {
-        customer: 'Ana Cruz',
-        renewalDate: 'Dec 30, 2024',
-        tier: 'P599',
-        status: 'Active'
-    }
-]);
+// State
+const devices = ref([]);
+const users = ref([]);
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("info");
 
-// Installation Pipeline
-const pipelineStages = ref([
-    { label: 'New Sales', count: 25 },
-    { label: 'Scheduled', count: 20 },
-    { label: 'In Progress', count: 15 },
-    { label: 'Completed', count: 12 }
-]);
+// --- Listeners ---
+let unsubDevices = null;
+let unsubUsers = null;
 
-// Installation Status
-const installations = ref([
-    {
-        orderId: '#INS-001',
-        customer: 'Roberto Silva',
-        date: 'Dec 20',
-        status: 'In Progress'
+onMounted(() => {
+  // 1. Listen to Devices (For Hardware Inventory & Sales)
+  const qDevices = query(collection(db, 'devices'));
+  unsubDevices = onSnapshot(qDevices, (snap) => {
+    devices.value = snap.docs.map(doc => ({ deviceId: doc.id, ...doc.data() }));
+  }, (error) => console.error("Devices Error:", error));
+
+  // 2. Listen to Users (For Subscriptions)
+  const qUsers = query(collectionGroup(db, 'userProfile'));
+  unsubUsers = onSnapshot(qUsers, (snap) => {
+    users.value = snap.docs.map(doc => {
+        const d = doc.data();
+        const uid = doc.ref.parent.parent ? doc.ref.parent.parent.id : doc.id;
+        
+        // ✅ FIX: Map fullName to name, set fallback
+        return { 
+            userId: uid, 
+            name: d.fullName || d.name || 'User', // Fallback ensures no empty strings
+            email: d.email || 'No Email',
+            subscriptionTier: d.subscriptionTier || 'Free',
+            ...d 
+        };
+    });
+  }, (error) => console.error("Users Error:", error));
+});
+
+onUnmounted(() => {
+  if (unsubDevices) unsubDevices();
+  if (unsubUsers) unsubUsers();
+});
+
+// --- Logic ---
+const soldDevices = computed(() => devices.value.filter(d => d.ownerName && d.ownerName.trim() !== ''));
+const inventoryDevices = computed(() => devices.value.filter(d => !d.ownerName || d.ownerName.trim() === ''));
+
+const premiumUsers = computed(() => users.value.filter(u => u.subscriptionTier === 'Premium'));
+const freeUsersCount = computed(() => users.value.length - premiumUsers.value.length);
+
+const computedKpiMetrics = computed(() => {
+  // UPDATED PRICES: Hardware: 4999, Software: 599
+  const hardwareRevenue = soldDevices.value.length * 4999;
+  const monthlyRevenue = premiumUsers.value.length * 599;
+
+  return [
+    { 
+        title: 'Monthly Recurring (MRR)', 
+        value: `₱${monthlyRevenue.toLocaleString()}`, 
+        icon: CurrencyDollarIcon, 
+        description: 'From active subscriptions',
+        trendColor: 'text-gray-400', trend: '', trendIcon: null
     },
-    {
-        orderId: '#INS-002',
-        customer: 'Elena Torres',
-        date: 'Dec 18',
-        status: 'Pending Invoice'
-    }
-]);
-
-// Pricing Overrides
-const pricingOverrides = ref([
-    {
-        customer: 'Carlos Mendoza',
-        reason: 'P499 (Grandfathered)'
+    { 
+        title: 'Hardware Revenue', 
+        value: `₱${hardwareRevenue.toLocaleString()}`, 
+        icon: ShoppingCartIcon, 
+        description: `${soldDevices.value.length} Units Sold`,
+        trendColor: 'text-green-600', trend: '', trendIcon: null
     },
-    {
-        customer: 'Lisa Garcia',
-        reason: 'P450 (Custom)'
-    }
-]);
+    { 
+        title: 'Active Subscribers', 
+        value: premiumUsers.value.length.toString(), 
+        icon: UserGroupIcon, 
+        description: 'Premium tier users',
+        trendColor: 'text-blue-600', trend: '', trendIcon: null
+    },
+    { 
+        title: 'Total Users', 
+        value: users.value.length.toString(), 
+        icon: ChartBarIcon, 
+        description: 'Total registered accounts',
+        trendColor: 'text-emerald-600', trend: '', trendIcon: null
+    },
+  ];
+});
 
-// Status styling helpers
-const getStatusClasses = (status) => {
-    const classes = {
-        'Due Soon': 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200',
-        'Overdue': 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200',
-        'Active': 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-    };
-    return classes[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+// --- Actions ---
+
+const showNotification = (msg, type = 'info') => {
+  popupMessage.value = msg;
+  popupType.value = type;
+  showPopup.value = true;
+  setTimeout(() => showPopup.value = false, 3000);
 };
 
-const getInstallationStatusClasses = (status) => {
-    const classes = {
-        'In Progress': 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
-        'Pending Invoice': 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-    };
-    return classes[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+const openSubModal = async (user) => {
+    const { value: newTier } = await Swal.fire({
+        title: `Manage ${user.name}`,
+        text: `Current Tier: ${user.subscriptionTier || 'Free'}`,
+        input: 'select',
+        inputOptions: {
+            'Free': 'Free Tier',
+            'Premium': 'Premium Tier'
+        },
+        inputValue: user.subscriptionTier || 'Free',
+        showCancelButton: true,
+        confirmButtonText: 'Update Subscription',
+        confirmButtonColor: '#059669'
+    });
+
+    if (newTier && newTier !== user.subscriptionTier) {
+        try {
+            const response = await api.post('/api/admin/sales/update-subscription', {
+                targetUid: user.userId,
+                tier: newTier,
+                status: 'Active'
+            });
+            
+            if(response.data.success) {
+                showNotification(`User updated to ${newTier}`, 'success');
+            }
+        } catch (e) {
+            const msg = e.response?.data?.error || e.message;
+            showNotification(`Update failed: ${msg}`, 'error');
+        }
+    }
 };
 </script>
 
 <style scoped>
-/* Custom styles for better dark mode support */
-.bg-gray-750 {
-    background-color: #374151;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #CBD5E1; border-radius: 4px; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

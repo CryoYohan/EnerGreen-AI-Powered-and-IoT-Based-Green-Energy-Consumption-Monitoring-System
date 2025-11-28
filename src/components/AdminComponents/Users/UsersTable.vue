@@ -1,6 +1,7 @@
 <template>
   <div class="m-4 sm:m-5 lg:m-10 font-poppins dark:bg-gray-900 dark:text-gray-100">
     
+    <!-- Filters & Search -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
       <div class="relative w-full md:w-1/3">
         <input v-model.lazy="searchTerm" type="text" placeholder="Search by Name, Email, ID"
@@ -23,6 +24,7 @@
       </div>
     </div>
 
+    <!-- Table -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow dark:shadow-gray-700 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" v-if="filteredUsers.length > 0">
@@ -30,6 +32,8 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subscription</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Provider</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Device</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
@@ -52,13 +56,30 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">
                 <span :class="user.role === 'admin' ? 'text-purple-600 font-bold' : 'text-gray-600 dark:text-gray-400'">{{ user.role }}</span>
               </td>
+              
+              <!-- Subscription Tier -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span 
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  :class="user.subscriptionTier === 'Premium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'"
+                >
+                  {{ user.subscriptionTier || 'Free' }}
+                </span>
+              </td>
+
+              <!-- Electricity Provider -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 uppercase">
+                {{ user.electricityProvider || 'veco' }}
+              </td>
+
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.location }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.smartMeterID }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 font-mono">{{ user.smartMeterID }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="statusClasses(user.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ user.status }}</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="openModal(user)">Edit</button>
+                <!-- ✅ FIX: Emit event directly to parent instead of opening local modal -->
+                <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="$emit('edit-user', user)">Edit</button>
                 
                 <button v-if="user.status && user.status.toLowerCase() === 'active'" 
                         @click="confirmAction('suspend', user)" 
@@ -85,60 +106,7 @@
       </div>
     </div>
 
-    <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="showModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" @click.self="closeModal">
-        <div class="bg-white dark:bg-gray-800 dark:text-gray-100 rounded-lg p-6 w-full max-w-md shadow-xl dark:shadow-gray-700">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Edit User</h2>
-            <button @click="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">✕</button>
-          </div>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium mb-1 text-gray-500">User ID</label>
-              <input :value="selectedUser.userId" readonly class="w-full px-3 py-2 border rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed" />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Full Name</label>
-              <input v-model="selectedUser.name" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Role</label>
-              <select v-model="selectedUser.role" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Location</label>
-              <input v-model="selectedUser.location" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Smart Meter Device</label>
-              <select v-model="selectedUser.smartMeterID" class="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="None">None / Unassigned</option>
-                <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
-                  {{ device.deviceId }} ({{ device.location || 'No Loc' }})
-                </option>
-              </select>
-            </div>
-
-          </div>
-
-          <div class="flex justify-end gap-3 mt-6">
-            <button @click="closeModal" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-white">Cancel</button>
-            <button @click="saveChanges" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
+    <!-- Confirm Modal (Only for Suspend/Delete actions triggered locally) -->
     <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="showConfirmModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" @click.self="showConfirmModal = false">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm shadow-xl text-center">
@@ -164,7 +132,6 @@
 <script setup>
 import { ref, computed, defineEmits } from "vue";
 
-// 1. Accept 'devices' prop
 const props = defineProps({ 
   users: { type: Array, required: true },
   devices: { type: Array, default: () => [] } 
@@ -179,26 +146,10 @@ const searchTerm = ref("");
 const selectedLocation = ref("");
 const selectedStatus = ref("");
 const selectedRole = ref("");
-const selectAll = ref(false);
-const selectedUsers = ref([]);
-const showModal = ref(false);
-const selectedUser = ref({});
 const showConfirmModal = ref(false);
 const pendingAction = ref('');
 const confirmUser = ref({});
 
-// Headers (No changes)
-const headers = [
-  { key: "user", label: "User" },
-  { key: "role", label: "Role" },
-  { key: "location", label: "Location" },
-  { key: "smartMeterID", label: "Device" },
-  { key: "status", label: "Status" },
-  { key: "action", label: "Action" },
-];
-
-// Computed (No changes)
-const uniqueLocations = computed(() => [...new Set(props.users.map(u => u.location || "Unknown"))]);
 const uniqueStatuses = computed(() => [...new Set(props.users.map(u => u.status || "Unknown"))]);
 
 const filteredUsers = computed(() => {
@@ -211,32 +162,14 @@ const filteredUsers = computed(() => {
       (u.smartMeterID?.toLowerCase().includes(search) ?? false);
 
     const matchesRole = selectedRole.value === "" || u.role === selectedRole.value;
-    const matchesLocation = selectedLocation.value === "" || u.location === selectedLocation.value;
     const matchesStatus = selectedStatus.value === "" || u.status === selectedStatus.value;
 
-    return matchesSearch && matchesRole && matchesLocation && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus;
   });
 });
 
-// Actions
-const toggleSelectAll = () => {
-  selectedUsers.value = selectAll.value ? props.users.map(u => u.userId) : [];
-};
-
-const openModal = (user) => { 
-  selectedUser.value = { ...user }; 
-  showModal.value = true; 
-};
-const closeModal = () => { showModal.value = false; };
-
-const saveChanges = () => {
-  emit('edit-user', selectedUser.value);
-  closeModal();
-};
-
 const clearFilters = () => {
   searchTerm.value = "";
-  selectedLocation.value = "";
   selectedStatus.value = "";
   selectedRole.value = "";
 };
@@ -251,9 +184,8 @@ const statusClasses = (status) => {
   };
 };
 
-// Confirmation Logic
+// Confirmation Logic (Local for simpler actions)
 const confirmAction = (action, user) => {
-  if (showModal.value) closeModal(); // Close edit modal if open
   pendingAction.value = action;
   confirmUser.value = user;
   showConfirmModal.value = true;
@@ -264,7 +196,7 @@ const executeAction = () => {
   if (pendingAction.value === 'delete') {
     emit('delete', confirmUser.value);
   } else {
-    const newStatus = pendingAction.value === 'suspend' ? 'inactive' : 'active';
+    const newStatus = pendingAction.value === 'suspend' ? 'Inactive' : 'Active';
     emit('update-status', { user: confirmUser.value, status: newStatus });
   }
   pendingAction.value = '';

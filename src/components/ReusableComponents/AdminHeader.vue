@@ -61,6 +61,18 @@
                   Hardware
                 </button>
               </li>
+               <li>
+                <button
+                  @click="navigateTo('RatesManagement')"
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'RatesManagement'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  Rates
+                </button>
+              </li>
               <li>
                 <button 
                   @click="navigateTo('UserManagement')" 
@@ -223,6 +235,19 @@
               </li>
               <li>
                 <button
+                  @click="navigateTo('RatesManagement')"
+                  :class="[
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'RatesManagement' 
+                      ? 'text-green-600 dark:text-green-500' 
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <CurrencyDollarIcon class="w-4 h-4" />
+                  Rates
+                </button>
+              </li>
+              <li>
+                <button
                   @click="navigateTo('UserManagement')"
                   :class="[
                     'flex items-center w-full gap-2 py-2 transition-colors duration-200',
@@ -291,7 +316,8 @@ import {
   HomeIcon,
   CpuChipIcon,
   UsersIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  CurrencyDollarIcon
 } from '@heroicons/vue/24/outline'
 
 import {
@@ -346,11 +372,16 @@ const closeDropdowns = (event) => {
 
 // fetch admin profile
 const fetchAdminProfile = (userId) => {
+  // Clear existing listener if any
+  if (unsubscribeProfile) {
+    unsubscribeProfile();
+    unsubscribeProfile = null;
+  }
+
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
   try {
     const adminProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`)
     
-    // 3. STORE THE LISTENER
     unsubscribeProfile = onSnapshot(adminProfileRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data()
@@ -361,8 +392,12 @@ const fetchAdminProfile = (userId) => {
         profilePic.value = '/src/Images/profile/pfp.png'
       }
     }, (error) => {
-      console.error("Error listening to admin profile:", error)
-      userName.value = 'Admin'
+       // Quietly handle permission errors on logout
+       if (error.code === 'permission-denied') {
+         console.log("Profile listener stopped (permission denied).");
+       } else {
+         console.error("Error listening to admin profile:", error);
+       }
     })
   } catch (err) {
     console.error("Error setting up admin profile listener:", err)
@@ -370,19 +405,22 @@ const fetchAdminProfile = (userId) => {
   }
 }
 
-const signOutUser = () => {
+const signOutUser = async () => {
   try {
-    // 1. REDIRECT FIRST.
-    // This tells Vue to unmount Hardware.vue immediately.
-    router.push({ name: 'Landing' }).then(() => {
-      // 2. SIGN OUT SECOND.
-      // This runs *after* the redirect has started and the 
-      // Hardware.vue listener is gone.
-      signOut(auth);
-    });
+    // 1. Unsubscribe FIRST to prevent permission errors
+    if (unsubscribeProfile) {
+      unsubscribeProfile();
+      unsubscribeProfile = null;
+    }
+
+    // 2. Sign out from Firebase
+    await signOut(auth);
+
+    // 3. Redirect to Landing Page
+    router.push({ name: 'Landing' });
+    
   } catch (error) {
-    // Note: signOut() itself rarely fails, but it's good to have.
-    console.error("Error starting sign-out process:", error);
+    console.error("Error during sign out:", error);
   }
 }
 
@@ -394,12 +432,13 @@ onMounted(() => {
     if (user) {
       fetchAdminProfile(user.uid)
     } else {
-      // IF USER LOGS OUT, CLEAN UP
+      // IF USER LOGS OUT via other means (tab close, expiration)
       userName.value = 'Admin'
       profilePic.value = '/src/Images/profile/pfp.png'
+      
       if (unsubscribeProfile) {
-        console.log("AdminHeader logging out, stopping profile listener.");
         unsubscribeProfile();
+        unsubscribeProfile = null;
       }
     }
   })
