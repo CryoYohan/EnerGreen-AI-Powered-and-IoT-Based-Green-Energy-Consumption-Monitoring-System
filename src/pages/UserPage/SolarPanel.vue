@@ -8,7 +8,7 @@
         subtitle="Monitor your solar energy production and independence"
       />
       
-      <div class="flex gap-2 print:hidden md:mr-8">
+      <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-end sm:items-center">
         <!-- Time Filters -->
         <div class="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
           <div class="flex flex-wrap gap-1">
@@ -28,32 +28,17 @@
           </div>
         </div>
 
-        <!-- Export Dropdown -->
-        <div class="relative">
-          <button 
-            @click="showExportMenu = !showExportMenu"
-            class="h-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-sm text-gray-700 dark:text-gray-200 font-medium text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <ArrowDownTrayIcon class="w-4 h-4" />
-            <span class="hidden sm:inline">Export</span>
+        <!-- Export Buttons (Matching Costs Page Style) -->
+        <div class="flex gap-2">
+          <button @click="handleExport('csv')" class="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+            CSV
           </button>
-
-          <!-- Dropdown Menu -->
-          <div 
-            v-if="showExportMenu" 
-            class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden"
-            @mouseleave="showExportMenu = false"
-          >
-            <button @click="exportCSV" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-              <span class="font-bold text-green-600">CSV</span> Data Spreadsheet
-            </button>
-            <button @click="exportWord" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700">
-              <span class="font-bold text-blue-600">Word</span> Report Doc
-            </button>
-            <button @click="exportPDF" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700">
-              <span class="font-bold text-red-600">PDF</span> Print View
-            </button>
-          </div>
+          <button @click="handleExport('pdf')" class="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+            PDF
+          </button>
+          <button @click="handleExport('word')" class="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+            Word
+          </button>
         </div>
       </div>
     </div>
@@ -141,7 +126,13 @@ import { db } from '@/firebase.js';
 import { collection, query, getDocs, orderBy, limit, doc, getDoc, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/composables/useAuth'; 
 import Plotly from 'plotly.js-dist-min';
-import { SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
+import { SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon } from '@heroicons/vue/24/outline';
+
+// Export Libraries
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 // Components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
@@ -157,7 +148,6 @@ const rawData = ref([]); // Weekly/Monthly/Yearly Data
 const hourlyData = ref([]); // Daily Data (Realtime)
 const currentRate = ref(12.0); 
 const carbonRate = ref(0.71);
-const showExportMenu = ref(false);
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const { userProfile, isLoading: authLoading } = useAuth(appId);
@@ -326,6 +316,67 @@ const treesPlanted = computed(() => {
   return (Number(co2Avoided.value) / 1.6).toFixed(1); 
 });
 
+// --- Export Logic ---
+const handleExport = (format) => {
+  const data = currentViewData.value;
+  if (!data || !data.length) return alert("No data to export.");
+  
+  const filename = `EnerGreen_Solar_Report_${activeFilter.value}_${new Date().toISOString().split('T')[0]}`;
+  const isDaily = activeFilter.value === 'Daily';
+
+  // Prepare Data Rows
+  const exportData = data.map(d => {
+    const label = isDaily ? d.hour : d.date;
+    const solar = isDaily ? d.solar : (d.solarKwhTotal || 0);
+    const grid = isDaily ? d.grid : (d.gridKwhTotal || 0);
+    const savings = solar * currentRate.value;
+    return {
+      label: label,
+      solar: solar.toFixed(3),
+      grid: grid.toFixed(3),
+      savings: savings.toFixed(2)
+    };
+  });
+
+  if (format === 'csv') exportCSV(exportData, filename, isDaily ? 'Hour' : 'Date');
+  if (format === 'pdf') exportPDF(exportData, filename, isDaily ? 'Hour' : 'Date');
+  if (format === 'word') exportWord(exportData, filename, isDaily ? 'Hour' : 'Date');
+};
+
+const exportCSV = (data, filename, timeLabel) => {
+  const headers = `${timeLabel},Solar Generation (kWh),Grid Usage (kWh),Savings (PHP)\n`;
+  const rows = data.map(r => `${r.label},${r.solar},${r.grid},${r.savings}`).join("\n");
+  saveAs(new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
+};
+
+const exportPDF = (data, filename, timeLabel) => {
+  const doc = new jsPDF();
+  doc.setFontSize(18); doc.setTextColor(234, 179, 8); // Yellow-500
+  doc.text("EnerGreen Solar Report", 14, 20);
+  
+  doc.setFontSize(11); doc.setTextColor(100);
+  doc.text(`Period: ${activeFilter.value}`, 14, 30);
+  doc.text(`Total Savings: PHP ${savingsValue.value}`, 14, 36);
+  
+  autoTable(doc, {
+    startY: 45,
+    head: [[timeLabel, 'Solar (kWh)', 'Grid (kWh)', 'Savings (PHP)']],
+    body: data.map(r => [r.label, r.solar, r.grid, r.savings]),
+    theme: 'grid',
+    headStyles: { fillColor: [234, 179, 8] } // Yellow Header
+  });
+  doc.save(`${filename}.pdf`);
+};
+
+const exportWord = async (data, filename, timeLabel) => {
+  const tableRows = [
+    new TableRow({ children: [timeLabel, "Solar (kWh)", "Grid (kWh)", "Savings (PHP)"].map(t => new TableCell({ children: [new Paragraph({ text: t, bold: true })] })) }),
+    ...data.map(r => new TableRow({ children: [r.label, r.solar, r.grid, r.savings].map(t => new TableCell({ children: [new Paragraph(t)] })) }))
+  ];
+  const doc = new Document({ sections: [{ children: [new Paragraph({ text: "EnerGreen Solar Report", heading: HeadingLevel.HEADING_1 }), new Paragraph({ text: `Total Savings: PHP ${savingsValue.value}` }), new Table({ rows: tableRows, width: { size: 100, type: "pct" } })] }] });
+  saveAs(await Packer.toBlob(doc), `${filename}.docx`);
+};
+
 // --- Chart Logic ---
 const updateCharts = () => {
   const chartDiv = document.getElementById('solar-mix-chart');
@@ -407,98 +458,6 @@ const updateCharts = () => {
 
   Plotly.newPlot('solar-mix-chart', [traceGrid, traceSolar], layout, { displayModeBar: false, responsive: true });
 };
-
-// --- EXPORT FUNCTIONS ---
-
-const exportCSV = () => {
-  const isDaily = activeFilter.value === 'Daily';
-  const data = currentViewData.value;
-  
-  // Headers
-  let csvContent = isDaily 
-    ? "Hour,Solar Generation (kWh),Grid Usage (kWh)\n"
-    : "Date,Solar Generation (kWh),Grid Usage (kWh)\n";
-
-  // Rows
-  data.forEach(row => {
-    if (isDaily) {
-      csvContent += `${row.hour},${row.solar.toFixed(3)},${row.grid.toFixed(3)}\n`;
-    } else {
-      csvContent += `${row.date},${(row.solarKwhTotal || 0).toFixed(3)},${(row.gridKwhTotal || 0).toFixed(3)}\n`;
-    }
-  });
-
-  // Download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `solar_report_${activeFilter.value.toLowerCase()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  showExportMenu.value = false;
-};
-
-const exportWord = () => {
-  const isDaily = activeFilter.value === 'Daily';
-  const data = currentViewData.value;
-
-  // Build HTML Table
-  let tableRows = '';
-  data.forEach(row => {
-    if (isDaily) {
-       tableRows += `<tr><td style="border:1px solid #ddd;padding:8px;">${row.hour}</td><td style="border:1px solid #ddd;padding:8px;">${row.solar.toFixed(3)}</td><td style="border:1px solid #ddd;padding:8px;">${row.grid.toFixed(3)}</td></tr>`;
-    } else {
-       tableRows += `<tr><td style="border:1px solid #ddd;padding:8px;">${row.date}</td><td style="border:1px solid #ddd;padding:8px;">${(row.solarKwhTotal || 0).toFixed(3)}</td><td style="border:1px solid #ddd;padding:8px;">${(row.gridKwhTotal || 0).toFixed(3)}</td></tr>`;
-    }
-  });
-
-  const headerLabel = isDaily ? 'Hour' : 'Date';
-  
-  // HTML Document Content
-  const htmlContent = `
-    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head><meta charset='utf-8'><title>Solar Report</title></head>
-    <body style="font-family: Arial, sans-serif;">
-      <h1 style="color:#059669;">EnerGreen Solar Report</h1>
-      <h3>Period: ${activeFilter.value}</h3>
-      <p><strong>Total Savings:</strong> ₱${savingsValue.value}</p>
-      <p><strong>CO2 Avoided:</strong> ${co2Avoided.value} kg</p>
-      <br/>
-      <table style="border-collapse: collapse; width: 100%;">
-        <thead>
-          <tr style="background-color: #f3f4f6;">
-            <th style="border:1px solid #ddd;padding:8px;text-align:left;">${headerLabel}</th>
-            <th style="border:1px solid #ddd;padding:8px;text-align:left;">Solar Gen (kWh)</th>
-            <th style="border:1px solid #ddd;padding:8px;text-align:left;">Grid Usage (kWh)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `;
-
-  const blob = new Blob([htmlContent], { type: 'application/msword' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `solar_report_${activeFilter.value.toLowerCase()}.doc`;
-  document.body.appendChild(link);
-  link.click();
-  showExportMenu.value = false;
-};
-
-const exportPDF = () => {
-  showExportMenu.value = false;
-  // Use browser native print which allows Save as PDF
-  setTimeout(() => {
-    window.print();
-  }, 300);
-};
-
 </script>
 
 <style scoped>
