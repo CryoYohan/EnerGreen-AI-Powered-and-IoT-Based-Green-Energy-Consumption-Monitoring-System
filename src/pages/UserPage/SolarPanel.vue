@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
-    <UserHeader />
+    <UserHeader class="print:hidden" />
 
-     <div class="flex flex-col md:flex-row justify-between items-end gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-end gap-4 p-4 md:p-8 pb-0">
       <Heading
         title="Solar Generation"
         subtitle="Monitor your solar energy production and independence"
@@ -66,10 +66,11 @@
       <p class="text-sm text-red-700 dark:text-red-200">{{ error }}</p>
     </div>
 
-    <div v-else class="p-4 md:p-8 space-y-6">
+    <div v-else class="p-4 md:p-8 space-y-6 print:p-0">
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div v-for="(metric, index) in calculatedMetrics" :key="index" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <!-- Metrics Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
+        <div v-for="(metric, index) in calculatedMetrics" :key="index" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl print:shadow-none print:border-gray-200">
           <div class="flex justify-between items-start mb-2">
             <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ metric.title }}</p>
             <component :is="metric.icon" class="w-6 h-6" :class="metric.iconColor" />
@@ -79,7 +80,8 @@
         </div>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+      <!-- Main Chart -->
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 print:shadow-none print:border-gray-200">
         <div class="flex justify-between items-center mb-6">
           <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Energy Source Mix ({{ activeFilter }})</h3>
           <div class="flex gap-4 text-xs font-medium">
@@ -96,8 +98,9 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white lg:col-span-1">
+      <!-- Savings & Impact -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-3">
+        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white lg:col-span-1 print:text-black print:bg-none print:border print:border-gray-200">
           <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
              <CurrencyDollarIcon class="w-6 h-6" /> Total Savings
           </h3>
@@ -105,7 +108,7 @@
           <p class="text-sm opacity-90">Money saved by using your own power this period.</p>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 flex items-center justify-between">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 flex items-center justify-between print:shadow-none print:border-gray-200">
            <div>
              <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">Environmental Impact</h3>
              <p class="text-sm text-gray-500">Your solar panels have reduced carbon footprint significantly.</p>
@@ -120,7 +123,7 @@
                </div>
              </div>
            </div>
-           <div class="hidden md:block text-emerald-100">
+           <div class="hidden md:block text-emerald-100 print:hidden">
              <svg class="w-32 h-32 opacity-20" fill="currentColor" viewBox="0 0 24 24"><path d="M17,8C8,10,5.9,16.17,3.82,21.34L5.71,22l1-2.3A4.49,4.49,0,0,0,8,20C19,20,22,3,22,3,21,5,14,5.25,9,6.25S2,11.5,2,13.5a6.22,6.22,0,0,0,1.75,3.75C7,13,11,9,17,8Z"/></svg>
            </div>
         </div>
@@ -128,7 +131,7 @@
 
     </div>
 
-    <Footer />
+    <Footer class="print:hidden" />
   </div>
 </template>
 
@@ -138,7 +141,7 @@ import { db } from '@/firebase.js';
 import { collection, query, getDocs, orderBy, limit, doc, getDoc, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/composables/useAuth'; 
 import Plotly from 'plotly.js-dist-min';
-import { SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon } from '@heroicons/vue/24/outline';
+import { SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 
 // Components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
@@ -146,7 +149,7 @@ import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 
 // State
-const timeFilters = ['Daily', 'Weekly', 'Monthly', 'Yearly']; // Added Daily back
+const timeFilters = ['Daily', 'Weekly', 'Monthly', 'Yearly']; 
 const activeFilter = ref('Weekly');
 const loading = ref(true);
 const error = ref(null);
@@ -154,6 +157,7 @@ const rawData = ref([]); // Weekly/Monthly/Yearly Data
 const hourlyData = ref([]); // Daily Data (Realtime)
 const currentRate = ref(12.0); 
 const carbonRate = ref(0.71);
+const showExportMenu = ref(false);
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const { userProfile, isLoading: authLoading } = useAuth(appId);
@@ -403,4 +407,117 @@ const updateCharts = () => {
 
   Plotly.newPlot('solar-mix-chart', [traceGrid, traceSolar], layout, { displayModeBar: false, responsive: true });
 };
+
+// --- EXPORT FUNCTIONS ---
+
+const exportCSV = () => {
+  const isDaily = activeFilter.value === 'Daily';
+  const data = currentViewData.value;
+  
+  // Headers
+  let csvContent = isDaily 
+    ? "Hour,Solar Generation (kWh),Grid Usage (kWh)\n"
+    : "Date,Solar Generation (kWh),Grid Usage (kWh)\n";
+
+  // Rows
+  data.forEach(row => {
+    if (isDaily) {
+      csvContent += `${row.hour},${row.solar.toFixed(3)},${row.grid.toFixed(3)}\n`;
+    } else {
+      csvContent += `${row.date},${(row.solarKwhTotal || 0).toFixed(3)},${(row.gridKwhTotal || 0).toFixed(3)}\n`;
+    }
+  });
+
+  // Download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `solar_report_${activeFilter.value.toLowerCase()}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  showExportMenu.value = false;
+};
+
+const exportWord = () => {
+  const isDaily = activeFilter.value === 'Daily';
+  const data = currentViewData.value;
+
+  // Build HTML Table
+  let tableRows = '';
+  data.forEach(row => {
+    if (isDaily) {
+       tableRows += `<tr><td style="border:1px solid #ddd;padding:8px;">${row.hour}</td><td style="border:1px solid #ddd;padding:8px;">${row.solar.toFixed(3)}</td><td style="border:1px solid #ddd;padding:8px;">${row.grid.toFixed(3)}</td></tr>`;
+    } else {
+       tableRows += `<tr><td style="border:1px solid #ddd;padding:8px;">${row.date}</td><td style="border:1px solid #ddd;padding:8px;">${(row.solarKwhTotal || 0).toFixed(3)}</td><td style="border:1px solid #ddd;padding:8px;">${(row.gridKwhTotal || 0).toFixed(3)}</td></tr>`;
+    }
+  });
+
+  const headerLabel = isDaily ? 'Hour' : 'Date';
+  
+  // HTML Document Content
+  const htmlContent = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset='utf-8'><title>Solar Report</title></head>
+    <body style="font-family: Arial, sans-serif;">
+      <h1 style="color:#059669;">EnerGreen Solar Report</h1>
+      <h3>Period: ${activeFilter.value}</h3>
+      <p><strong>Total Savings:</strong> ₱${savingsValue.value}</p>
+      <p><strong>CO2 Avoided:</strong> ${co2Avoided.value} kg</p>
+      <br/>
+      <table style="border-collapse: collapse; width: 100%;">
+        <thead>
+          <tr style="background-color: #f3f4f6;">
+            <th style="border:1px solid #ddd;padding:8px;text-align:left;">${headerLabel}</th>
+            <th style="border:1px solid #ddd;padding:8px;text-align:left;">Solar Gen (kWh)</th>
+            <th style="border:1px solid #ddd;padding:8px;text-align:left;">Grid Usage (kWh)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([htmlContent], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `solar_report_${activeFilter.value.toLowerCase()}.doc`;
+  document.body.appendChild(link);
+  link.click();
+  showExportMenu.value = false;
+};
+
+const exportPDF = () => {
+  showExportMenu.value = false;
+  // Use browser native print which allows Save as PDF
+  setTimeout(() => {
+    window.print();
+  }, 300);
+};
+
 </script>
+
+<style scoped>
+@media print {
+  /* Hide non-essential elements for printing */
+  button, nav, footer, .print\:hidden {
+    display: none !important;
+  }
+  
+  /* Ensure charts are visible */
+  .bg-white, .dark\:bg-gray-800 {
+    background-color: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: 1px solid #eee !important;
+  }
+
+  body {
+    background-color: white !important;
+  }
+}
+</style>
