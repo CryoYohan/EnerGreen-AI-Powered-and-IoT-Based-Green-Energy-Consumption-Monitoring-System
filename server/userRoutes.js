@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from './firebaseAdmin.js';
+import { auth, db } from './firebaseAdmin.js';
 import rateLimit from 'express-rate-limit';
 import fetch from 'node-fetch';
 
@@ -45,33 +45,24 @@ const verifyToken = async (req, res, next) => {
 // --- ROUTES ---
 
 // POST /api/user/predict
-// This proxies the request to your Python AI Cloud Run service
 userRouter.post('/predict', predictLimiter, verifyToken, async (req, res) => {
     const { deviceId } = req.body;
     const uid = req.user.uid;
 
-    // Validate Input
     if (!deviceId) return res.status(400).json({ error: 'Device ID required' });
 
-    // SECURITY CHECK: Ideally, check if 'uid' actually owns 'deviceId' in Firestore here.
-    // For now, we assume the token is enough proof of access.
-
     try {
-        // Get the Python Service URL from environment variables
-        // (Ensure this is set in your apphosting.yaml / .env)
         const AI_SERVICE_URL = process.env.FORECAST_URL || process.env.VITE_FORECAST_URL;
 
         if (!AI_SERVICE_URL) {
             throw new Error("AI Service URL not configured");
         }
 
-        // Call the Python Service
-        // We pass the Auth Header along so Python can verify it too (if configured)
         const response = await fetch(AI_SERVICE_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': req.headers.authorization // Forward the token!
+                'Authorization': req.headers.authorization
             },
             body: JSON.stringify({ deviceId, uid })
         });
@@ -90,7 +81,7 @@ userRouter.post('/predict', predictLimiter, verifyToken, async (req, res) => {
     }
 });
 
-// 2. SMART TIPS GENERATOR (New!)
+// 2. SMART TIPS GENERATOR
 userRouter.post('/generate-tips', tipsLimiter, verifyToken, async (req, res) => {
     const { energyData } = req.body;
 
@@ -99,7 +90,6 @@ userRouter.post('/generate-tips', tipsLimiter, verifyToken, async (req, res) => 
     }
 
     try {
-        // 1. Construct the Prompt (Moved from Frontend)
         let prompt = `Act as an energy efficiency expert. Generate three concise, practical energy-saving tips based on the user's daily energy data.\n\n`;
 
         if (energyData.topConsumerName === "No major appliances monitored") {
@@ -112,12 +102,9 @@ userRouter.post('/generate-tips', tipsLimiter, verifyToken, async (req, res) => 
         prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
         prompt += `Each tip must be an object with a "description" field in valid JSON format (array of objects). Do not include greetings, explanations, or extra commentary.`;
 
-        // 2. Call Gemini API
-        // Use the secure server-side environment variable
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) throw new Error("Server missing GEMINI_API_KEY");
 
-        // UPDATED MODEL NAME
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
         const payload = {
@@ -154,8 +141,48 @@ userRouter.post('/generate-tips', tipsLimiter, verifyToken, async (req, res) => 
 
     } catch (error) {
         console.error("Generate Tips Error:", error.message);
-        // Return a generic error to the client, log the specific one
         return res.status(500).json({ success: false, error: "Failed to generate smart tips." });
+    }
+});
+
+// 3. SECURE PROFILE UPDATE 
+userRouter.put('/update-profile', verifyToken, async (req, res) => {
+    const uid = req.user.uid;
+    // Added photoURL to destructuring
+    const { fullName, phoneNumber, address, electricityProvider, photoURL, appId } = req.body;
+
+    const targetAppId = appId || 'default-app-id';
+
+    // Validation: Ensure required fields exist
+    if (!fullName || !phoneNumber || !address) {
+        return res.status(400).json({ error: "Name, Phone, and Address are required." });
+    }
+
+    try {
+        const userDocRef = db.doc(`artifacts/${targetAppId}/users/${uid}/userProfile/profile`);
+
+        // Prepare the update object
+        // We only add photoURL if it exists in the request to avoid overwriting it with null/undefined
+        const updateData = {
+            fullName,
+            phoneNumber,
+            address,
+            electricityProvider,
+            lastUpdated: new Date().toISOString()
+        };
+
+        if (photoURL) {
+            updateData.photoURL = photoURL;
+        }
+
+        // We use merge: true to avoid overwriting the entire document (protecting role/deviceId)
+        await userDocRef.set(updateData, { merge: true });
+
+        return res.json({ success: true, message: "Profile updated successfully." });
+
+    } catch (error) {
+        console.error("Profile update error:", error);
+        return res.status(500).json({ error: "Failed to update profile." });
     }
 });
 
