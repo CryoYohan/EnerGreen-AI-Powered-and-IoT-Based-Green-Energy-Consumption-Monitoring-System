@@ -9,14 +9,16 @@
   >
     <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
       @click.self="closeModal">
+      
       <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-black/50 z-200">
         <div class="text-center text-white">
           <div
             class="w-16 h-16 border-4 border-t-4 border-white border-solid rounded-full animate-spin border-t-transparent">
           </div>
-          <p class="mt-4 text-lg font-semibold">Loading...</p>
+          <p class="mt-4 text-lg font-semibold">Processing...</p>
         </div>
       </div>
+
       <div class="flex w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden">
         <div class="relative flex-col justify-center hidden w-1/2 md:flex">
           <img src="/src/Images/background/loginbg.png" alt="Background"
@@ -32,19 +34,17 @@
         </div>
 
         <div class="w-full md:w-1/2 bg-[#059669] dark:bg-[#0D2535] p-8 flex flex-col justify-center text-white">
+          
           <div class="flex items-center justify-between mb-8">
             <div class="w-full text-center" v-if="isVerifyingEmail">
               <h3 class="text-3xl font-bold">Verify Email</h3>
             </div>
-
             <div class="w-full text-center" v-else-if="isEmailVerifiedSuccess || isPasswordResetSuccess">
               <h3 class="text-3xl font-bold">Success!</h3>
             </div>
-
             <div class="w-full text-center" v-else-if="isForgotPasswordMode">
               <h3 class="text-3xl font-bold">Password Recovery</h3>
             </div>
-
             <div class="flex items-center justify-between" v-else>
               <h3 class="text-3xl font-bold">{{ isLoginMode ? 'Log in Account' : 'Create Account' }}</h3>
             </div>
@@ -57,7 +57,6 @@
                 <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
               </svg>
               <p class="mb-4 text-gray-200 text-lg">Your email has been successfully verified!</p>
-              <p class="mb-6 text-gray-200">You can now log in with your new account.</p>
               <button @click="switchToLogin"
                 class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
                 Go to Login
@@ -70,9 +69,6 @@
             <p class="mb-6 text-center text-gray-200">
               Email verification has been sent to <span class="font-bold">{{ maskedEmail }}</span>.
             </p>
-            <div class="flex justify-center mb-6 space-x-2">
-              <p>Verification link has been sent to your email.</p>
-            </div>
             <button type="button" @click="handleResendVerification" :disabled="isResendDisabled"
               class="w-full py-2 mt-2 font-bold transition rounded-md"
               :class="{ 'bg-gray-400 text-gray-700 cursor-not-allowed': isResendDisabled, 'bg-white text-black hover:bg-gray-200': !isResendDisabled }">
@@ -87,7 +83,6 @@
                 <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
               </svg>
               <p class="mb-4 text-gray-200 text-lg">Password reset link sent!</p>
-              <p class="mb-6 text-gray-200">Check your email and sign in with your new password.</p>
               <button @click="switchToLogin"
                 class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
                 Go to Login
@@ -96,9 +91,7 @@
           </template>
 
           <template v-else-if="isForgotPasswordMode">
-            <p class="mb-6 text-gray-200">
-              Enter your email to receive a password reset link.
-            </p>
+            <p class="mb-6 text-gray-200">Enter your email to receive a password reset link.</p>
             <form @submit.prevent="handleForgotPassword">
               <div class="mb-2">
                 <label class="block text-white">Email</label>
@@ -118,73 +111,73 @@
               </div>
             </form>
             <div class="mt-6 text-center">
-              <button @click="switchToLogin" class="text-white hover:underline">
-                Back to Login
-              </button>
+              <button @click="switchToLogin" class="text-white hover:underline">Back to Login</button>
             </div>
           </template>
 
           <template v-else>
             <p class="mb-6 text-gray-200">Please fill in your information below</p>
             <form @submit.prevent="isLoginMode ? handleLogin() : handleRegister()">
+              
               <div v-if="!isLoginMode" class="mb-2">
                 <label class="block text-white">Full Name</label>
                 <input type="text" v-model="fullName" required
                   class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
               </div>
+              
               <div class="mb-2">
                 <label class="block text-white">Email</label>
                 <input type="email" v-model="email" required
                   class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
               </div>
-              <div v-if="!isLoginMode" class="mb-2">
-                <label class="block text-white">Phone Number</label>
-                <input type="tel" v-model="phoneNumber" required
-                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-              </div>
-              <div v-if="!isLoginMode" class="mb-2">
-                <label class="block text-white">Address</label>
-                <input type="text" v-model="address" required
-                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+
+              <div v-if="!isLoginMode">
+                <div class="mb-2">
+                  <label class="block text-white">Phone Number</label>
+                  <input type="tel" v-model="phoneNumber" required
+                    class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                </div>
+                <div class="mb-2">
+                  <label class="block text-white">Address</label>
+                  <input type="text" v-model="address" required
+                    class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                </div>
+                
+                <div class="mb-2">
+                  <label class="block text-white">Electricity Provider</label>
+                  <select v-model="electricityProvider" required
+                    class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                    <option value="" disabled>Select your provider</option>
+                    <option value="veco">Veco</option>
+                    <option value="cebeco">Cebeco</option>
+                  </select>
+                </div>
+
+                <div class="mb-2">
+                  <label class="block text-white">Device ID (optional)</label>
+                  <input type="text" v-model="deviceId"
+                    class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
+                  <p v-if="deviceError" class="text-sm text-yellow-300 mt-1">{{ deviceError }}</p>
+                </div>
               </div>
 
-              <div v-if="!isLoginMode" class="mb-2">
-                <label class="block text-white">Electricity Provider</label>
-                <select v-model="electricityProvider" required
-                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-                  <option value="" disabled>Select your provider</option>
-                  <option value="Veco">Veco</option>
-                  <option value="Cebeco">Cebeco</option>
-                </select>
-              </div>
-
-              <div v-if="!isLoginMode" class="mb-2">
-                <label class="block text-white">Device ID (optional)</label>
-                <input type="text" v-model="deviceId"
-                  class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-                <p v-if="deviceError" class="text-sm text-yellow-300 mt-1">{{ deviceError }}</p>
-              </div>
               <div class="mb-4 relative">
                 <label for="password" class="block text-gray-300 mb-1">Password</label>
-
                 <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" required
                   class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-
+                
                 <p v-if="!isLoginMode && passwordError" class="text-sm text-yellow-300 mt-1">{{ passwordError }}</p>
 
                 <button type="button" @click="showPassword = !showPassword"
                   class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none"
                   :class="{'top-[1.5rem]': !isLoginMode && passwordError, 'top-6': !passwordError}">
-                  <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <svg v-if="!showPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.38-3.882m3.184-2.3A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.338 5.223M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                  <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.38-3.882m3.184-2.3A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.338 5.223M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
                   </svg>
                 </button>
               </div>
@@ -193,30 +186,30 @@
                 <label for="confirmPassword" class="block text-white mb-1">Confirm Password</label>
                 <input :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" v-model="confirmPassword" required
                   class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-
+                
                 <button type="button" @click="showConfirmPassword = !showConfirmPassword"
                   class="absolute inset-y-0 right-0 top-6 flex items-center pr-3 text-gray-500 hover:text-gray-300 focus:outline-none">
-                  <svg v-if="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <svg v-if="!showConfirmPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.38-3.882m3.184-2.3A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.338 5.223M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                  <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.38-3.882m3.184-2.3A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.338 5.223M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
                   </svg>
                 </button>
               </div>
+
               <button type="submit"
                 class="w-full py-2 mt-2 font-bold text-black transition bg-white rounded-lg hover:bg-gray-200">
                 {{ isLoginMode ? 'Log in' : 'Sign up' }}
               </button>
+              
               <div v-if="error" class="p-2 mt-4 mb-4 text-sm bg-red-600 rounded text-red-100">
                 {{ error }}
               </div>
             </form>
+            
             <div class="mt-6 text-center">
               <button @click="toggleMode" class="text-white hover:underline">
                 {{ isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Log in" }}
@@ -243,11 +236,12 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
+  db,
+  doc,
+  setDoc,
+  getDoc
 } from '../firebase.js';
-// NOTE: Added collectionGroup for querying subcollections across users
-import { db, doc, setDoc, getDoc, query, collection, where, getDocs, collectionGroup } from '../firebase.js'; 
 
-// The global app ID and Firestore config are provided by the canvas environment.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 const props = defineProps({
@@ -258,33 +252,36 @@ const props = defineProps({
   }
 });
 
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
 const emit = defineEmits(['close']);
 const router = useRouter();
 
-// Reactive state
+// UI States
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 const isLoginMode = ref(props.initialMode === 'login');
 const isVerifyingEmail = ref(false);
 const isEmailVerifiedSuccess = ref(false);
 const isForgotPasswordMode = ref(false);
-const isPasswordResetSuccess = ref(false); // New state for success message
-const passwordResetCountdown = ref(0); // New state for countdown timer
-const isLoading = ref(false); // New state variable
+const isPasswordResetSuccess = ref(false);
+const passwordResetCountdown = ref(0);
+const isLoading = ref(false);
 
+// Form Data
 const fullName = ref('');
 const email = ref('');
 const phoneNumber = ref('');
 const address = ref('');
 const deviceId = ref('');
-const electricityProvider = ref(''); // NEW: State for Electricity Provider
+const electricityProvider = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+
+// Error States
 const error = ref('');
 const passwordError = ref(''); 
 const deviceError = ref(''); 
 
-// State for resend button and timer
+// Timer Refs
 const isResendDisabled = ref(false);
 const resendTimer = ref(0);
 let timerInterval = null;
@@ -300,53 +297,28 @@ const maskedEmail = computed(() => {
   return `${maskedUsername}@${domain}`;
 });
 
-// Watch for changes in initialMode prop to reset the form
+// Watch for changes in initialMode prop
 watch(() => props.initialMode, (newVal) => {
   isLoginMode.value = newVal === 'login';
   resetForm();
 });
 
-// Watch for modal open state to reset timer
+// Watch for modal open state
 watch(() => props.isOpen, (newVal) => {
-  if (!newVal) {
-    resetForm();
+  if (!newVal) resetForm();
+});
+
+// --- UPDATED: Realtime Password Validation ---
+// We watch the password variable and validate on every change
+watch(password, (newVal) => {
+  if (!isLoginMode.value && newVal) {
+    validatePasswordRealtime(newVal);
+  } else {
+    passwordError.value = '';
   }
 });
 
-// --- UPDATED: Device ID Validation Logic ---
-const checkDeviceIDExists = async (id) => {
-    // NOTE: This requires a Firestore index on the 'profile' collection group.
-    // The path is 'artifacts/{appId}/users/{userId}/userProfile/profile'
-    try {
-        // Create a query to search the 'profile' collection group for the Device ID.
-        // The path structure is assumed to be `.../users/{userId}/userProfile/profile`.
-        // We use collectionGroup('profile') and filter by the 'deviceId' field.
-        
-        // This query specifically looks for documents where the 'deviceId' field
-        // is NOT an empty string and matches the input 'id'.
-        const profilesRef = collectionGroup(db, 'profile'); 
-        const q = query(
-            profilesRef, 
-            where('deviceId', '==', id)
-        );
-
-        const querySnapshot = await getDocs(q);
-        
-        // If the snapshot is not empty, a user with this Device ID already exists.
-        return { exists: !querySnapshot.empty };
-    } catch (e) {
-        console.error("Error checking device ID existence:", e);
-        // Treat an error as non-existence or handle specifically based on policy
-        return { exists: false };
-    }
-};
-// --- END UPDATED DEVICE ID VALIDATION ---
-
-// --- Password Validation Logic (Unchanged) ---
-const passwordValidator = (pass) => {
-  // Reset previous error
-  passwordError.value = '';
-  // RegEx checks (length, uppercase, lowercase, number, special character)
+const validatePasswordRealtime = (pass) => {
   if (pass.length < 8) {
     passwordError.value = "Password must be at least 8 characters long.";
     return false;
@@ -367,12 +339,58 @@ const passwordValidator = (pass) => {
     passwordError.value = "Must contain at least one special character (e.g., !@#$%^&*).";
     return false;
   }
+  passwordError.value = '';
   return true;
 };
-// --- END PASSWORD VALIDATION ---
+// --- END REALTIME VALIDATOR ---
 
+// --- Claim Device Logic ---
+const claimDeviceOnServer = async (id, uid, name) => {
+    try {
+        await fetch('/api/public/claim-device', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                deviceId: id, 
+                userId: uid, 
+                fullName: name 
+            })
+        });
+        // We don't strictly need to wait for the response or block the UI 
+        // if it fails, as the user is already created, but it's good practice.
+    } catch (e) {
+        console.error("Failed to claim device on server:", e);
+        // Optional: You could show a toast warning here saying "Account created but device link failed"
+    }
+};
 
-// --- Component Methods ---
+// DEVICE VALIDATOR FROM PROXY
+const checkDeviceIDWithServer = async (id) => {
+    try {
+        // UPDATE: Changed path to match your index.js mounting point
+        const response = await fetch('/api/public/check-device', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deviceId: id })
+        });
+
+        const data = await response.json();
+        
+        if (!data.exists) {
+            return { valid: false, message: "Invalid Device ID. Device not found." };
+        }
+        if (data.isTaken) {
+            return { valid: false, message: "Device is already registered to another user." };
+        }
+        return { valid: true, message: "" };
+
+    } catch (e) {
+        console.error("Error verifying device:", e);
+        return { valid: false, message: "Could not verify device. Please try again." };
+    }
+};
+// --- END DEVICE ID VALIDATION ---
+
 const closeModal = () => {
   emit('close');
   resetForm();
@@ -392,7 +410,6 @@ const switchToLogin = () => {
   closeModal();
 };
 
-// New method to switch to the forgot password view
 const toggleToForgotPassword = () => {
   isForgotPasswordMode.value = true;
   isLoginMode.value = false;
@@ -410,7 +427,7 @@ const resetForm = () => {
   phoneNumber.value = '';
   address.value = '';
   deviceId.value = '';
-  electricityProvider.value = ''; // NEW: Reset provider field
+  electricityProvider.value = ''; 
   isVerifyingEmail.value = false;
   isEmailVerifiedSuccess.value = false;
   isPasswordResetSuccess.value = false;
@@ -435,23 +452,18 @@ const clearTimers = () => {
   passwordResetCountdown.value = 0;
 };
 
-// Polling function to check verification status
 const checkEmailVerificationStatus = async () => {
   if (auth.currentUser) {
-    // Force reload the user's latest data from Firebase
     await auth.currentUser.reload();
-    // Now check if the email is verified
     if (auth.currentUser.emailVerified) {
-      console.log('Email verified! Stopping polling and showing success modal.');
       clearTimers();
       isVerifyingEmail.value = false;
       isEmailVerifiedSuccess.value = true;
-      // After a short delay, switch to login mode and close the modal
       setTimeout(() => {
         isLoginMode.value = true;
         isEmailVerifiedSuccess.value = false;
         closeModal();
-      }, 3000); // 3-second delay
+      }, 3000);
     }
   }
 };
@@ -463,22 +475,17 @@ const handleLogin = async () => {
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
     
-
-    // Fetch user profile from Firestore
     const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`);
     const userDoc = await getDoc(userDocRef);
 
-    let role = "user"; // fallback
+    let role = "user"; 
     if (userDoc.exists() && userDoc.data().role) {
       role = userDoc.data().role;
     }
 
-    console.log("User role:", role);
-
     isLoading.value = false;
     closeModal();
 
-    // Route based on role
     if (role === "admin") {
       router.push("/adminhome");
     } else {
@@ -496,68 +503,66 @@ const handleRegister = async () => {
   passwordError.value = ''; 
   deviceError.value = ''; 
 
-  // 1. Password Validation Check
-  if (!passwordValidator(password.value)) {
+  // Password Check
+  if (!validatePasswordRealtime(password.value)) {
     return; 
   }
-
-  // 2. Password Match Check
   if (password.value !== confirmPassword.value) {
     error.value = "Passwords don't match!";
     return;
   }
   
-  // 3. Device ID Check (if provided)
-  const trimmedDeviceId = deviceId.value.trim();
-  if (trimmedDeviceId) {
-      isLoading.value = true;
-      const deviceCheck = await checkDeviceIDExists(trimmedDeviceId);
-      isLoading.value = false;
-      
-      if (deviceCheck.exists) {
-          // Error: Device ID found, meaning it's already registered.
-          deviceError.value = "Device ID already registered to an account.";
-          return;
-      }
-  }
-
-  // 4. Electricity Provider Check (Required, based on template 'required' attribute)
+  // Electricity Provider Check
   if (!electricityProvider.value) {
     error.value = "Please select an Electricity Provider.";
     return;
   }
 
+  // Device ID Check (Async - via Server)
+  const trimmedDeviceId = deviceId.value.trim();
+  
   try {
     isLoading.value = true;
+
+    if (trimmedDeviceId) {
+        const deviceCheck = await checkDeviceIDWithServer(trimmedDeviceId);
+        if (!deviceCheck.valid) {
+            isLoading.value = false;
+            deviceError.value = deviceCheck.message;
+            return;
+        }
+    }
+
+    // 1. Create Authentication
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
-    const defaultRole = "user"; // Default role
-    const defaultStatus = "active"; // Default status
 
-    // Create a new document in Firestore with user profile data, including the device ID and provider
+    // 2. Create Profile in Firestore
     await setDoc(doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`), {
       fullName: fullName.value,
       email: email.value,
       phoneNumber: phoneNumber.value,
       address: address.value,
-      deviceId: trimmedDeviceId, // Save the trimmed (or empty) device ID
-      electricityProvider: electricityProvider.value, // NEW: Save the electricity provider
-      role: defaultRole,
-      status: defaultStatus,
+      deviceId: trimmedDeviceId, 
+      electricityProvider: electricityProvider.value,
+      role: "user",
+      status: "active",
     });
-    console.log('User profile and data saved to Firestore.');
 
-    // Immediately send a verification email
+    // 3. NEW: Claim the Device in the Devices Collection
+    if (trimmedDeviceId) {
+        await claimDeviceOnServer(trimmedDeviceId, userId, fullName.value);
+    }
+
+    // 4. Send Verification
     await sendEmailVerification(userCredential.user);
 
-    console.log('Successfully registered and verification email sent.');
     isLoading.value = false;
     isVerifyingEmail.value = true;
     startResendTimer();
 
-    // Start polling to check for verification
-    if (verificationPollInterval) clearInterval(verificationPollInterval); // Clear any old timer
-    verificationPollInterval = setInterval(checkEmailVerificationStatus, 2000); // Poll every 2 seconds
+    if (verificationPollInterval) clearInterval(verificationPollInterval);
+    verificationPollInterval = setInterval(checkEmailVerificationStatus, 2000);
 
   } catch (err) {
     console.error('Registration error:', err.message);
@@ -567,14 +572,9 @@ const handleRegister = async () => {
 };
 
 const startResendTimer = () => {
-  // Clear any existing timer to prevent multiple timers running
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
-
+  if (timerInterval) clearInterval(timerInterval);
   isResendDisabled.value = true;
   resendTimer.value = 60;
-
   timerInterval = setInterval(() => {
     if (resendTimer.value > 0) {
       resendTimer.value--;
@@ -590,41 +590,29 @@ const handleResendVerification = async () => {
   try {
     if (auth.currentUser) {
       await sendEmailVerification(auth.currentUser);
-      console.log('Verification email resent.');
       startResendTimer();
     } else {
-      console.error('No user is currently logged in.');
       error.value = 'Could not resend email. Please try logging in again.';
     }
   } catch (err) {
-    console.error('Error resending email:', err.message);
     error.value = err.message;
   }
 };
 
-// New: Handle password reset email
 const handleForgotPassword = async () => {
   error.value = '';
   try {
     await sendPasswordResetEmail(auth, email.value);
-    console.log('Password reset email sent.');
-    // Set the success state and start the countdown
     isPasswordResetSuccess.value = true;
     startPasswordResetCountdown();
   } catch (err) {
-    console.error('Password reset error:', err.message);
     error.value = err.message;
   }
 };
 
 const startPasswordResetCountdown = () => {
-  // Clear any existing timer
-  if (passwordResetTimerInterval) {
-    clearInterval(passwordResetTimerInterval);
-  }
-
+  if (passwordResetTimerInterval) clearInterval(passwordResetTimerInterval);
   passwordResetCountdown.value = 60;
-
   passwordResetTimerInterval = setInterval(() => {
     if (passwordResetCountdown.value > 0) {
       passwordResetCountdown.value--;
@@ -634,14 +622,12 @@ const startPasswordResetCountdown = () => {
   }, 1000);
 };
 
-// Clean up the timers when the component is unmounted to prevent memory leaks
 onUnmounted(() => {
   clearTimers();
 });
 </script>
 
 <style scoped>
-/* Checkmark animation styles for both verification and password reset */
 .checkmark {
   width: 56px;
   height: 56px;
@@ -649,10 +635,8 @@ onUnmounted(() => {
   display: block;
   stroke-width: 2;
   stroke: #fff;
-  /* White stroke for visibility on green background */
   stroke-miterlimit: 10;
   box-shadow: inset 0px 0px 0px #059669;
-  /* EnerGreen color for the fill effect */
   animation: fill .4s cubic-bezier(0.650, 0.000, 0.450, 1.000) 1s forwards;
 }
 
@@ -662,7 +646,6 @@ onUnmounted(() => {
   stroke-width: 2;
   stroke-miterlimit: 10;
   stroke: #fff;
-  /* White circle */
   fill: none;
   animation: stroke 0.6s cubic-bezier(0.650, 0.000, 0.450, 1.000) forwards;
 }
@@ -673,7 +656,6 @@ onUnmounted(() => {
   stroke-dashoffset: 48;
   animation: stroke 0.3s cubic-bezier(0.650, 0.000, 0.450, 1.000) 0.8s forwards;
   stroke: #fff;
-  /* White checkmark */
 }
 
 @keyframes stroke {
@@ -685,7 +667,6 @@ onUnmounted(() => {
 @keyframes fill {
   100% {
     box-shadow: inset 0px 0px 0px 30px #059669;
-    /* Fills with EnerGreen color */
   }
 }
 </style>
