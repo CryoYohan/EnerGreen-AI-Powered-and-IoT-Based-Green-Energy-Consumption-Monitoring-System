@@ -494,6 +494,25 @@ const handleLogin = async () => {
   } catch (err) {
     console.error("Login error:", err.message);
     isLoading.value = false;
+    
+    // --- CUSTOM ERROR MESSAGES ---
+    switch (err.code) {
+      case 'auth/invalid-credential':
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+        // This covers both "User does not exist" and "Wrong Password"
+        error.value = "User does not exist or invalid password."; 
+        break;
+      case 'auth/too-many-requests':
+        error.value = "Too many failed attempts. Please try again later.";
+        break;
+      case 'auth/network-request-failed':
+        error.value = "Network error. Please check your internet connection.";
+        break;
+      default:
+        // Fallback for other errors
+        error.value = "Login failed. Please try again.";
+    }
     error.value = err.message;
   }
 };
