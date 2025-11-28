@@ -4,6 +4,7 @@ import 'dotenv/config'; // If you use a .env file locally
 import helmet from 'helmet'; // 1. Import Helmet
 import { adminRouter } from './adminRoutes.js';
 import { userRouter } from './userRoutes.js';
+import { publicRouter } from './publicRoutes.js';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use(express.json());
 // Mount Routes
 app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
+app.use('/api/public', publicRouter);
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
