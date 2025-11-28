@@ -392,4 +392,62 @@ adminRouter.post('/sales/update-subscription', adminLimiter, verifyToken, requir
     }
 });
 
+// 6. UPDATE ADMIN PROFILE (Self-Update)
+// Secure endpoint for admins to update their own profile details
+adminRouter.put('/update-profile', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+    const uid = req.user.uid;
+    // Added photoURL to destructuring
+    const { fullName, phoneNumber, address, photoURL, appId } = req.body;
+
+    const targetAppId = appId || 'default-app-id';
+
+    // Validation: Ensure required fields exist
+    if (!fullName || !phoneNumber || !address) {
+        return res.status(400).json({ error: "Name, Phone, and Address are required." });
+    }
+
+    try {
+        const userDocRef = db.collection('artifacts').doc(targetAppId)
+            .collection('users').doc(uid)
+            .collection('userProfile').doc('profile');
+
+        // Prepare the update object
+        const updateData = {
+            fullName,
+            phoneNumber,
+            address,
+            // Admins generally don't change electricity provider here, but you can add it if needed
+            lastUpdated: FieldValue.serverTimestamp()
+        };
+
+        if (photoURL) {
+            updateData.photoURL = photoURL;
+        }
+
+        // We use merge: true to avoid overwriting sensitive admin roles
+        await userDocRef.set(updateData, { merge: true });
+
+        // Optional: Update Auth Display Name to keep it in sync
+        try {
+            await auth.updateUser(uid, { displayName: fullName });
+        } catch (authErr) {
+            console.warn("Could not update Auth Display Name:", authErr);
+        }
+
+        // Audit Log for self-update
+        await db.collection('admin_audit_logs').add({
+            action: 'UPDATE_OWN_PROFILE',
+            adminUid: uid,
+            details: { fullName, hasPhoto: !!photoURL },
+            timestamp: FieldValue.serverTimestamp()
+        });
+
+        return res.json({ success: true, message: "Profile updated successfully." });
+
+    } catch (error) {
+        console.error("Admin Profile update error:", error);
+        return res.status(500).json({ error: "Failed to update profile." });
+    }
+});
+
 export { adminRouter };
