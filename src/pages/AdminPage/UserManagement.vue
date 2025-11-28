@@ -49,12 +49,12 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-9">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-8">
       <UserInsights :insights="insights" />
       <EcoHeroes :users="users" />
     </div>
 
-    <div class="px-6 pb-20">
+    <div class="pb-20">
       <!-- Table Component -->
       <!-- ✅ FIX: Listen to @edit-user event from child -->
       <UsersTable
