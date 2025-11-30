@@ -301,6 +301,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDarkMode } from "@/composables/useDarkMode.js"
+import { getStorage, ref as storageRef, getDownloadURL } from "firebase/storage";
 // Import the Heroicons
 import {
   Bars3Icon,
@@ -335,10 +336,14 @@ const isMobileMenuOpen = ref(false)
 const showNotifications = ref(false)
 const isProfileDropdownOpen = ref(false)
 const userName = ref('Guest')
+// Default local fallback, will be replaced by cloud default if available
 const profilePic = ref('/src/Images/profile/pfp.png')
 const showTipsModal = ref(false)
 const tipsComponent = ref(null)
 const router = useRouter()
+
+// Storage reference for default picture
+const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png');
 
 // dark mode
 const { isDarkMode, toggleDarkMode } = useDarkMode()
@@ -376,6 +381,20 @@ const closeDropdowns = (event) => {
     isProfileDropdownOpen.value = false
   }
 }
+
+// Fetch the cloud default profile picture
+const fetchDefaultProfilePic = async () => {
+  try {
+    const storage = getStorage();
+    /// In UserHeader.vue
+    const pathReference = storageRef(storage, 'gs://energreen-ai-powered-iot-based.firebasestorage.app/profile_pictures/Default/pfp.png');
+    defaultProfilePicUrl.value = await getDownloadURL(pathReference);
+  } catch (error) {
+    // Suppress console warning if it's just a permissions issue/not found, to keep console clean
+    // console.warn("Could not fetch default profile pic from Storage, using local fallback.", error.code);
+  }
+};
+
 const fetchUserProfile = (userId) => {
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
   try {
@@ -384,10 +403,11 @@ const fetchUserProfile = (userId) => {
       if (userProfileSnap.exists()) {
         const profileData = userProfileSnap.data()
         userName.value = profileData.fullName || 'Guest'
-        profilePic.value = profileData.photoURL || '/src/Images/profile/pfp.png'
+        // Use user's photo, OR the cloud default, OR local fallback
+        profilePic.value = profileData.photoURL || defaultProfilePicUrl.value
       } else {
         userName.value = 'Guest'
-        profilePic.value = '/src/Images/profile/pfp.png'
+        profilePic.value = defaultProfilePicUrl.value
       }
     }, (error) => {
       console.error("Error listening to user profile in UserHeader:", error)
@@ -409,12 +429,18 @@ const signOutUser = async () => {
 // lifecycle
 onMounted(() => {
   document.addEventListener('click', closeDropdowns)
-  onAuthStateChanged(auth, (user) => {
+  
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // 1. Fetch the default image URL NOW (inside auth context)
+      await fetchDefaultProfilePic();
+      
+      // 2. Then set up the user listener
       fetchUserProfile(user.uid)
     } else {
       userName.value = 'Guest'
       profilePic.value = '/src/Images/profile/pfp.png'
+      defaultProfilePicUrl.value = '/src/Images/profile/pfp.png'
     }
   })
 })

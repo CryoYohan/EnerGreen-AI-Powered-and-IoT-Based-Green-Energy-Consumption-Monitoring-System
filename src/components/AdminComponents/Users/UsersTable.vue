@@ -45,7 +45,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
-                    <img class="h-10 w-10 rounded-full object-cover" :src="user.photoURL || '/src/Images/profile/pfp.png'" />
+                    <img class="h-10 w-10 rounded-full object-cover" :src="user.photoURL || defaultProfilePicUrl" />
                   </div>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
@@ -56,39 +56,37 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">
                 <span :class="user.role === 'admin' ? 'text-purple-600 font-bold' : 'text-gray-600 dark:text-gray-400'">{{ user.role }}</span>
               </td>
-              
-              <!-- Subscription Tier -->
               <td class="px-6 py-4 whitespace-nowrap">
-                <span 
-                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  :class="user.subscriptionTier === 'Premium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'"
-                >
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="user.subscriptionTier === 'Premium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'">
                   {{ user.subscriptionTier || 'Free' }}
                 </span>
               </td>
-
-              <!-- Electricity Provider -->
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 uppercase">
-                {{ user.electricityProvider || 'veco' }}
-              </td>
-
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 uppercase">{{ user.electricityProvider || 'veco' }}</td>
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ user.location }}</td>
               <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 font-mono">{{ user.smartMeterID }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="statusClasses(user.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ user.status }}</span>
               </td>
+              
+              <!-- ✅ MODIFIED ACTIONS COLUMN -->
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <!-- ✅ FIX: Emit event directly to parent instead of opening local modal -->
-                <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="$emit('edit-user', user)">Edit</button>
-                
-                <button v-if="user.status && user.status.toLowerCase() === 'active'" 
-                        @click="confirmAction('suspend', user)" 
-                        class="text-amber-600 dark:text-amber-400 hover:underline mr-3">Suspend</button>
-                <button v-else 
-                        @click="confirmAction('enable', user)" 
-                        class="text-blue-600 dark:text-blue-400 hover:underline mr-3">Enable</button>
-                
-                <button @click="confirmAction('delete', user)" class="text-red-600 hover:underline">Delete</button>
+                <!-- If Deleted, show VIEW only -->
+                <div v-if="user.status && user.status.toLowerCase() === 'deleted'">
+                  <button class="text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer" @click="$emit('edit-user', user)">View</button>
+                </div>
+                <!-- Else show Edit/Suspend/Delete -->
+                <div v-else>
+                  <button class="text-green-600 dark:text-green-400 hover:underline mr-3" @click="$emit('edit-user', user)">Edit</button>
+                  
+                  <button v-if="user.status && user.status.toLowerCase() === 'active'" 
+                          @click="confirmAction('suspend', user)" 
+                          class="text-amber-600 dark:text-amber-400 hover:underline mr-3">Suspend</button>
+                  <button v-else 
+                          @click="confirmAction('enable', user)" 
+                          class="text-blue-600 dark:text-blue-400 hover:underline mr-3">Enable</button>
+                  
+                  <button @click="confirmAction('delete', user)" class="text-red-600 hover:underline">Delete</button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -106,7 +104,7 @@
       </div>
     </div>
 
-    <!-- Confirm Modal (Only for Suspend/Delete actions triggered locally) -->
+    <!-- Confirm Modal -->
     <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="showConfirmModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" @click.self="showConfirmModal = false">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm shadow-xl text-center">
@@ -130,7 +128,10 @@
 </template>
 
 <script setup>
-import { ref, computed, defineEmits } from "vue";
+import { ref, computed, defineEmits, onMounted } from "vue";
+import { getStorage, ref as storageRef, getDownloadURL } from "firebase/storage";
+import { auth } from "@/firebase.js";
+import { onAuthStateChanged } from "firebase/auth";
 
 const props = defineProps({ 
   users: { type: Array, required: true },
@@ -149,6 +150,21 @@ const selectedRole = ref("");
 const showConfirmModal = ref(false);
 const pendingAction = ref('');
 const confirmUser = ref({});
+const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png'); 
+
+const fetchDefaultProfilePic = async () => {
+  try {
+    const storage = getStorage();
+    const pathReference = storageRef(storage, 'gs://energreen-ai-powered-iot-based.firebasestorage.app/profile_pictures/Default/pfp.png');
+    defaultProfilePicUrl.value = await getDownloadURL(pathReference);
+  } catch (error) { }
+};
+
+onMounted(() => {
+  onAuthStateChanged(auth, async (user) => {
+    if (user) await fetchDefaultProfilePic();
+  });
+});
 
 const uniqueStatuses = computed(() => [...new Set(props.users.map(u => u.status || "Unknown"))]);
 
@@ -184,7 +200,6 @@ const statusClasses = (status) => {
   };
 };
 
-// Confirmation Logic (Local for simpler actions)
 const confirmAction = (action, user) => {
   pendingAction.value = action;
   confirmUser.value = user;

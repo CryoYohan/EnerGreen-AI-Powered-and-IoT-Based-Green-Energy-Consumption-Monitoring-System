@@ -14,8 +14,9 @@
 
       <div class="flex items-start flex-col sm:flex-row sm:items-center gap-6 mb-8">
         <div class="relative group">
+          <!-- Uses userProfile.photoURL which now correctly defaults to the cloud image -->
           <img 
-            :src="userProfile.photoURL || '/src/Images/profile/pfp.png'" 
+            :src="userProfile.photoURL || defaultProfilePicUrl" 
             alt="Profile Picture"
             class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
           >
@@ -206,7 +207,9 @@ export default {
       // Password visibility states
       showCurrentPassword: false,
       showNewPassword: false,
-      showConfirmNewPassword: false
+      showConfirmNewPassword: false,
+      // Default local fallback, will be replaced by cloud default if available
+      defaultProfilePicUrl: '/src/Images/profile/pfp.png',
     };
   },
   setup() {
@@ -214,6 +217,17 @@ export default {
     return { isDarkMode };
   },
   methods: {
+    // Fetch the cloud default profile picture
+    async fetchDefaultProfilePic() {
+      try {
+        const storage = getStorage();
+        // Updated to point to Default.png, matching the rule structure
+        const pathReference = storageRef(storage, 'gs://energreen-ai-powered-iot-based.firebasestorage.app/profile_pictures/Default/pfp.png');
+        this.defaultProfilePicUrl = await getDownloadURL(pathReference);
+      } catch (error) {
+        console.warn("Could not fetch default profile pic from Storage, using local fallback.", error.code);
+      }
+    },
     // Splits the full name into first and last name based on spaces
     splitFullName(fullName) {
       if (!fullName) {
@@ -360,7 +374,8 @@ export default {
       this.lastName = lastName;
       this.phoneNumber = this.initialState.phoneNumber;
       this.address = this.initialState.address;
-      this.userProfile.photoURL = this.initialState.photoURL;
+      // Default back to user's photo OR the cloud default if none
+      this.userProfile.photoURL = this.initialState.photoURL || this.defaultProfilePicUrl;
       this.photoFile = null;
       this.currentPassword = '';
       this.newPassword = '';
@@ -373,8 +388,11 @@ export default {
     }
   },
   mounted() {
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // 1. Fetch default image within Auth context
+        await this.fetchDefaultProfilePic();
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/userProfile/profile`);
         
@@ -389,14 +407,16 @@ export default {
             this.lastName = lastName;
             this.phoneNumber = data.phoneNumber || '';
             this.address = data.address || '';
-            this.userProfile.photoURL = data.photoURL || '/src/Images/profile/pfp.png';
+            
+            // LOGIC CHANGE: Use defaultProfilePicUrl if photoURL is empty
+            this.userProfile.photoURL = data.photoURL || this.defaultProfilePicUrl;
 
             // Store the initial state for cancellation
             this.initialState = {
               fullName: data.fullName,
               phoneNumber: data.phoneNumber,
               address: data.address,
-              photoURL: data.photoURL || '/src/Images/profile/pfp.png'
+              photoURL: this.userProfile.photoURL
             };
             
             console.log("Profile data loaded successfully:", data);
@@ -406,7 +426,7 @@ export default {
             this.userProfile = {
               fullName: 'User',
               email: user.email,
-              photoURL: '/src/Images/profile/pfp.png'
+              photoURL: this.defaultProfilePicUrl
             };
           }
         }, (error) => {
