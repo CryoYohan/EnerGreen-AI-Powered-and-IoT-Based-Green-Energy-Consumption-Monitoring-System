@@ -5,11 +5,11 @@
     
     <!-- Integrated Metrics Card -->
     <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 ">
         <div 
           v-for="(metric, index) in dailyMetrics" 
           :key="index"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
         >
           <div class="flex items-center justify-between">
             <div>

@@ -8,7 +8,7 @@
         subtitle="Monitor your solar energy production and independence"
       />
       
-      <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-end sm:items-center">
+      <div class="flex flex-col mr-8 sm:flex-row gap-4 w-full md:w-auto items-end sm:items-center">
         <!-- Time Filters -->
         <div class="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
           <div class="flex flex-wrap gap-1">
