@@ -256,12 +256,30 @@ const billingHistory = computed(() => {
   rawData.value.forEach(d => {
     const date = new Date(d.date);
     const key = `${date.getFullYear()}-${date.getMonth()}`;
-    if (!grouped[key]) grouped[key] = { month: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), kwh: 0, cost: 0, sort: date.getTime() };
-    const val = (d.gridKwhTotal || 0);
-    grouped[key].kwh += val;
-    grouped[key].cost += val * currentRate.value;
+    if (!grouped[key]) {
+      grouped[key] = { 
+        month: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), 
+        kwh: 0, 
+        cost: 0, 
+        sort: date.getTime(),
+        providers: new Set() // New: To track providers
+      };
+    }
+    grouped[key].kwh += (d.gridKwhTotal || 0);
+    grouped[key].cost += (d.cost || 0); // Use the new cost field
+    if (d.provider) {
+      grouped[key].providers.add(d.provider); // Add provider
+    }
   });
-  return Object.values(grouped).sort((a, b) => b.sort - a.sort).map(i => ({...i, kwh: i.kwh.toFixed(1), cost: i.cost.toFixed(2)})).slice(0, 12);
+  return Object.values(grouped)
+    .sort((a, b) => b.sort - a.sort)
+    .map(i => ({
+      ...i, 
+      kwh: i.kwh.toFixed(4), // Updated to 4 decimal places
+      cost: i.cost.toFixed(2),
+      provider: Array.from(i.providers).join(', ') // Create a string of providers
+    }))
+    .slice(0, 12);
 });
 
 const updateCharts = () => {

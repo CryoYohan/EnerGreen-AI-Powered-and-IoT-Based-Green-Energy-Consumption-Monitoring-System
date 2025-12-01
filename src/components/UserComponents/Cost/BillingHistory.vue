@@ -12,6 +12,7 @@
         <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 uppercase text-xs">
           <tr>
             <th class="px-6 py-3 font-semibold">Month</th>
+            <th class="px-6 py-3 font-semibold">Provider</th>
             <th class="px-6 py-3 font-semibold">Consumption</th>
             <th class="px-6 py-3 font-semibold">Total Bill</th>
             <th class="px-6 py-3 font-semibold text-right">Status</th>
@@ -20,6 +21,7 @@
         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
           <tr v-for="(record, index) in history" :key="index" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
             <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ record.month }}</td>
+            <td class="px-6 py-4 text-gray-600 dark:text-gray-300 uppercase">{{ record.provider }}</td>
             <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ record.kwh }} kWh</td>
             <td class="px-6 py-4 font-bold text-gray-900 dark:text-white">₱{{ record.cost }}</td>
             <td class="px-6 py-4 text-right">
@@ -32,7 +34,7 @@
             </td>
           </tr>
           <tr v-if="history.length === 0">
-            <td colspan="4" class="px-6 py-8 text-center text-gray-500">No history available yet.</td>
+            <td colspan="5" class="px-6 py-8 text-center text-gray-500">No history available yet.</td>
           </tr>
         </tbody>
       </table>
