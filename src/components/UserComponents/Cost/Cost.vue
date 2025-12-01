@@ -267,8 +267,8 @@ const billingHistory = computed(() => {
     }
     grouped[key].kwh += (d.gridKwhTotal || 0);
     grouped[key].cost += (d.cost || 0); // Use the new cost field
-    if (d.provider) {
-      grouped[key].providers.add(d.provider); // Add provider
+    if (d.electricityProvider) {
+      grouped[key].providers.add(d.electricityProvider); // Add provider
     }
   });
   return Object.values(grouped)
