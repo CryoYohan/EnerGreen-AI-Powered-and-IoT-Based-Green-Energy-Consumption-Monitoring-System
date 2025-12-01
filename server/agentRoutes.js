@@ -7,6 +7,7 @@ import { auth, db } from './firebaseAdmin.js'; // Keep auth from global
 import fetch from 'node-fetch';
 import fs from 'fs';
 import admin from 'firebase-admin'; // New import for local auth
+import rateLimit from 'express-rate-limit';
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +54,13 @@ const verifyToken = async (req, res, next) => {
     }
 };
 
+// --- RATE LIMITER ---
+const queryRateLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // limit each IP to 20 requests per windowMs
+    message: { success: false, error: "Too many requests, please try again later." }
+});
+
 // Initialize SpeechClient with a hybrid approach for production readiness
 let speechClient;
 if (fs.existsSync(keyFilePath)) {
@@ -67,7 +75,7 @@ if (fs.existsSync(keyFilePath)) {
 
 const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ 
+const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     // Add a system instruction to guide the model's behavior
     systemInstruction: "You are Christine, a helpful and friendly AI assistant for EnerGreen. Your primary goal is to assist users with their energy-related questions and feedback. When a user asks for information that can be retrieved by one of your available tools, you must use the tool. Do not ask for permission; just use the tool. If the user's query is conversational, respond naturally."
@@ -169,7 +177,7 @@ async function generateSpeech(text) {
     throw new Error("No audio data returned from Gemini.");
 }
 
-router.post('/query', verifyToken, async (req, res) => {
+router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     console.log('AI Agent endpoint hit!');
 
     if (!req.body || req.body.length === 0) {
