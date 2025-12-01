@@ -84,7 +84,7 @@
 </template>
 
 <script>
-import { ref, computed, defineExpose } from 'vue';
+import { ref, computed, defineExpose, onMounted } from 'vue';
 import { 
   doc, 
   collection, 
@@ -95,6 +95,7 @@ import {
   where,
   Timestamp
 } from 'firebase/firestore'; 
+import { getStorage, ref as storageRef, getDownloadURL } from "firebase/storage";
 import { db, auth } from '@/firebase.js';
 // 1. Import API Service
 import api from '@/services/api.js';
@@ -115,11 +116,32 @@ export default {
     const error = ref(null);
     const currentTipIndex = ref(0);
 
-    const wizardImages = [
-      'https://firebasestorage.googleapis.com/v0/b/energreen-ai-powered-iot-based.appspot.com/o/profile_pictures%2FDefault%2FEnerWizard.png?alt=media',
-      'https://firebasestorage.googleapis.com/v0/b/energreen-ai-powered-iot-based.appspot.com/o/profile_pictures%2FDefault%2FEnerWizard2.png?alt=media',
-      'https://firebasestorage.googleapis.com/v0/b/energreen-ai-powered-iot-based.appspot.com/o/profile_pictures%2FDefault%2FEnerWizard3.png?alt=media'
-    ];
+    // Initial local fallback images
+    const wizardImages = ref([
+      '/src/Images/icons/enerwizard.png',
+      '/src/Images/icons/enerwizard.png',
+      '/src/Images/icons/enerwizard.png'
+    ]);
+
+    // Fetch the 3 Wizard images from Cloud Storage
+    const fetchWizardImages = async () => {
+      try {
+        const storage = getStorage();
+        const bucketPath = 'profile_pictures/Default/';
+        const imageNames = ['EnerWizard.png', 'EnerWizard2.png', 'EnerWizard3.png'];
+        
+        // Fetch all 3 URLs in parallel
+        const promises = imageNames.map(async (name) => {
+           const pathReference = storageRef(storage, bucketPath + name);
+           return await getDownloadURL(pathReference);
+        });
+
+        const urls = await Promise.all(promises);
+        wizardImages.value = urls; // Update reactive array
+      } catch (err) {
+        console.warn("Could not fetch EnerWizard images from cloud, using fallbacks.", err);
+      }
+    };
 
     const currentTip = computed(() => {
       return tips.value.length > 0 ? tips.value[currentTipIndex.value] : null;
@@ -130,8 +152,8 @@ export default {
     });
 
     const currentWizardImage = computed(() => {
-      const index = Math.min(currentTipIndex.value, wizardImages.length - 1);
-      return wizardImages[index];
+      const index = Math.min(currentTipIndex.value, wizardImages.value.length - 1);
+      return wizardImages.value[index];
     });
 
     const nextTip = () => {
@@ -146,7 +168,6 @@ export default {
     const generateTip = async (energyData, userProfileRef) => {
       try {
         // Call the secure proxy endpoint
-        // Ensure you have created this route in your backend!
         const response = await api.post('/api/user/generate-tips', {
           energyData: energyData
         });
@@ -155,8 +176,7 @@ export default {
         
         if (result.success && result.tips) {
           tips.value = result.tips;
-          // Save to Firestore (Client-side write is fine here as per rules, 
-          // or move this to backend if you prefer strict "backend-only writes")
+          // Save to Firestore
           await setDoc(userProfileRef, { tips: result.tips, tipTimestamp: Date.now() }, { merge: true });
         } else {
           tips.value = [{ description: "Could not generate a tip based on current data." }];
@@ -304,16 +324,13 @@ export default {
 
     const closeModal = () => emit('close');
     
-    // 🌟 CRITICAL CHANGE: Automatically call fetchAndGenerate when modal opens
     const openModal = async () => { 
         emit('open'); 
-        // 🌟 Ensure a user is logged in before fetching data
         if (auth.currentUser) {
             await fetchAndGenerate(); 
         } else {
-            // Wait for auth to resolve before fetching
             const unsubscribe = auth.onAuthStateChanged(user => {
-                unsubscribe(); // Stop listening after the first event
+                unsubscribe(); 
                 if (user) {
                     fetchAndGenerate();
                 } else {
@@ -328,7 +345,11 @@ export default {
       if (!loading.value) fetchAndGenerate(true);
     };
 
-    defineExpose({ openModal });
+    onMounted(() => {
+      fetchWizardImages();
+    });
+
+    defineExpose({ openModal, fetchAndGenerate });
 
     return {
       tips,
