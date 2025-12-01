@@ -116,9 +116,9 @@ export default {
     const currentTipIndex = ref(0);
 
     const wizardImages = [
-      '/src/Images/background/EnerWizard.png',
-      '/src/Images/background/EnerWizard2.png',
-      '/src/Images/background/EnerWizard3.png'
+      'https://firebasestorage.googleapis.com/v0/b/energreen-ai-powered-iot-based.appspot.com/o/profile_pictures%2FDefault%2FEnerWizard.png?alt=media',
+      'https://firebasestorage.googleapis.com/v0/b/energreen-ai-powered-iot-based.appspot.com/o/profile_pictures%2FDefault%2FEnerWizard2.png?alt=media',
+      'https://firebasestorage.googleapis.com/v0/b/energreen-ai-powered-iot-based.appspot.com/o/profile_pictures%2FDefault%2FEnerWizard3.png?alt=media'
     ];
 
     const currentTip = computed(() => {
