@@ -7,6 +7,7 @@ import { auth, db } from './firebaseAdmin.js'; // Keep auth from global
 import fetch from 'node-fetch';
 import fs from 'fs';
 import admin from 'firebase-admin'; // New import for local auth
+import rateLimit from 'express-rate-limit';
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -52,6 +53,13 @@ const verifyToken = async (req, res, next) => {
         return res.status(403).json({ success: false, error: 'Invalid token' });
     }
 };
+
+// --- RATE LIMITER ---
+const queryRateLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // limit each IP to 20 requests per windowMs
+    message: { success: false, error: "Too many requests, please try again later." }
+});
 
 // Initialize SpeechClient with a hybrid approach for production readiness
 let speechClient;
@@ -169,7 +177,7 @@ async function generateSpeech(text) {
     throw new Error("No audio data returned from Gemini.");
 }
 
-router.post('/query', verifyToken, async (req, res) => {
+router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     console.log('AI Agent endpoint hit!');
 
     if (!req.body || req.body.length === 0) {
