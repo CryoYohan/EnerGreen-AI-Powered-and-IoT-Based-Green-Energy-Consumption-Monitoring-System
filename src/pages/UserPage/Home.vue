@@ -197,7 +197,7 @@ const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
     cost: `₱${currentRate.value.toFixed(2)}`,
-    definition: 'VECO Current rate'
+    definition: `${(userProfile.value?.electricityProvider || '').toUpperCase()} Current rate`
   },
   {
     title: 'Consumption',
@@ -220,19 +220,26 @@ const dailyMetrics = computed(() => [
     definition: 'Today'
   },
 ]);
-const fetchUtilityRate = () => {
-  const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates/veco`);
+const fetchUtilityRate = (provider) => {
+  if (!provider) {
+    console.warn("No electricity provider specified for rate fetch.");
+    currentRate.value = 0;
+    return;
+  }
+  
+  const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates/${provider}`);
   
   onSnapshot(rateRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      currentRate.value = data.vecoKwhRate || 0;
+      // Dynamically access the rate field, e.g., data['vecoKwhRate']
+      currentRate.value = data[`${provider}KwhRate`] || 0;
     } else {
-      console.warn("No VECO rate document found!");
+      console.warn(`No rate document found for provider: ${provider}`);
       currentRate.value = 0;
     }
   }, (error) => {
-    console.error("Error fetching VECO rate:", error);
+    console.error(`Error fetching rate for ${provider}:`, error);
     currentRate.value = 0;
   });
 };
@@ -587,20 +594,16 @@ const updateCostAndSavingsData = () => {
 
 watch(userProfile, (newProfile) => {
     // This watcher runs whenever useAuth successfully loads or clears the profile.
-    if (newProfile && newProfile.deviceId) {
-        // User profile loaded and has a deviceId
-        deviceId.value = newProfile.deviceId;
-        // The inner watch(deviceId, ...) handles the subsequent data fetch
-    } else if (newProfile === null && user.value) {
-        // User is logged in, but profile is missing (Error or race condition on first load)
-        // We let the logic in fetchDeviceId handle the fallback.
-        fetchDeviceId();
+    if (newProfile) {
+        deviceId.value = newProfile.deviceId || null;
+        // Fetch the utility rate based on the user's provider
+        fetchUtilityRate(newProfile.electricityProvider);
     } else if (user.value === null) {
         // User logged out
         deviceId.value = null;
         clearAllData();
     } else {
-        // Profile loaded, but no deviceId
+        // Profile is loading or missing, handle gracefully
         fetchDeviceId();
     }
 }, { immediate: true });
@@ -620,7 +623,6 @@ watch(deviceId, (newDeviceId) => {
 onMounted(async () => {
   // All user/profile/device ID fetching is now handled by the composable and the watcher.
   // We only keep non-auth related fetches here.
-  fetchUtilityRate();
   fetchCarbonRate();
 
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");

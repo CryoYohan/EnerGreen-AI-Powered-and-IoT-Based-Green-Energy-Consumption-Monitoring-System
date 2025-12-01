@@ -120,7 +120,6 @@
                 <select v-model="newUserForm.electricityProvider" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <option value="veco">Visayan Electric (VECO)</option>
                   <option value="cebeco">CEBECO</option>
-                  <option value="meralco">MERALCO</option>
                 </select>
               </div>
               <div>
@@ -195,7 +194,6 @@
                 <select v-model="editUserForm.electricityProvider" :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <option value="veco">Visayan Electric (VECO)</option>
                   <option value="cebeco">CEBECO</option>
-                  <option value="meralco">MERALCO</option>
                 </select>
               </div>
             </div>
