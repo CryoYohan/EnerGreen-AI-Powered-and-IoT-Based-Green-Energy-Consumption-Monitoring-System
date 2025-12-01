@@ -233,7 +233,7 @@ const fetchUtilityRate = (provider) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       // Dynamically access the rate field, e.g., data['vecoKwhRate']
-      currentRate.value = data[`${provider}KwhRate`] || 0;
+      currentRate.value = data.kwhRate || 0;
     } else {
       console.warn(`No rate document found for provider: ${provider}`);
       currentRate.value = 0;
