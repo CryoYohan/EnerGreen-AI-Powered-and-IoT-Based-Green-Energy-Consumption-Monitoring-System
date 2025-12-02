@@ -120,7 +120,6 @@
                 <select v-model="newUserForm.electricityProvider" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <option value="veco">Visayan Electric (VECO)</option>
                   <option value="cebeco">CEBECO</option>
-                  <option value="meralco">MERALCO</option>
                 </select>
               </div>
               <div>
@@ -160,31 +159,31 @@
       </div>
     </transition>
 
-    <!-- EDIT USER MODAL -->
+    <!-- EDIT / VIEW USER MODAL -->
     <transition name="fade">
       <div v-if="showEditModal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Edit User</h3>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ isViewOnly ? 'View User Details' : 'Edit User' }}</h3>
             <button @click="showEditModal = false" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">✕</button>
           </div>
 
           <form @submit.prevent="handleEditUserSubmit" class="space-y-4">
             <!-- Read Only Email -->
              <div>
-                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Email (Cannot Change)</label>
+                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
                 <input :value="editUserForm.email" disabled class="mt-1 w-full p-2 border rounded-md bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 cursor-not-allowed" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-              <input v-model="editUserForm.name" type="text" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <input v-model="editUserForm.name" type="text" required :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
-                <select v-model="editUserForm.role" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select v-model="editUserForm.role" :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
@@ -192,31 +191,37 @@
               <!-- Provider -->
                <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
-                <select v-model="editUserForm.electricityProvider" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select v-model="editUserForm.electricityProvider" :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <option value="veco">Visayan Electric (VECO)</option>
                   <option value="cebeco">CEBECO</option>
-                  <option value="meralco">MERALCO</option>
                 </select>
               </div>
             </div>
 
-            <!-- Subscription -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Subscription Tier</label>
-                <select v-model="editUserForm.subscriptionTier" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                  <option value="Free">Free</option>
-                  <option value="Premium">Premium</option>
-                </select>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Subscription -->
+              <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Subscription Tier</label>
+                  <select v-model="editUserForm.subscriptionTier" :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="Free">Free</option>
+                    <option value="Premium">Premium</option>
+                  </select>
+              </div>
+               <!-- Status -->
+              <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                  <input :value="editUserForm.status" disabled class="mt-1 w-full p-2 border rounded-md bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 cursor-not-allowed" />
+              </div>
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
-              <input v-model="editUserForm.location" type="text" required class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <input v-model="editUserForm.location" type="text" required :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Assign Smart Meter</label>
-              <select v-model="editUserForm.smartMeterID" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              <select v-model="editUserForm.smartMeterID" :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="None">None</option>
                 <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
                   {{ device.deviceId }} ({{ device.location || 'No Loc' }})
@@ -225,8 +230,10 @@
             </div>
 
             <div class="flex justify-end gap-3 mt-6">
-              <button type="button" @click="showEditModal = false" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-white">Cancel</button>
-              <button type="submit" :disabled="isEditingUser" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
+              <button type="button" @click="showEditModal = false" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+                {{ isViewOnly ? 'Close' : 'Cancel' }}
+              </button>
+              <button v-if="!isViewOnly" type="submit" :disabled="isEditingUser" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
                 <span v-if="isEditingUser" class="animate-spin mr-2">⏳</span>
                 {{ isEditingUser ? 'Updating...' : 'Save Changes' }}
               </button>
@@ -294,6 +301,7 @@ const newUserForm = reactive({
 // Edit User State (New)
 const showEditModal = ref(false);
 const isEditingUser = ref(false);
+const isViewOnly = ref(false);
 const editUserForm = reactive({}); // Will be populated on open
 
 const showNotification = (message, type = "info", duration = 3000) => {
@@ -463,6 +471,9 @@ const handleDeleteUser = async (user) => {
 // --- 4. EDIT USER LOGIC (New Modal & Proxy) ---
 // Triggered by @edit-user event from UsersTable
 const openEditModal = (user) => {
+    // Check if the user status is 'deleted'
+    isViewOnly.value = user.status && user.status.toLowerCase() === 'deleted';
+    
     // Populate the form with existing user data
     Object.assign(editUserForm, {
         userId: user.userId,
@@ -472,7 +483,8 @@ const openEditModal = (user) => {
         role: user.role,
         smartMeterID: user.smartMeterID,
         electricityProvider: user.electricityProvider,
-        subscriptionTier: user.subscriptionTier
+        subscriptionTier: user.subscriptionTier,
+        status: user.status
     });
     showEditModal.value = true;
 };
