@@ -21,6 +21,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "firebase-admin": "^13.6.0",
+    "google-it": "^1.6.4",
     "helmet": "^8.1.0",
     "multer": "^2.0.2",
     "node-fetch": "^3.3.2"

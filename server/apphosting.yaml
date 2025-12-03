@@ -1,7 +1,7 @@
 # apphosting.yaml (Recommended structure for Firebase App Hosting)
 
 # 1. Server Configuration (Defines the build and run process)
-server: 
+server:
   # The command to run before starting the server (e.g., installing dependencies)
   # This is the equivalent of your 'build: cmd'
   buildCommand: "npm install"
@@ -9,11 +9,11 @@ server:
   # The command to execute to start your production Node.js server.
   # This is the equivalent of your 'run: cmd'
   runCommand: "npm run start"
-  
+
   # Specify the directory containing your main server code
   # The contents of this directory (relative to the project root) 
   # are copied to the container's /workspace.
-  source: . 
+  source: .
 
 # Configuration for Cloud Run
 runConfig:
@@ -25,6 +25,12 @@ env:
 
   - variable: GEMINI_API_KEY
     secret: VITE_GEMINI_API_KEY
+
+  - variable: GOOGLE_CUSTOM_SEARCH_API_KEY
+    secret: VITE_GOOGLE_CUSTOM_SEARCH_API_KEY
+
+  - variable: GOOGLE_SEARCH_ENGINE_ID
+    secret: VITE_GOOGLE_SEARCH_ENGINE_ID
 
   - variable: APP_READ_API_URL
     secret: VITE_APP_READ_API_URL
