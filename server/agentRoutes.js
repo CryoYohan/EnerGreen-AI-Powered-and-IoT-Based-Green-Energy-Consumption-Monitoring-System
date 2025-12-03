@@ -8,6 +8,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import admin from 'firebase-admin'; // New import for local auth
 import rateLimit from 'express-rate-limit';
+import axios from 'axios';
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -34,6 +35,33 @@ try {
     const globalAdmin = await import('./firebaseAdmin.js');
     dbAgent = globalAdmin.db;
 }
+
+// --- ONE-TIME DATA POPULATION ---
+// This function runs on server start to ensure Firestore has a base set of tips.
+const populateTips = async () => {
+    const tipsCollection = dbAgent.collection('tips');
+    const snapshot = await tipsCollection.get();
+    if (snapshot.empty) {
+        console.log('Populating "tips" collection in Firestore...');
+        const tips = [
+            { category: 'general', tip: 'Unplug electronics when not in use, as they can still draw "phantom" power in standby mode.' },
+            { category: 'general', tip: 'Switch to LED light bulbs. They use up to 80% less energy than traditional incandescent bulbs.' },
+            { category: 'high_usage', tip: 'Your recent energy usage has been higher than your average. Try to identify which appliances you\'ve been using more frequently and see if you can reduce their usage.' },
+            { category: 'high_grid_usage', tip: 'You are using a lot of energy from the grid. Try to shift energy-intensive tasks, like laundry, to daytime hours when your solar panels generate the most power.' }
+        ];
+        const batch = dbAgent.batch();
+        tips.forEach(tip => {
+            const docRef = tipsCollection.doc(); // Auto-generate ID
+            batch.set(docRef, tip);
+        });
+        await batch.commit();
+        console.log('✅ "tips" collection populated successfully.');
+    }
+};
+
+// Populate tips on startup and log any errors.
+populateTips().catch(error => console.error("🔥 Error populating tips:", error));
+
 
 // --- MIDDLEWARE ---
 const verifyToken = async (req, res, next) => {
@@ -108,6 +136,58 @@ const energyToolFunctions = [
                 }
             },
             required: ["feedbackType", "feedbackText"]
+        }
+    },
+    {
+        name: "getHistoricalData",
+        description: "Get the user's historical energy data for a specified period, such as 'last 7 days' or 'last 30 days'.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                period: {
+                    type: "STRING",
+                    description: "The time period for which to retrieve data.",
+                    enum: ["last_7_days", "last_30_days"]
+                }
+            },
+            required: ["period"]
+        }
+    },
+    {
+        name: "googleSearch",
+        description: "Performs a Google search to answer general knowledge questions or find information on the web.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                query: {
+                    type: "STRING",
+                    description: "The search query."
+                }
+            },
+            required: ["query"]
+        }
+    },
+    {
+        name: "customerSupport",
+        description: "Provides simple troubleshooting assistance for common customer issues.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                issue: {
+                    type: "STRING",
+                    description: "A brief description of the issue the user is facing.",
+                    enum: ["no_power", "high_bill", "panel_not_working"]
+                }
+            },
+            required: ["issue"]
+        }
+    },
+    {
+        name: "getEnergySavingTips",
+        description: "Provides a list of personalized energy-saving tips to help users reduce their consumption.",
+        parameters: {
+            type: "OBJECT",
+            properties: {},
         }
     }
 ];
@@ -266,25 +346,199 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     return { error: "Failed to retrieve data." };
                 }
             },
-            // NEW TOOL IMPLEMENTATION
             submitFeedback: async ({ uid, feedbackType, feedbackText }) => {
                 console.log(`TOOL EXECUTED: submitFeedback for user ${uid}`);
                 try {
-                    // Using 'feedback' collection at root, or adjust path as needed
-                    // e.g. artifacts/default-app-id/public/data/feedback
                     await dbAgent.collection('feedback').add({
                         uid: uid,
                         type: feedbackType,
                         text: feedbackText,
                         status: 'new',
-                        createdAt: new Date().toISOString() // Store as ISO string or Firestore Timestamp
+                        createdAt: new Date().toISOString()
                     });
                     return { status: "Feedback submitted successfully." };
                 } catch (dbError) {
                     console.error("Firestore write failed:", dbError);
                     return { status: "Failed to submit feedback due to a database error." };
                 }
-            }
+            },
+            getHistoricalData: async ({ uid, period }) => {
+                console.log(`TOOL EXECUTED: getHistoricalData for user ${uid} for period ${period}`);
+                try {
+                    const appId = 'default-app-id';
+                    const profileDoc = await dbAgent.doc(`artifacts/${appId}/users/${uid}/userProfile/profile`).get();
+                    if (!profileDoc.exists) {
+                        return { error: "User profile not found." };
+                    }
+                    const deviceId = profileDoc.data().deviceId;
+                    if (!deviceId || deviceId === 'None') return { error: "No smart meter linked to this account." };
+
+                    let days = 7;
+                    if (period === 'last_30_days') {
+                        days = 30;
+                    }
+
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(endDate.getDate() - days);
+                    
+                    const endDateStr = endDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+                    const startDateStr = startDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+
+                    const summaryQuery = dbAgent.collection(`devices/${deviceId}/daily_summaries`)
+                        .where('date', '>=', startDateStr)
+                        .where('date', '<=', endDateStr)
+                        .orderBy('date', 'desc');
+                        
+                    const snapshot = await summaryQuery.get();
+
+                    if (snapshot.empty) {
+                        return { error: `No energy data recorded for the ${period}.` };
+                    }
+
+                    const data = snapshot.docs.map(doc => doc.data());
+                    
+                    const totalKwh = data.reduce((acc, cur) => acc + (cur.gridKwhTotal || 0) + (cur.solarKwhTotal || 0), 0);
+                    const totalCost = data.reduce((acc, cur) => acc + (cur.cost || 0), 0);
+
+                    return {
+                        period: period,
+                        startDate: startDateStr,
+                        endDate: endDateStr,
+                        totalKwh: totalKwh.toFixed(2) + " kWh",
+                        totalCost: totalCost.toFixed(2) + " PHP",
+                        summaries: data
+                    };
+
+                } catch (dbError) {
+                    console.error("Firestore query failed:", dbError);
+                    return { error: "Failed to retrieve historical data." };
+                }
+            },
+            googleSearch: async ({ query }) => {
+                console.log(`TOOL EXECUTED: googleSearch with query: "${query}"`);
+                const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
+                const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
+
+                if (!apiKey || !searchEngineId) {
+                    console.error("Google Search API Key or Search Engine ID is not configured.");
+                    return { error: "I'm sorry, the search feature is not configured." };
+                }
+
+                const url = `https://www.googleapis.com/customsearch/v1`;
+
+                try {
+                    const response = await axios.get(url, {
+                        params: {
+                            key: apiKey,
+                            cx: searchEngineId,
+                            q: query
+                        }
+                    });
+
+                    const results = response.data.items;
+
+                    if (!results || results.length === 0) {
+                        return { result: "I couldn't find any results for that query." };
+                    }
+
+                    // Format the top 3 results for the model
+                    const formattedResults = results.slice(0, 3).map((r, i) => 
+                        `Result ${i + 1}: ${r.title} - ${r.snippet} (Link: ${r.link})`
+                    ).join('\n');
+                    
+                    return { result: formattedResults };
+
+                } catch (error) {
+                    console.error("Google Custom Search API call failed:", error.response ? error.response.data : error.message);
+                    return { error: "I'm sorry, I was unable to perform the search due to an API error." };
+                }
+            },
+            customerSupport: async ({ issue }) => {
+                console.log(`TOOL EXECUTED: customerSupport for issue: ${issue}`);
+                let supportResponse = "I'm sorry, I can't help with that specific issue. Please contact our support team for more assistance.";
+                switch (issue) {
+                    case "no_power":
+                        supportResponse = "First, please check if there is a power outage in your area. You can also check your circuit breaker to see if it has tripped. If the issue persists, please contact your electricity provider.";
+                        break;
+                    case "high_bill":
+                        supportResponse = "High bills can be caused by a number of factors, including increased usage or changes in your electricity plan. You can use the EnerGreen app to monitor your daily consumption and identify which appliances are using the most energy. You can also ask me for energy-saving tips.";
+                        break;
+                    case "panel_not_working":
+                        supportResponse = "If your solar panels are not generating power, please first check if they are clean and free of debris. Also, ensure that the inverter is turned on and functioning correctly. If you've checked these and the problem continues, it may be best to contact a qualified technician to inspect your system.";
+                        break;
+                }
+                return { response: supportResponse };
+            },
+            getEnergySavingTips: async ({ uid }) => {
+                console.log(`TOOL EXECUTED: getEnergySavingTips for user ${uid}`);
+                try {
+                    // 1. Get user's device ID
+                    const appId = 'default-app-id';
+                    const profileDoc = await dbAgent.doc(`artifacts/${appId}/users/${uid}/userProfile/profile`).get();
+                    if (!profileDoc.exists) return { tips: ["Could not find your user profile to analyze usage."] };
+                    const deviceId = profileDoc.data().deviceId;
+                    if (!deviceId || deviceId === 'None') return { tips: ["No smart meter is linked to your account, so I cannot provide personalized tips."] };
+        
+                    // 2. Fetch last 7 days of data
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(endDate.getDate() - 7);
+                    const endDateStr = endDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+                    const startDateStr = startDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+        
+                    const summaryQuery = dbAgent.collection(`devices/${deviceId}/daily_summaries`)
+                        .where('date', '>=', startDateStr)
+                        .orderBy('date', 'desc');
+                    const snapshot = await summaryQuery.get();
+        
+                    if (snapshot.empty || snapshot.size < 2) {
+                         // Not enough data, return a general tip
+                        const tipsSnapshot = await dbAgent.collection('tips').where('category', '==', 'general').limit(1).get();
+                        if (tipsSnapshot.empty) return { tips: ["Remember to turn off lights when you leave a room!"] };
+                        return { tips: tipsSnapshot.docs.map(doc => doc.data().tip) };
+                    }
+        
+                    const summaries = snapshot.docs.map(doc => doc.data());
+                    const latestSummary = summaries[0];
+                    const previousSummaries = summaries.slice(1);
+        
+                    // 3. Analyze data for patterns
+                    const avgTotalKwh = previousSummaries.reduce((acc, cur) => acc + (cur.gridKwhTotal || 0) + (cur.solarKwhTotal || 0), 0) / previousSummaries.length;
+                    const latestTotalKwh = (latestSummary.gridKwhTotal || 0) + (latestSummary.solarKwhTotal || 0);
+        
+                    let tipCategory = 'general'; // Default category
+        
+                    // Pattern 1: Usage is 20% higher than average
+                    if (latestTotalKwh > avgTotalKwh * 1.2) {
+                        tipCategory = 'high_usage';
+                    }
+                    // Pattern 2: Grid usage is more than 70% of total usage (and they have solar)
+                    else if (latestSummary.solarKwhTotal > 0 && (latestSummary.gridKwhTotal / latestTotalKwh) > 0.7) {
+                         tipCategory = 'high_grid_usage';
+                    }
+        
+                    // 4. Fetch relevant tip from Firestore
+                    const tipsSnapshot = await dbAgent.collection('tips').where('category', '==', tipCategory).get();
+                    if (tipsSnapshot.empty) {
+                        // Fallback to general if specific tip is not found
+                         const generalTipsSnapshot = await dbAgent.collection('tips').where('category', '==', 'general').limit(1).get();
+                         if (generalTipsSnapshot.empty) return { tips: ["Remember to turn off lights when you leave a room!"] };
+                         return { tips: generalTipsSnapshot.docs.map(doc => doc.data().tip) };
+                    }
+        
+                    // Return a random tip from the selected category
+                    const tips = tipsSnapshot.docs.map(doc => doc.data().tip);
+                    const randomTip = tips[Math.floor(Math.random() * tips.length)];
+                    
+                    return { tips: [randomTip] };
+        
+                } catch (dbError) {
+                    console.error("Failed to retrieve energy saving tips:", dbError);
+                    // Fallback to a hardcoded general tip on error
+                    return { tips: ["Failed to fetch personalized tips. As a general tip, try using appliances during off-peak hours."] };
+                }
+            },
         };
 
         // 3. Run Gemini with Tools
