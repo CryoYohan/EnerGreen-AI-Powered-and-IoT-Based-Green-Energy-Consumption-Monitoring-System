@@ -5,60 +5,117 @@
     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
       <div class="flex justify-between items-center">
         <h3 class="font-bold text-gray-900 dark:text-white">Notifications</h3>
-        <button class="text-sm text-green-600 dark:text-green-400 hover:underline">Mark all as read</button>
+        <button 
+          @click="markAllAsRead" 
+          :disabled="!hasUnread"
+          class="text-sm text-green-600 dark:text-green-400 hover:underline disabled:text-gray-400 disabled:dark:text-gray-500 disabled:cursor-not-allowed">
+          Mark all as read
+        </button>
       </div>
     </div>
     <div class="max-h-96 overflow-y-auto">
-      <div class="p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200">
-        <div class="flex justify-between items-start">
-          <span class="font-bold text-gray-900 dark:text-white">Energy Tip of the Day</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Now</span>
-        </div>
-        <p class="text-sm mt-1 text-gray-700 dark:text-gray-300">Switch off appliances at the socket when not in use to save power.</p>
+      <div v-if="isLoading" class="p-8 text-center text-gray-500 dark:text-gray-400">
+        Loading...
       </div>
-      
-      <div class="p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200">
-        <div class="flex justify-between items-start">
-          <span class="font-bold text-gray-900 dark:text-white">Solar Performance Update</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">2 minutes ago</span>
-        </div>
-        <p class="text-sm mt-1 text-gray-700 dark:text-gray-300">Your solar panels generated 12.4 kWh today — great job saving energy!</p>
+      <div v-else-if="notifications.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+        You have no new notifications.
       </div>
-      
-      <div class="p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200">
-        <div class="flex justify-between items-start">
-          <span class="font-bold text-gray-900 dark:text-white">High Usage Alert</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">5 days ago</span>
+      <div v-else>
+        <div 
+          v-for="notification in notifications" 
+          :key="notification.id"
+          @click="handleNotificationClick(notification)"
+          class="p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200"
+          :class="{ 'bg-green-50 dark:bg-green-900/20': !notification.read }">
+          <div class="flex justify-between items-start">
+            <span class="font-bold text-gray-900 dark:text-white">{{ notification.title }}</span>
+            <div class="flex items-center space-x-2">
+                <span 
+                    v-if="!notification.read" 
+                    class="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                    Unread
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">{{ formatTimeAgo(notification.createdAt) }}</span>
+            </div>
+          </div>
+          <p class="text-sm mt-1 text-gray-700 dark:text-gray-300">{{ notification.message }}</p>
         </div>
-        <p class="text-sm mt-1 text-gray-700 dark:text-gray-300">Your energy usage spiked by 20% compared to last week.</p>
       </div>
-      
-      <div class="p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200">
-        <div class="flex justify-between items-start">
-          <span class="font-bold text-gray-900 dark:text-white">Maintenance Reminder</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">3 weeks ago</span>
+    </div>
+
+    <!-- Notification Detail Modal -->
+    <div v-if="selectedNotification" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="selectedNotification = null">
+      <div class="relative p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800 transition-colors duration-300">
+        <div class="flex justify-between items-start pb-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ selectedNotification.title }}</h3>
+          <button @click="selectedNotification = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <p class="text-sm mt-1 text-gray-700 dark:text-gray-300">Don't forget to clean your AC filters this April 12 to keep it energy efficient.</p>
-      </div>
-      
-      <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200">
-        <div class="flex justify-between items-start">
-          <span class="font-bold text-gray-900 dark:text-white">Energy Goal Achieved</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">A month ago</span>
+        <div class="mt-2 py-3 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+          <p>{{ selectedNotification.message }}</p>
         </div>
-        <p class="text-sm mt-1 text-gray-700 dark:text-gray-300">Congratulations! You reduced your energy usage by 15% last month.</p>
+        <div class="pt-3 text-right">
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatTimeAgo(selectedNotification.createdAt) }}</span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  props: {
-    isMobile: {
-      type: Boolean,
-      default: false
-    }
+<script setup>
+import { ref, computed } from 'vue';
+import { useAuth } from '@/composables/useAuth.js';
+import { useNotifications } from '@/composables/useNotifications.js';
+
+defineProps({
+  isMobile: {
+    type: Boolean,
+    default: false
   }
+});
+
+const selectedNotification = ref(null);
+
+// Hardcoded App ID for this component
+const appId = 'default-app-id'; 
+
+const { user } = useAuth(appId);
+const userId = computed(() => user.value?.uid);
+
+const { notifications, isLoading, hasUnread, markAllAsRead, markAsRead } = useNotifications(userId);
+
+async function handleNotificationClick(notification) {
+    selectedNotification.value = notification;
+    if (!notification.read) {
+        await markAsRead(notification.id);
+    }
+}
+
+function formatTimeAgo(date) {
+  if (!date) return '';
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " years ago";
+  
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " months ago";
+
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " days ago";
+
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hours ago";
+
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " minutes ago";
+  
+  if (seconds < 10) return "Just now";
+  
+  return Math.floor(seconds) + " seconds ago";
 }
 </script>

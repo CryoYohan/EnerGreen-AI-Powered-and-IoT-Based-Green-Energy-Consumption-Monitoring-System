@@ -2,101 +2,129 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ✅ Helper function to check admin role
-    function isAdmin() {
-      return request.auth != null &&
-        get(
-          /databases/$(database)/documents/artifacts/default-app-id/users/$(request.auth.uid)/userProfile/profile
-        ).data.role == "admin";
+    // ---------------------------------------------------------
+    // 🛡️ HELPER FUNCTIONS (FIXED & SAFE)
+    // ---------------------------------------------------------
+    
+    // Define path helper
+    function getUserProfilePath(uid) {
+      return /databases/$(database)/documents/artifacts/default-app-id/users/$(uid)/userProfile/profile;
     }
 
-    // ✅ Helper function to check if user owns device
+    // Added exists() check to prevent Login Crash
+    function isAdmin() {
+      return request.auth != null &&
+        exists(getUserProfilePath(request.auth.uid)) &&
+        get(getUserProfilePath(request.auth.uid)).data.role == "admin";
+    }
+
+    // Added exists() check
     function ownsDevice(deviceId) {
       return request.auth != null &&
-        get(
-          /databases/$(database)/documents/artifacts/default-app-id/users/$(request.auth.uid)/userProfile/profile
-        ).data.deviceId == deviceId;
+        exists(getUserProfilePath(request.auth.uid)) &&
+        get(getUserProfilePath(request.auth.uid)).data.deviceId == deviceId;
     }
     
-    // ✅ NEW: Helper function to check if target user exists and admin is modifying
     function isAdminUpdatingUserProfile(userId) {
       return isAdmin() && exists(/databases/$(database)/documents/artifacts/default-app-id/users/$(userId));
     }
 
-    // ---- Realtime readings ----
-    match /devices/{deviceId}/realtime_readings/{readingId} {
-      allow read, write: if ownsDevice(deviceId); // Allows the user to query and read the collection
+    // ---------------------------------------------------------
+    // 📦 FIRMWARE RELEASES
+    // ---------------------------------------------------------
+    match /firmware_releases/{releaseId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
-    // ---- Appliances ----
-    match /devices/{deviceId}/appliances/{applianceId} {
-      allow read: if ownsDevice(deviceId); // Allows the user to query and read the collection
-    }
-		
-    // ---- Daily Summaries (NEW RULE) ----
-    match /devices/{deviceId}/daily_summaries/{dateId} {
-      allow read: if ownsDevice(deviceId); // Allows the owner to read their daily aggregation data
-    }
-
-    // ---- Devices root ----
+    // ---------------------------------------------------------
+    // 🔌 DEVICES & SUBCOLLECTIONS
+    // ---------------------------------------------------------
+    
     match /devices/{deviceId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin() || ownsDevice(deviceId);
     }
 
-    // ---- Appliance Predictions ----
+    // Added '|| isAdmin()' to ALL subcollections below.
+    // Without this, your Admin Dashboard charts will be empty/error out.
+
+    match /devices/{deviceId}/realtime_readings/{readingId} {
+      allow read: if ownsDevice(deviceId) || isAdmin(); // User writes via IoT, Admin reads for metrics
+    }
+
+    match /devices/{deviceId}/appliances/{applianceId} {
+      allow read: if ownsDevice(deviceId) || isAdmin();
+    }
+    
+    match /devices/{deviceId}/daily_summaries/{dateId} {
+      allow read: if ownsDevice(deviceId) || isAdmin();
+    }
+
     match /devices/{deviceId}/appliance_predictions/{predictionId} {
-      allow read, write: if ownsDevice(deviceId);
+      allow read, write: if ownsDevice(deviceId) || isAdmin();
     }
 
-    // ---- AI Models ----
     match /devices/{deviceId}/models/{modelId} {
-      allow read: if ownsDevice(deviceId);
+      allow read: if ownsDevice(deviceId) || isAdmin();
     }
 
-    // ---- Clusters ----
     match /devices/{deviceId}/clusters/{clusterId} {
-      allow read, write: if ownsDevice(deviceId);
+      allow read, write: if ownsDevice(deviceId) || isAdmin();
     }
 
-    // ---- Confirmed Appliances ----
     match /devices/{deviceId}/confirmed_appliances/{applianceId} {
-      allow read, write: if ownsDevice(deviceId);
+      allow read, write: if ownsDevice(deviceId) || isAdmin();
     }
 
-    // ---- Device Predictions ----
     match /devices/{deviceId}/predictions/{predictionId} {
-      allow read, write: if ownsDevice(deviceId);
+      allow read, write: if ownsDevice(deviceId) || isAdmin();
     }
 
-    // ---- Public data ----
+    // ---------------------------------------------------------
+    // 👤 USERS & PROFILES
+    // ---------------------------------------------------------
+
     match /artifacts/{appId}/public/data/{collection}/{documentId} {
       allow read: if request.auth != null;
     }
 
-    // ---- User Root Document ----
     match /artifacts/{appId}/users/{userId} {
       allow delete, update, read: if isAdmin();
     }
 
-    // ---- Private user data (userProfile) ----
     match /artifacts/{appId}/users/{userId}/userProfile/{docId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if isAdmin();
-      // NEW: Allow admin to write to any user's profile (for status updates)
-      allow write: if isAdminUpdatingUserProfile(userId);
+      // Allow Admin to Create/Write profiles (needed for Create User modal)
+      allow read, write: if isAdmin(); 
+    }
+    
+    // Allow users to manage their own notifications
+    match /artifacts/{appId}/users/{userId}/notifications/{notificationId} {
+      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 🔑 Admin collectionGroup rule (for queries across all userProfiles)
+    // 🔑 Admin collectionGroup rule
     match /{path=**}/userProfile/{docId} {
       allow read: if isAdmin();
     }
 
-    // ---- AI Model retraining (admin only) ----
+    // ---------------------------------------------------------
+    // 📝 FEEDBACK
+    // ---------------------------------------------------------
+    match /feedback/{feedbackId} {
+      // Admins can read and update all feedback for the management page.
+      // Users create feedback via a secure backend endpoint, so they don't need direct write access here.
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------
+    // ⚙️ SYSTEM / ADMIN
+    // ---------------------------------------------------------
+
     match /admin/models/{modelId} {
       allow write: if isAdmin();
     }
 
-    // ---- Catch-all ----
     match /{document=**} {
       allow read, write: if false;
     }
