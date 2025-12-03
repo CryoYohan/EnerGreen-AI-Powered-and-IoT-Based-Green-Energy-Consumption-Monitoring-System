@@ -11,6 +11,7 @@
       <AgentButton v-if="shouldShowAgent" />
     </transition>
     
+    <ToastContainer />
   </div>
 </template>
 
@@ -19,6 +20,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { auth, onAuthStateChanged } from '@/firebase'; 
 import { useRoute } from 'vue-router'; // 1. Import useRoute
 import AgentButton from '@/components/ReusableComponents/AgentButton.vue';
+import ToastContainer from '@/components/ReusableComponents/ToastContainer.vue';
 
 const user = ref(null);
 const route = useRoute(); // 2. Get current route object

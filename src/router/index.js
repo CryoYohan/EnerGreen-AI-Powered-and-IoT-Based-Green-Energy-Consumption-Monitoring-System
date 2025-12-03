@@ -26,6 +26,7 @@ import MonitoringAnalytics from '@/pages/AdminPage/MonitoringAnalytics.vue';
 import AdminProfile from '@/pages/AdminPage/AdminProfile.vue';
 import SalesManagement from '@/pages/AdminPage/SalesManagement.vue';
 import RatesManagement from '@/pages/AdminPage/RatesManagement.vue';
+import FeedbackManagement from '@/pages/AdminPage/FeedbackManagement.vue';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -140,6 +141,12 @@ const routes = [
     path: '/salesmanagement',
     name: 'SalesManagement',
     component: SalesManagement,
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+    path: '/feedback',
+    name: 'FeedbackManagement',
+    component: FeedbackManagement,
     meta: { requiresAuth: true, role: 'admin' }
   }
 ];

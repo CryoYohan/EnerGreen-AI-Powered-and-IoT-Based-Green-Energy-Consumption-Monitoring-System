@@ -121,6 +121,10 @@
           <div class="relative flex items-center">
             <BellIcon @click.stop="toggleNotifications"
               class="w-5 h-5 cursor-pointer text-gray-800 dark:text-gray-300 focus:outline-none" />
+            <span v-if="hasUnread" class="absolute -top-1 -right-1 flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
             <Notification v-if="showNotifications" :isMobile="false" @click.stop />
           </div>
 
@@ -156,6 +160,10 @@
           <div class="relative">
             <BellIcon @click.stop="toggleNotifications"
               class="w-5 h-5 cursor-pointer text-gray-800 dark:text-gray-300 focus:outline-none" />
+            <span v-if="hasUnread" class="absolute -top-1 -right-1 flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
             <Notification v-if="showNotifications" :isMobile="true" @click.stop />
           </div>
           <img @click="navigateTo('Profile')"
@@ -298,10 +306,12 @@
 
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDarkMode } from "@/composables/useDarkMode.js"
 import { getStorage, ref as storageRef, getDownloadURL } from "firebase/storage";
+import { useAuth } from '@/composables/useAuth.js';
+import { useNotifications } from '@/composables/useNotifications.js';
 // Import the Heroicons
 import {
   Bars3Icon,
@@ -341,6 +351,14 @@ const profilePic = ref('/src/Images/profile/pfp.png')
 const showTipsModal = ref(false)
 const tipsComponent = ref(null)
 const router = useRouter()
+
+// Hardcoded App ID for this component
+const appId = 'default-app-id'; 
+
+const { user } = useAuth(appId);
+const userId = computed(() => user.value?.uid);
+
+const { hasUnread } = useNotifications(userId);
 
 // Storage reference for default picture
 const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png');

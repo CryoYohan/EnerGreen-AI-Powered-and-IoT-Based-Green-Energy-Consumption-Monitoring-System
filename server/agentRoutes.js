@@ -350,14 +350,28 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
             submitFeedback: async ({ uid, feedbackType, feedbackText }) => {
                 console.log(`TOOL EXECUTED: submitFeedback for user ${uid}`);
                 try {
+                    // Save feedback
                     await dbAgent.collection('feedback').add({
                         uid: uid,
                         type: feedbackType,
                         text: feedbackText,
                         status: 'new',
-                        createdAt: new Date().toISOString()
+                        createdAt: FieldValue.serverTimestamp() // Use server timestamp here too
                     });
-                    return { status: "Feedback submitted successfully." };
+
+                    // Create a notification for the user
+                    const notificationRef = dbAgent.collection(`artifacts/default-app-id/users/${uid}/notifications`);
+                    const notificationMessage = `Thanks for your ${feedbackType.toLowerCase()}! We've received it and will look into it shortly.`;
+
+                    await notificationRef.add({
+                        title: 'Feedback Received',
+                        message: notificationMessage,
+                        createdAt: FieldValue.serverTimestamp(),
+                        read: false,
+                        type: 'feedback_confirmation' // Optional: for filtering/styling in UI
+                    });
+
+                    return { status: "Feedback submitted successfully. You've received a confirmation notification." };
                 } catch (dbError) {
                     console.error("Firestore write failed:", dbError);
                     return { status: "Failed to submit feedback due to a database error." };
@@ -382,7 +396,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     const endDate = new Date();
                     const startDate = new Date();
                     startDate.setDate(endDate.getDate() - days);
-                    
+
                     const endDateStr = endDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
                     const startDateStr = startDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
@@ -390,7 +404,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                         .where('date', '>=', startDateStr)
                         .where('date', '<=', endDateStr)
                         .orderBy('date', 'desc');
-                        
+
                     const snapshot = await summaryQuery.get();
 
                     if (snapshot.empty) {
@@ -398,7 +412,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     }
 
                     const data = snapshot.docs.map(doc => doc.data());
-                    
+
                     const totalKwh = data.reduce((acc, cur) => acc + (cur.gridKwhTotal || 0) + (cur.solarKwhTotal || 0), 0);
                     const totalCost = data.reduce((acc, cur) => acc + (cur.cost || 0), 0);
 
@@ -418,8 +432,8 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
             },
             googleSearch: async ({ query }) => {
                 console.log(`TOOL EXECUTED: googleSearch with query: "${query}"`);
-                const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
-                const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
+                const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY || process.env.VITE_GOOGLE_CUSTOM_SEARCH_API_KEY;
+                const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID || process.env.VITE_GOOGLE_SEARCH_ENGINE_ID;
 
                 if (!apiKey || !searchEngineId) {
                     console.error("Google Search API Key or Search Engine ID is not configured.");
@@ -444,10 +458,10 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     }
 
                     // Format the top 3 results for the model
-                    const formattedResults = results.slice(0, 3).map((r, i) => 
+                    const formattedResults = results.slice(0, 3).map((r, i) =>
                         `Result ${i + 1}: ${r.title} - ${r.snippet} (Link: ${r.link})`
                     ).join('\n');
-                    
+
                     return { result: formattedResults };
 
                 } catch (error) {
@@ -481,7 +495,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     // 2. Get user's deviceId for usage analysis
                     const profileDoc = await dbAgent.doc(`artifacts/default-app-id/users/${uid}/userProfile/profile`).get();
                     if (!profileDoc.exists) return { tips: ["Could not find your user profile to analyze usage."] };
-                    
+
                     const deviceId = profileDoc.data().deviceId;
                     if (!deviceId || deviceId === 'None') {
                         // For users without a device, return a random general tip without tracking.
@@ -507,7 +521,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     const summaryQuery = dbAgent.collection(`devices/${deviceId}/daily_summaries`)
                         .where('date', '>=', startDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }))
                         .orderBy('date', 'desc');
-                    
+
                     const summarySnapshot = await summaryQuery.get();
                     let tipCategory = 'general';
 
@@ -523,18 +537,18 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     }
 
                     // 5. Filter for unseen tips in the determined category
-                    let candidateTips = allGlobalTips.filter(tip => 
+                    let candidateTips = allGlobalTips.filter(tip =>
                         tip.category === tipCategory && !deliveredIds.includes(tip.id)
                     );
 
                     // 6. Handle exhaustion: If no unseen tips, fall back to general
                     if (candidateTips.length === 0 && tipCategory !== 'general') {
                         console.log(`Category ${tipCategory} exhausted for user ${uid}, falling back to general.`);
-                        candidateTips = allGlobalTips.filter(tip => 
+                        candidateTips = allGlobalTips.filter(tip =>
                             tip.category === 'general' && !deliveredIds.includes(tip.id)
                         );
                     }
-                    
+
                     // 7. Handle total exhaustion: If still no tips, reset the list and try again
                     if (candidateTips.length === 0) {
                         console.log(`All tips exhausted for user ${uid}. Resetting delivered list.`);
@@ -563,9 +577,22 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
         // Fetch history from Firestore
         const sessionRef = dbAgent.collection('agent_sessions').doc(req.user.uid);
         const sessionDoc = await sessionRef.get();
-        const history = sessionDoc.exists ? sessionDoc.data().history || [] : [];
+        let history = sessionDoc.exists ? sessionDoc.data().history || [] : [];
 
-        // Start a chat with the existing history
+        // DEFENSIVE FIX: Sanitize history immediately after loading to handle any corrupted sessions.
+        if (history.length > 0 && history[0].role !== 'user') {
+            console.warn(`[HISTORY FIX] Loaded invalid history for user ${req.user.uid}. Sanitizing...`);
+            const firstUserIndex = history.findIndex(h => h.role === 'user');
+            if (firstUserIndex > -1) {
+                history = history.slice(firstUserIndex);
+            } else {
+                // The history is completely invalid with no user messages. Start fresh.
+                console.error(`[HISTORY FIX] No user role found in history for user ${req.user.uid}. Clearing history.`);
+                history = [];
+            }
+        }
+
+        // Start a chat with the (now sanitized) existing history
         const chat = model.startChat({
             history: history,
             tools: [{ functionDeclarations: energyToolFunctions }],
@@ -600,15 +627,21 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
         }
 
         console.log(`Gemini Text: "${geminiResponseText}"`);
-        
+
         // Update and save the history
         let updatedHistory = await chat.getHistory();
-        
+
         // Prune history to keep the last 10 turns
         if (updatedHistory.length > 10) {
             updatedHistory = updatedHistory.slice(updatedHistory.length - 10);
         }
-        
+
+        // FIX: Ensure the pruned history always starts with a 'user' role.
+        if (updatedHistory.length > 0 && updatedHistory[0].role !== 'user') {
+            // If the first record is not from the user, slice it off to maintain a valid chat sequence.
+            updatedHistory = updatedHistory.slice(1);
+        }
+
         await sessionRef.set({
             history: updatedHistory,
             updatedAt: FieldValue.serverTimestamp() // Use server timestamp for TTL
@@ -632,4 +665,4 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     }
 });
 
-    export { router as agentRouter };
+export { router as agentRouter };
