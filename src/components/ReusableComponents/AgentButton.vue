@@ -47,7 +47,7 @@
             </div>
 
             <!-- ✨ Hologram Sweep -->
-l          </div>
+          </div>
 
           <!-- Status Text -->
           <div class="absolute mt-80 md:mt-96 text-center pointer-events-none transition-opacity duration-300"
