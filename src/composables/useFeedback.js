@@ -1,6 +1,6 @@
 import { ref, onUnmounted } from 'vue';
 import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import api from '../services/api'; // Assuming you have a configured axios instance
 
 export function useFeedback() {
@@ -11,35 +11,60 @@ export function useFeedback() {
   const feedbackRef = collection(db, 'feedback');
   const q = query(feedbackRef, orderBy('createdAt', 'desc'));
 
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    feedback.value = snapshot.docs.map(doc => {
-      const data = doc.data();
-      let createdAtDate = null;
-      if (data.createdAt) {
-        // Handle both Firestore Timestamp and ISO string formats
-        if (typeof data.createdAt.toDate === 'function') {
-          createdAtDate = data.createdAt.toDate();
-        } else if (typeof data.createdAt === 'string') {
-          createdAtDate = new Date(data.createdAt);
+  const unsubscribe = onSnapshot(q, async (snapshot) => {
+    try {
+      const feedbackPromises = snapshot.docs.map(async (docSnapshot) => {
+        const data = docSnapshot.data();
+        
+        let createdAtDate = null;
+        if (data.createdAt) {
+          if (typeof data.createdAt.toDate === 'function') {
+            createdAtDate = data.createdAt.toDate();
+          } else if (typeof data.createdAt === 'string') {
+            createdAtDate = new Date(data.createdAt);
+          }
         }
-      }
-      
-      // Also handle resolvedAt which might be a Timestamp
-      let resolvedAtDate = data.resolvedAt;
-      if (data.resolvedAt && typeof data.resolvedAt.toDate === 'function') {
-        resolvedAtDate = data.resolvedAt.toDate();
-      }
+        
+        let resolvedAtDate = data.resolvedAt;
+        if (data.resolvedAt && typeof data.resolvedAt.toDate === 'function') {
+          resolvedAtDate = data.resolvedAt.toDate();
+        }
 
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: createdAtDate,
-        resolvedAt: resolvedAtDate,
-      };
-    });
-    isLoading.value = false;
+        // Fetch user data with the corrected path
+        let fullName = 'N/A';
+        if (data.uid) {
+          try {
+            const userProfileRef = doc(db, `artifacts/default-app-id/users/${data.uid}/userProfile/profile`);
+            const userSnap = await getDoc(userProfileRef);
+            if (userSnap.exists()) {
+              fullName = userSnap.data().fullName || 'User Name Not Found';
+            } else {
+              fullName = 'User Not Found';
+            }
+          } catch (userError) {
+            console.error(`Failed to fetch user profile for UID: ${data.uid}`, userError);
+            fullName = 'Error Fetching Name';
+          }
+        }
+
+        return {
+          id: docSnapshot.id,
+          ...data,
+          createdAt: createdAtDate,
+          resolvedAt: resolvedAtDate,
+          fullName: fullName
+        };
+      });
+
+      feedback.value = await Promise.all(feedbackPromises);
+    } catch (err) {
+      console.error("Error processing feedback snapshot:", err);
+      error.value = "Failed to process feedback data.";
+    } finally {
+      isLoading.value = false;
+    }
   }, (err) => {
-    console.error("Error fetching feedback:", err);
+    console.error("Error fetching feedback collection:", err);
     error.value = "Failed to fetch feedback.";
     isLoading.value = false;
   });
@@ -54,7 +79,6 @@ export function useFeedback() {
       
       if (response.data.success) {
         console.log(`Feedback ${feedbackItem.id} marked as resolved.`);
-        // The real-time listener will automatically update the UI
         return { success: true };
       }
     } catch (err) {
