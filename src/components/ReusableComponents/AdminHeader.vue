@@ -33,7 +33,7 @@
           <img 
             @click="navigateTo('AdminProfile')" 
             class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none" 
-            :src="profilePic" 
+            :src="displayPhotoURL" 
             alt="Profile Picture"
           >
         </div>
@@ -163,7 +163,7 @@
             >
               <img 
                 class="w-8 h-8 rounded-full object-cover" 
-                :src="profilePic" 
+                :src="displayPhotoURL" 
                 alt="Profile Picture" 
               />
               <a class="cursor-pointer text-gray-800 dark:text-gray-100">{{ userName }}</a>
@@ -349,7 +349,7 @@ import {
 // --- Composables ---
 const router = useRouter();
 const { isDarkMode, toggleDarkMode } = useDarkMode();
-const { user, userProfile } = useAuth('default-app-id');
+const { user, userProfile, displayPhotoURL } = useAuth('default-app-id');
 const userId = computed(() => user.value?.uid);
 const { hasUnread } = useNotifications(userId);
 
@@ -360,7 +360,6 @@ const isProfileDropdownOpen = ref(false);
 
 // --- Computed properties for UI from useAuth ---
 const userName = computed(() => userProfile.value?.fullName || 'Admin');
-const profilePic = computed(() => userProfile.value?.photoURL || '/src/Images/profile/pfp.png');
 
 // --- Methods ---
 const toggleMobileMenu = () => isMobileMenuOpen.value = !isMobileMenuOpen.value;

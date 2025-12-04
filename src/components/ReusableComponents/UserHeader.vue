@@ -131,7 +131,7 @@
           <div class="relative">
             <div @click.stop="toggleProfileDropdown"
               class="flex items-center space-x-2 cursor-pointer focus:outline-none">
-              <img class="w-8 h-8 rounded-full object-cover" :src="profilePic" alt="Profile Picture" />
+              <img class="w-8 h-8 rounded-full object-cover" :src="displayPhotoURL" alt="Profile Picture" />
               <a class="cursor-pointer text-gray-800 dark:text-gray-100">{{ userName }}</a>
             </div>
 
@@ -167,7 +167,7 @@
             <Notification v-if="showNotifications" :isMobile="true" @click.stop />
           </div>
           <img @click="navigateTo('Profile')"
-            class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none" :src="profilePic"
+            class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none" :src="displayPhotoURL"
             alt="Profile Picture" />
         </div>
       </div>
@@ -327,7 +327,7 @@ import Notification from '../ReusableComponents/Notification.vue';
 // --- Composables ---
 const router = useRouter();
 const { isDarkMode, toggleDarkMode } = useDarkMode();
-const { user, userProfile } = useAuth('default-app-id');
+const { user, userProfile, displayPhotoURL } = useAuth('default-app-id');
 const userId = computed(() => user.value?.uid);
 const { hasUnread } = useNotifications(userId);
 
@@ -340,7 +340,6 @@ const tipsComponent = ref(null);
 
 // --- Computed Properties for UI ---
 const userName = computed(() => userProfile.value?.fullName || 'Guest');
-const profilePic = computed(() => userProfile.value?.photoURL || '/src/Images/profile/pfp.png');
 
 // --- Methods ---
 const openTipsModal = async () => {
