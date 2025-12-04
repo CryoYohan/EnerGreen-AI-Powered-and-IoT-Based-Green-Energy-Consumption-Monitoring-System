@@ -99,11 +99,9 @@
           <p class="text-lg text-gray-800 dark:text-gray-200">
             Tier: <span :class="{'text-green-600': isPremium, 'text-blue-500': !isPremium}" class="font-bold">{{ userProfileData.subscriptionTier || 'Free' }}</span>
           </p>
-          <button v-if="!isPremium" @click="requestPremiumUpgrade" 
-            :disabled="isUpgrading"
-            class="px-5 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            <span v-if="isUpgrading">Requesting...</span>
-            <span v-else>Request Premium Upgrade</span>
+          <button v-if="!isPremium" @click="router.push({ name: 'FutureUpgrade' })" 
+            class="px-5 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+            Unlock Exclusive Premium Features!
           </button>
           <span v-else class="text-green-600 dark:text-green-400 font-semibold">✅ Premium Member</span>
         </div>
@@ -219,7 +217,6 @@ const router = useRouter();
 const fileInput = ref(null);
 const isLoading = ref(true); // Local loading state, managed by onSnapshot
 const isSaving = ref(false);
-const isUpgrading = ref(false); // New state for upgrade button
 
 const userProfileData = ref({}); // Use this for local component state
 const firstName = ref('');
@@ -244,7 +241,11 @@ let initialState = {}; // To store the initial state for comparison and cancella
 
 // --- Computed Properties ---
 // FullName derived from firstName and lastName for display/payload
-const fullName = computed(() => `${firstName.value} ${lastName.value}`.trim());
+const fullName = computed(() => {
+  const first = firstName.value.trim();
+  const last = lastName.value.trim();
+  return `${first} ${last}`.trim();
+});
 
 
 // --- Helper Functions ---
@@ -263,8 +264,15 @@ const splitFullName = (fullNameStr) => {
     return { first: '', last: '' };
   }
   const nameParts = fullNameStr.trim().split(/\s+/);
-  const last = nameParts.length > 1 ? nameParts.pop() : '';
-  const first = nameParts.join(' ');
+  let first = '';
+  let last = '';
+
+  if (nameParts.length === 1) {
+    first = nameParts[0];
+  } else { // Handles two or more parts
+    first = nameParts.slice(0, nameParts.length - 1).join(' '); // All but the last part
+    last = nameParts[nameParts.length - 1]; // The very last part
+  }
   return { first, last };
 };
 
@@ -386,10 +394,19 @@ const saveChanges = async () => {
         body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    // Check if the response is OK and has content before parsing JSON
+    if (response.ok) {
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : {}; // Parse if text is not empty, otherwise use an empty object
 
-    if (!response.ok) {
-        throw new Error(data.error || "Failed to update profile via server.");
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+    } else {
+        // If response is not ok, try to parse error from JSON
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update profile via server with status ${response.status}`);
     }
 
     showToast('Profile updated successfully!', 'success');
@@ -417,33 +434,6 @@ const cancelEdit = () => {
   showCurrentPassword.value = false;
   showNewPassword.value = false;
   showConfirmNewPassword.value = false;
-};
-
-const requestPremiumUpgrade = async () => {
-  isUpgrading.value = true;
-  try {
-    const currentAuthUser = auth.currentUser;
-    if (!currentAuthUser) {
-      showToast('User not authenticated.', 'error');
-      isUpgrading.value = false;
-      return;
-    }
-    
-    // Mock API call to update subscription tier in Firestore
-    const userProfileRef = doc(db, `artifacts/default-app-id/users/${currentAuthUser.uid}/userProfile/profile`);
-    await setDoc(userProfileRef, {
-      subscriptionTier: 'Premium',
-      subscriptionStatus: 'Active'
-    }, { merge: true });
-
-    showToast('Premium upgrade requested! Please refresh the page to see changes.', 'success');
-    // The onSnapshot listener will update userProfileData and isPremium reactively
-  } catch (error) {
-    console.error("Error requesting premium upgrade:", error);
-    showToast(`Failed to request upgrade: ${error.message}`, 'error');
-  } finally {
-    isUpgrading.value = false;
-  }
 };
 
 // --- Lifecycle Hooks ---

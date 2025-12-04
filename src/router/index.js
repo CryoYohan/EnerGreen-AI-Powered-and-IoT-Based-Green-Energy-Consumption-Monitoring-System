@@ -6,7 +6,8 @@ import { app } from '@/firebase.js';
 // --- Pages ---
 import LandingPage from '@/pages/LandingPage/LandingPage.vue';
 import Unauthorized from '@/pages/Unauthorized.vue';
-import UpgradePage from '@/pages/Subscription/UpgradePage.vue'; // Import Upgrade Page
+import UpgradePage from '@/pages/Subscription/UpgradePage.vue';
+import FutureUpgradePage from '@/pages/Subscription/FutureUpgradePage.vue'; // Import FutureUpgradePage // Import Upgrade Page
 
 // User Pages
 import Home from '@/pages/UserPage/Home.vue';
@@ -49,6 +50,12 @@ const routes = [
     name: 'Upgrade',
     component: UpgradePage,
     meta: { requiresAuth: true } // This page requires auth to know who to upgrade
+  },
+  {
+    path: '/future-upgrade',
+    name: 'FutureUpgrade',
+    component: FutureUpgradePage,
+    meta: { requiresAuth: false } // No auth required for this informational page
   },
 
   // --- USER ROUTES (Role: 'user') ---

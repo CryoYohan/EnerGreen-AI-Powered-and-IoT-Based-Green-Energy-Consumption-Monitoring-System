@@ -108,7 +108,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import {
@@ -118,7 +119,8 @@ import {
   SparklesIcon
 } from '@heroicons/vue/24/solid';
 
-// --- Auth & Subscription ---
+// --- Composables ---
+const route = useRoute();
 const { isPremium } = useAuth('default-app-id');
 
 // --- State ---
@@ -126,6 +128,14 @@ const isVoiceMode = ref(false);
 const isRecording = ref(false);
 const isProcessing = ref(false);
 const isPlaying = ref(false);
+
+// --- Watcher for Route Changes ---
+// Close the modal automatically if the user navigates away
+watch(() => route.path, () => {
+  if (isVoiceMode.value) {
+    isVoiceMode.value = false;
+  }
+});
 
 
 // Audio Recorder
