@@ -4,80 +4,88 @@
     <!-- 🟢 VOICE MODE OVERLAY -->
     <transition name="fade">
       <div v-if="isVoiceMode"
-        class="fixed inset-0 z-[100] flex flex-col items-center justify-between bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-500 p-6 md:p-12">
-
-        <!-- Top Status Bar -->
-        <div class="w-full flex justify-between items-center h-12">
-          <div v-if="isProcessing" class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Christine is thinking</span>
-            <div class="flex gap-1">
-              <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"></div>
-              <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce delay-75"></div>
-              <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce delay-150"></div>
+        class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-500 p-6">
+        
+        <!-- A. Premium User View: The Voice Assistant -->
+        <template v-if="isPremium">
+          <div class="w-full flex justify-between items-center h-12 absolute top-6 px-6">
+            <div v-if="isProcessing" class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Christine is thinking</span>
+              <div class="flex gap-1">
+                <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"></div>
+                <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce delay-75"></div>
+                <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce delay-150"></div>
+              </div>
+            </div>
+            <div v-else class="flex flex-col">
+              <span class="text-sm font-bold text-gray-800 dark:text-white">Christine</span>
+              <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Energy Assistant</span>
             </div>
           </div>
-          <div v-else class="flex flex-col">
-            <span class="text-sm font-bold text-gray-800 dark:text-white">Christine</span>
-            <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Energy Assistant</span>
-          </div>
-        </div>
 
-        <!-- MAIN LIQUID ORB -->
-        <div class="relative flex-1 flex items-center justify-center w-full cursor-pointer" @click="toggleRecording">
-
-          <div
-            class="blob relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center transition-all duration-500"
-            :class="{
-              'scale-110': isRecording,
-              'opacity-90': !isRecording,
-              'animate-blob-pulse': isPlaying
-            }">
-
-            <!-- 🔵 Outer Pulse Ring -->
-            <div class="pulse-ring" :class="{ 'recording': isRecording }">
-            </div>
-
-            <!-- 🟢 Futuristic Fluid Layers -->
-            <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 orb-layer"></div>
+          <div class="relative flex-1 flex items-center justify-center w-full cursor-pointer" @click="toggleRecording">
             <div
-              class="absolute inset-0 rounded-full bg-gradient-to-bl from-green-300 to-emerald-500 orb-layer animation-delay-2000">
+              class="blob relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center transition-all duration-500"
+              :class="{'scale-110': isRecording, 'opacity-90': !isRecording, 'animate-blob-pulse': isPlaying}">
+              <div class="pulse-ring" :class="{ 'recording': isRecording }"></div>
+              <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 orb-layer"></div>
+              <div class="absolute inset-0 rounded-full bg-gradient-to-bl from-green-300 to-emerald-500 orb-layer animation-delay-2000"></div>
+              <div class="absolute inset-0 rounded-full bg-gradient-to-r from-teal-200 to-green-400 orb-layer animation-delay-4000"></div>
             </div>
-            <div
-              class="absolute inset-0 rounded-full bg-gradient-to-r from-teal-200 to-green-400 orb-layer animation-delay-4000">
+            <div class="absolute mt-80 md:mt-96 text-center pointer-events-none transition-opacity duration-300"
+              :class="{ 'opacity-50': isProcessing }">
+              <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-1">{{ voiceStatus }}</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ voiceSubStatus }}</p>
             </div>
-
-            <!-- ✨ Hologram Sweep -->
-l          </div>
-
-          <!-- Status Text -->
-          <div class="absolute mt-80 md:mt-96 text-center pointer-events-none transition-opacity duration-300"
-            :class="{ 'opacity-50': isProcessing }">
-            <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-1">{{ voiceStatus }}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ voiceSubStatus }}</p>
           </div>
+
+          <div class="w-full flex justify-between items-center absolute bottom-6 px-6 md:px-12">
+            <button @click.stop="toggleRecording" :disabled="isProcessing"
+              class="p-5 rounded-full transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none" :class="[
+                isRecording
+                  ? 'bg-white dark:bg-gray-800 ring-4 ring-red-50 text-red-500 scale-110'
+                  : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+              ]">
+              <div v-if="isRecording" class="w-6 h-6 bg-red-500 rounded-sm"></div>
+              <MicrophoneIcon v-else class="w-7 h-7" />
+            </button>
+            <button @click="toggleVoiceMode"
+              class="p-5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white shadow-sm">
+              <XMarkIcon class="w-7 h-7" />
+            </button>
+          </div>
+        </template>
+        
+        <!-- B. Free User View: The Upgrade Prompt -->
+        <div v-else class="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg text-center">
+            <div class="mb-6">
+                <svg class="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M19 3v4" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                AI Assistant is a Premium Feature
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+                Unlock our AI-powered energy assistant, Christine, to get voice-based insights, summaries, and personalized tips by upgrading your plan.
+            </p>
+            <div class="flex flex-col space-y-4">
+                <router-link
+                to="/profile"
+                class="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-transform transform hover:scale-105"
+                >
+                Upgrade in Profile
+                </router-link>
+                <button
+                @click="toggleVoiceMode"
+                class="w-full px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition"
+                >
+                Maybe Later
+                </button>
+            </div>
         </div>
 
-
-        <!-- Bottom Controls -->
-        <div class="w-full flex justify-between items-center px-4 md:px-8 pb-4 md:pb-8">
-
-          <!-- Mic Toggle (Bottom Left) -->
-          <button @click.stop="toggleRecording" :disabled="isProcessing"
-            class="p-5 rounded-full transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none" :class="[
-              isRecording
-                ? 'bg-white dark:bg-gray-800 ring-4 ring-red-50 text-red-500 scale-110'
-                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-            ]">
-            <div v-if="isRecording" class="w-6 h-6 bg-red-500 rounded-sm"></div>
-            <MicrophoneIcon v-else class="w-7 h-7" />
-          </button>
-
-          <!-- Close Button (Bottom Right) -->
-          <button @click="toggleVoiceMode"
-            class="p-5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white shadow-sm">
-            <XMarkIcon class="w-7 h-7" />
-          </button>
-        </div>
       </div>
     </transition>
 
@@ -102,6 +110,7 @@ l          </div>
 <script setup>
 import { ref, computed } from 'vue';
 import api from '@/services/api';
+import { useAuth } from '@/composables/useAuth';
 import {
   XMarkIcon,
   MicrophoneIcon,
@@ -109,11 +118,15 @@ import {
   SparklesIcon
 } from '@heroicons/vue/24/solid';
 
+// --- Auth & Subscription ---
+const { isPremium } = useAuth('default-app-id');
+
 // --- State ---
 const isVoiceMode = ref(false);
 const isRecording = ref(false);
 const isProcessing = ref(false);
 const isPlaying = ref(false);
+
 
 // Audio Recorder
 let mediaRecorder = null;
