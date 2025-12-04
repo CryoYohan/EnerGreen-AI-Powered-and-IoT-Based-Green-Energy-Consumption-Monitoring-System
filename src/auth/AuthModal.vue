@@ -239,7 +239,9 @@ import {
   db,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  setPersistence,
+  browserSessionPersistence
 } from '../firebase.js';
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -368,7 +370,7 @@ const claimDeviceOnServer = async (id, uid, name) => {
 const checkDeviceIDWithServer = async (id) => {
     try {
         // UPDATE: Changed path to match your index.js mounting point
-        const response = await fetch('/api/public/check-device', { 
+        const response = await fetch('/api/public/check-device', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ deviceId: id })
@@ -472,6 +474,9 @@ const handleLogin = async () => {
   error.value = '';
   isLoading.value = true;
   try {
+    // Set persistence to 'session' before signing in
+    await setPersistence(auth, browserSessionPersistence);
+    
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
     const userId = userCredential.user.uid;
     

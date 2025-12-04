@@ -3,14 +3,16 @@ import { initializeApp } from "firebase/app";
 
 // Import all necessary Auth functions
 import {
-    getAuth,
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    sendEmailVerification,
-    updateProfile,
-    onAuthStateChanged,
-    signOut,
-    sendPasswordResetEmail
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendEmailVerification,
+    updateProfile,
+    onAuthStateChanged,
+    signOut,
+    sendPasswordResetEmail,
+    setPersistence,
+    browserSessionPersistence
 } from "firebase/auth";
 
 // Import all necessary Firestore functions
@@ -56,34 +58,36 @@ const storage = getStorage(app); // 2. INITIALIZE STORAGE (New)
 
 // Export the initialized services and functions
 export {
-    app,
-    auth,
-    db,
-    storage, // 3. EXPORT STORAGE (New)
+    app,
+    auth,
+    db,
+    storage, // 3. EXPORT STORAGE (New)
 
-    // Auth Functions
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    sendEmailVerification,
-    updateProfile,
-    onAuthStateChanged,
-    signOut,
-    sendPasswordResetEmail,
+    // Auth Functions
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendEmailVerification,
+    updateProfile,
+    onAuthStateChanged,
+    signOut,
+    sendPasswordResetEmail,
+    setPersistence,
+    browserSessionPersistence,
 
-    // Firestore Functions
-    collection,
-    onSnapshot,
-    query,
-    orderBy,
-    addDoc,
-    doc,
-    setDoc,
-    getDocs,
-    getDoc,
-    where,
-    startAfter,
-    limit,
-    Timestamp,
+    // Firestore Functions
+    collection,
+    onSnapshot,
+    query,
+    orderBy,
+    addDoc,
+    doc,
+    setDoc,
+    getDocs,
+    getDoc,
+    where,
+    startAfter,
+    limit,
+    Timestamp,
     // NEW: Export collectionGroup here
     collectionGroup,
 };
