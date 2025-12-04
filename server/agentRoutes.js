@@ -10,6 +10,7 @@ import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SpeechClient } from '@google-cloud/speech';
 import express from 'express';
+import NodeCache from 'node-cache';
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,12 @@ try {
     const globalAdmin = await import('./firebaseAdmin.js');
     dbAgent = globalAdmin.db;
 }
+
+// --- USER PROFILE CACHE ---
+// Cache user profile data (like deviceId) to reduce Firestore reads.
+// stdTTL: 300 seconds (5 minutes)
+const userCache = new NodeCache({ stdTTL: 300 }); 
+console.log("✅ User profile cache initialized with 5-min TTL.");
 
 // --- ONE-TIME DATA POPULATION ---
 // This function runs on server start to ensure Firestore has a base set of tips.
@@ -258,6 +265,27 @@ async function generateSpeech(text) {
     throw new Error("No audio data returned from Gemini.");
 }
 
+// --- Helper function to get user profile data (with caching) ---
+const getUserProfileData = async (uid) => {
+    const cacheKey = `profile_${uid}`;
+    let profileData = userCache.get(cacheKey);
+
+    if (!profileData) {
+        console.log(`CACHE MISS for user ${uid}. Fetching from Firestore.`);
+        const appId = 'default-app-id';
+        const profileDoc = await dbAgent.doc(`artifacts/${appId}/users/${uid}/userProfile/profile`).get();
+
+        if (!profileDoc.exists) {
+            throw new Error("User profile not found.");
+        }
+        profileData = profileDoc.data();
+        userCache.set(cacheKey, profileData);
+    } else {
+        console.log(`CACHE HIT for user ${uid}.`);
+    }
+    return profileData;
+};
+
 router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     console.log('AI Agent endpoint hit!');
 
@@ -295,17 +323,9 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
             getEnergySummary: async ({ uid }) => {
                 console.log(`TOOL EXECUTED: getEnergySummary for user ${uid}`);
                 try {
-                    // A. Get Device ID from Profile
-                    // Use the dedicated dbAgent connection
-                    const appId = 'default-app-id';
-                    const profileDoc = await dbAgent.doc(`artifacts/${appId}/users/${uid}/userProfile/profile`).get();
-
-                    if (!profileDoc.exists) {
-                        console.log("Profile not found");
-                        return { error: "User profile not found." };
-                    }
-
-                    const deviceId = profileDoc.data().deviceId;
+                    // A. Get Device ID from Profile (using caching helper)
+                    const profileData = await getUserProfileData(uid);
+                    const deviceId = profileData.deviceId;
                     if (!deviceId || deviceId === 'None') return { error: "No smart meter linked to this account." };
 
                     // B. Query Device Data
@@ -380,12 +400,9 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
             getHistoricalData: async ({ uid, period }) => {
                 console.log(`TOOL EXECUTED: getHistoricalData for user ${uid} for period ${period}`);
                 try {
-                    const appId = 'default-app-id';
-                    const profileDoc = await dbAgent.doc(`artifacts/${appId}/users/${uid}/userProfile/profile`).get();
-                    if (!profileDoc.exists) {
-                        return { error: "User profile not found." };
-                    }
-                    const deviceId = profileDoc.data().deviceId;
+                    // Get Device ID from Profile (using caching helper)
+                    const profileData = await getUserProfileData(uid);
+                    const deviceId = profileData.deviceId;
                     if (!deviceId || deviceId === 'None') return { error: "No smart meter linked to this account." };
 
                     let days = 7;
@@ -492,11 +509,9 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     const userTipsRef = dbAgent.doc(`artifacts/default-app-id/users/${uid}/userProfile/tips`);
                     const globalTipsRef = dbAgent.collection('tips');
 
-                    // 2. Get user's deviceId for usage analysis
-                    const profileDoc = await dbAgent.doc(`artifacts/default-app-id/users/${uid}/userProfile/profile`).get();
-                    if (!profileDoc.exists) return { tips: ["Could not find your user profile to analyze usage."] };
-
-                    const deviceId = profileDoc.data().deviceId;
+                    // 2. Get user's deviceId for usage analysis (using caching helper)
+                    const profileData = await getUserProfileData(uid);
+                    const deviceId = profileData.deviceId;
                     if (!deviceId || deviceId === 'None') {
                         // For users without a device, return a random general tip without tracking.
                         const tipsSnapshot = await globalTipsRef.where('category', '==', 'general').get();

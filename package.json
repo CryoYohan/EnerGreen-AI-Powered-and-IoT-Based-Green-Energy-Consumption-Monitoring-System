@@ -26,6 +26,7 @@
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lodash-es": "^4.17.21",
+    "node-cache": "^5.1.2",
     "node-fetch": "^2.7.0",
     "plotly.js-dist-min": "^3.1.0",
     "pulltorefreshjs": "^0.1.22",

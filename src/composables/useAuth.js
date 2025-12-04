@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { auth, db, doc, getDoc } from '../firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -26,6 +26,8 @@ export function useAuth(appId) {
 
   // Expose the function to allow router guards to await the initial state load.
   const waitForAuthReady = () => isAuthReadyPromise;
+
+  const isPremium = computed(() => userProfile.value?.subscriptionTier === 'Premium');
 
   const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
     isLoading.value = true;
@@ -97,5 +99,5 @@ export function useAuth(appId) {
   });
 
   // **EXPORT NEW FUNCTION**
-  return { user, userProfile, isLoading, error, waitForAuthReady };
+  return { user, userProfile, isLoading, error, isPremium, waitForAuthReady };
 }

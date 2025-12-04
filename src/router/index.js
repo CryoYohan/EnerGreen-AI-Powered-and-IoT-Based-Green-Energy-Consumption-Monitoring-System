@@ -5,7 +5,9 @@ import { app } from '@/firebase.js';
 
 // --- Pages ---
 import LandingPage from '@/pages/LandingPage/LandingPage.vue';
-import Unauthorized from '@/pages/Unauthorized.vue'; // ✅ New 401 Page
+import Unauthorized from '@/pages/Unauthorized.vue';
+import UpgradePage from '@/pages/Subscription/UpgradePage.vue';
+import FutureUpgradePage from '@/pages/Subscription/FutureUpgradePage.vue'; // Import FutureUpgradePage // Import Upgrade Page
 
 // User Pages
 import Home from '@/pages/UserPage/Home.vue';
@@ -43,6 +45,18 @@ const routes = [
     name: 'Unauthorized',
     component: Unauthorized,
   },
+  {
+    path: '/upgrade',
+    name: 'Upgrade',
+    component: UpgradePage,
+    meta: { requiresAuth: true } // This page requires auth to know who to upgrade
+  },
+  {
+    path: '/future-upgrade',
+    name: 'FutureUpgrade',
+    component: FutureUpgradePage,
+    meta: { requiresAuth: false } // No auth required for this informational page
+  },
 
   // --- USER ROUTES (Role: 'user') ---
   {
@@ -55,7 +69,7 @@ const routes = [
     path: '/appliances',
     name: 'Appliances',
     component: Appliances,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresPremium: true } // Mark as premium
   },
   {
     path: '/forecast',
@@ -159,7 +173,6 @@ const router = createRouter({
 // --- SECURITY NAVIGATION GUARD ---
 
 // 1. Helper: Wait for Firebase Auth to initialize
-// This prevents the app from kicking you out on a browser refresh because Auth wasn't ready yet.
 const getCurrentUser = () => {
   return new Promise((resolve, reject) => {
     const removeListener = onAuthStateChanged(auth, (user) => {
@@ -169,57 +182,61 @@ const getCurrentUser = () => {
   });
 };
 
-// 2. Helper: Fetch User Role from Firestore
-const getUserRole = async (uid) => {
+// 2. Helper: Fetch User Profile Data from Firestore
+const getUserProfile = async (uid) => {
   try {
     const docRef = doc(db, `artifacts/default-app-id/users/${uid}/userProfile/profile`);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data().role || 'user';
+      return docSnap.data();
     }
-    return 'user'; // Default fallback
+    return null; // Return null if no profile
   } catch (error) {
-    console.error("Error fetching role:", error);
-    return 'user'; // Fail safe
+    console.error("Error fetching user profile:", error);
+    return null; // Fail safe
   }
 };
 
+
 // 3. The Guard Logic
 router.beforeEach(async (to, from, next) => {
-  // Wait for auth state to settle
   const currentUser = await getCurrentUser();
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
   // A. Route requires auth, but user is NOT logged in -> Redirect to Landing
   if (requiresAuth && !currentUser) {
-    next('/');
-    return;
+    return next('/');
   }
 
-  // B. Route requires auth, and user IS logged in -> Check Role
+  // B. Route requires auth, and user IS logged in -> Check Role & Subscription
   if (requiresAuth && currentUser) {
-    const role = await getUserRole(currentUser.uid);
+    const profile = await getUserProfile(currentUser.uid);
+    const role = profile?.role || 'user';
+    const subscription = profile?.subscriptionTier || 'Free';
 
-    // Check if the route has a specific role requirement
+    // Role mismatch (e.g. User trying to access Admin page) -> Redirect to 401
     if (to.meta.role && to.meta.role !== role) {
-      // Role mismatch (e.g. User trying to access Admin page) -> Redirect to 401
-      next('/401');
-    } else {
-      // Role matches -> Allow access
-      next();
+      return next('/401');
     }
-    return;
+
+    // Subscription mismatch (e.g. Free user trying to access Premium page)
+    if (to.meta.requiresPremium && subscription !== 'Premium') {
+      return next({ name: 'Upgrade' });
+    }
+    
+    // All checks passed
+    return next();
   }
 
   // C. If user is logged in and tries to visit Landing Page ('/'), redirect to their Dashboard
   if (to.path === '/' && currentUser) {
-    const role = await getUserRole(currentUser.uid);
-    if (role === 'admin') next('/adminhome');
-    else next('/home');
-    return;
+    const profile = await getUserProfile(currentUser.uid);
+    const role = profile?.role || 'user';
+    if (role === 'admin') return next('/adminhome');
+    else return next('/home');
   }
 
-  // D. Allow public routes (Landing page for guests, 401 page)
+  // D. Allow public routes
   next();
 });
 
