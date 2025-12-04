@@ -5,31 +5,58 @@
       <router-view />
     </main>
 
-    <!-- Floating Agent Button: Only show if user is logged in -->
-    <AgentButton v-if="user" />
+    <!-- Floating Agent Button -->
+    <!-- Only show if User is logged in AND current page requires authentication -->
+    <transition name="fade">
+      <AgentButton v-if="shouldShowAgent" />
+    </transition>
     
+    <ToastContainer />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { auth, onAuthStateChanged } from '@/firebase'; // Import auth services
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { auth, onAuthStateChanged } from '@/firebase'; 
+import { useRoute } from 'vue-router'; // 1. Import useRoute
 import AgentButton from '@/components/ReusableComponents/AgentButton.vue';
+import ToastContainer from '@/components/ReusableComponents/ToastContainer.vue';
 
 const user = ref(null);
-let unsubscribe; // To hold the listener cleanup function
+const route = useRoute(); // 2. Get current route object
+let unsubscribe;
+
+// 3. Computed Property for Visibility Logic
+const shouldShowAgent = computed(() => {
+  // Condition A: User must be authenticated
+  if (!user.value) return false;
+
+  // Condition B: Current route must be a "protected" route (e.g. Home, Profile)
+  // This prevents it from showing on Landing Page or 401 during redirects
+  return route.meta.requiresAuth === true;
+});
 
 onMounted(() => {
-  // Set up a listener that fires whenever the user's auth state changes
   unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    user.value = currentUser; // Update our reactive variable
+    user.value = currentUser;
   });
 });
 
 onUnmounted(() => {
-  // Clean up the listener when the component is unmounted
   if (unsubscribe) {
     unsubscribe();
   }
 });
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

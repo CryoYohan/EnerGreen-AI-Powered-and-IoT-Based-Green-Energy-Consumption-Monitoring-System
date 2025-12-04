@@ -56,6 +56,7 @@ const requireAdmin = async (req, res, next) => {
             return res.status(403).json({ success: false, error: 'Admins only' });
         }
     } catch (error) {
+        console.error("Error in requireAdmin middleware:", error);
         return res.status(500).json({ success: false, error: 'Server error checking permissions' });
     }
 };
@@ -324,6 +325,50 @@ adminRouter.post('/update-carbon-rate', adminLimiter, verifyToken, requireAdmin,
 
     } catch (e) {
         console.error('Carbon Rate Update Error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// RESOLVE USER FEEDBACK
+adminRouter.post('/feedback/resolve', adminLimiter, verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { feedbackId, userId, feedbackText } = req.body;
+        if (!feedbackId || !userId) {
+            return res.status(400).json({ success: false, error: "feedbackId and userId are required." });
+        }
+
+        // 1. Update the feedback document
+        const feedbackRef = db.collection('feedback').doc(feedbackId);
+        await feedbackRef.update({
+            status: 'resolved',
+            resolvedAt: FieldValue.serverTimestamp(),
+            resolvedBy: req.user.uid
+        });
+
+        // 2. Create a notification for the user
+        const notificationRef = db.collection('artifacts').doc('default-app-id').collection('users').doc(userId).collection('notifications');
+        const feedbackSnippet = feedbackText && feedbackText.length > 50 ? `${feedbackText.substring(0, 47)}...` : feedbackText || 'your feedback';
+
+        await notificationRef.add({
+            title: 'Feedback Resolved',
+            message: `Your feedback regarding "${feedbackSnippet}" has been reviewed and resolved by our team.`,
+            createdAt: FieldValue.serverTimestamp(),
+            read: false,
+            type: 'feedback_resolved'
+        });
+        
+        // 3. Add to audit log
+        await db.collection('admin_audit_logs').add({
+            action: 'RESOLVE_FEEDBACK',
+            adminUid: req.user.uid,
+            details: { feedbackId, userId },
+            timestamp: FieldValue.serverTimestamp()
+        });
+
+        res.json({ success: true, message: 'Feedback resolved and user notified.' });
+
+    } catch (e) {
+        console.error('Feedback Resolution Error:', e);
         res.status(500).json({ success: false, error: e.message });
     }
 });

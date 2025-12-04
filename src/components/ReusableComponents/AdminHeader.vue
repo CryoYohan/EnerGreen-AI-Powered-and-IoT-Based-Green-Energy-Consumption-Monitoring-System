@@ -24,6 +24,10 @@
             <BellIcon
               @click.stop="toggleNotifications"
               class="w-5 h-5 cursor-pointer text-gray-800 dark:text-gray-300 focus:outline-none" />
+            <span v-if="hasUnread" class="absolute -top-1 -right-1 flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
             <Notification v-if="showNotifications" :isMobile="true" @click.stop />
           </div>
           <img 
@@ -109,6 +113,18 @@
                   Sales Management
                 </button>
               </li>
+              <li>
+                <button 
+                  @click="navigateTo('FeedbackManagement')" 
+                  :class="[
+                    'py-2 transition-colors duration-200',
+                    $route.name === 'FeedbackManagement' 
+                      ? 'text-green-600 dark:text-green-500' 
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  Feedback
+                </button>
+              </li>
             </ul>
           </nav>
         </div>
@@ -132,6 +148,10 @@
             <BellIcon
               @click.stop="toggleNotifications"
               class="w-5 h-5 cursor-pointer text-gray-800 dark:text-gray-300 focus:outline-none" />
+            <span v-if="hasUnread" class="absolute -top-1 -right-1 flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
             <Notification v-if="showNotifications" :isMobile="false" @click.stop />
           </div>
           
@@ -274,6 +294,19 @@
               </li>
               <li>
                 <button
+                  @click="navigateTo('FeedbackManagement')"
+                  :class="[
+                    'flex items-center w-full gap-2 py-2 transition-colors duration-200',
+                    $route.name === 'FeedbackManagement'
+                      ? 'text-green-600 dark:text-green-500'
+                      : 'text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500'
+                  ]">
+                  <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
+                  Feedback
+                </button>
+              </li>
+              <li>
+                <button
                   @click="toggleDarkMode"
                   class="flex items-center w-full gap-2 py-2 text-gray-800 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-500 transition-colors duration-200">
                   <SunIcon v-if="isDarkMode" class="w-4 h-4" />
@@ -298,11 +331,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { signOut } from 'firebase/auth';
 import { useDarkMode } from "@/composables/useDarkMode.js"
 import Notification from '../ReusableComponents/Notification.vue'
+import { useAuth } from '@/composables/useAuth.js';
+import { useNotifications } from '@/composables/useNotifications.js';
 
 // Import Heroicons
 import {
@@ -317,7 +352,8 @@ import {
   CpuChipIcon,
   UsersIcon,
   ChartBarIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ChatBubbleLeftEllipsisIcon
 } from '@heroicons/vue/24/outline'
 
 import {
@@ -340,6 +376,14 @@ let unsubscribeProfile = null;
 const route = useRoute()
 const router = useRouter()
 const { isDarkMode, toggleDarkMode } = useDarkMode()
+
+// Hardcoded App ID for this component
+const appId = 'default-app-id'; 
+
+const { user } = useAuth(appId);
+const userId = computed(() => user.value?.uid);
+
+const { hasUnread } = useNotifications(userId);
 
 // methods
 const toggleMobileMenu = () => isMobileMenuOpen.value = !isMobileMenuOpen.value
