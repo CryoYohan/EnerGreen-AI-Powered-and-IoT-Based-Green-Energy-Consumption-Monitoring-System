@@ -8,7 +8,10 @@
     <!-- Floating Agent Button -->
     <!-- Only show if User is logged in AND current page requires authentication -->
     <transition name="fade">
-      <AgentButton v-if="shouldShowAgent" />
+      <div v-if="shouldShowAgent">
+        <AdminAgentButton v-if="isAdmin" />
+        <AgentButton v-else />
+      </div>
     </transition>
     
     <ToastContainer />
@@ -16,17 +19,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { auth, onAuthStateChanged } from '@/firebase'; 
-import { useRoute } from 'vue-router'; // 1. Import useRoute
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { useAuth } from '@/composables/useAuth.js';
 import AgentButton from '@/components/ReusableComponents/AgentButton.vue';
+import AdminAgentButton from '@/components/ReusableComponents/AdminAgentButton.vue';
 import ToastContainer from '@/components/ReusableComponents/ToastContainer.vue';
 
-const user = ref(null);
-const route = useRoute(); // 2. Get current route object
-let unsubscribe;
+const route = useRoute();
+const { user, isAdmin } = useAuth('default-app-id');
 
-// 3. Computed Property for Visibility Logic
+// Computed Property for Visibility Logic
 const shouldShowAgent = computed(() => {
   // Condition A: User must be authenticated
   if (!user.value) return false;
@@ -34,18 +37,6 @@ const shouldShowAgent = computed(() => {
   // Condition B: Current route must be a "protected" route (e.g. Home, Profile)
   // This prevents it from showing on Landing Page or 401 during redirects
   return route.meta.requiresAuth === true;
-});
-
-onMounted(() => {
-  unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    user.value = currentUser;
-  });
-});
-
-onUnmounted(() => {
-  if (unsubscribe) {
-    unsubscribe();
-  }
 });
 </script>
 

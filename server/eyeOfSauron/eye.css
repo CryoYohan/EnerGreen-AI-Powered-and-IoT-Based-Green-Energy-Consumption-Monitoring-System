@@ -1,0 +1,38 @@
+body,
+html {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    text-align: center;
+    background: #000;
+    font-family: "Times New Roman", Times, serif;
+    font-style: italic;
+}
+
+body:before,
+section {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+body:before {
+    content: '';
+    height: 100%;
+}
+
+h1 {
+    font-weight: normal;
+    font-size: 24px;
+    margin: 0;
+    color: #FF8400;
+}
+
+p {
+    width: 280px;
+    margin: 20px auto 0 auto;
+    font-size: 11px;
+    color: #FFBA00;
+
+}
