@@ -1,4 +1,6 @@
 name: Deploy Frontend to Firebase Hosting
+permissions:
+  contents: read
 
 on:
   push:
