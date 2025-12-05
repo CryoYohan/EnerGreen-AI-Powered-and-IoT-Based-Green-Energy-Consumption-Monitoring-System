@@ -288,23 +288,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '@/firebase.js';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  updateDoc,
-  doc,
-  addDoc,
-  setDoc,              
-  serverTimestamp,      
-  deleteDoc,
-} from 'firebase/firestore';
+import { ref, onMounted, watch } from 'vue';
+import { useAuth } from '@/composables/useAuth';
+import * as applianceService from '@/services/applianceService.js';
+import Swal from 'sweetalert2';
 
+// Import Child Components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
@@ -313,319 +302,56 @@ import AppliancesCard from "@/components/UserComponents/Appliances/AppliancesCar
 import ApplianceDetails from "@/components/UserComponents/Appliances/ApplianceDetails.vue";
 import TrainModelButton from "@/components/UserComponents/Appliances/TrainModelButton.vue";
 
-// --- Global Variables ---
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-let userId = null;
-const deviceId = ref(null); // <-- will be discovered from user's profile
+// --- STATE ---
+const { userProfile, waitForAuthReady } = useAuth('default-app-id');
+const deviceId = ref(null);
 
-// --- Reactive State ---
-const labeledDevices = ref([]);
-const unlabeledSignatures = ref([]);
+const loading = ref(true);
+const loadingSignatures = ref(false); // Added missing ref
+const clustering = ref(false);
+const clusterMessage = ref("");
 const showModal = ref(false);
 const showDeleteModal = ref(false);
-const deviceToDelete = ref(null);
-const loading = ref(true);
-const loadingSignatures = ref(false);
-const authReady = ref(false);
+
+const labeledDevices = ref([]);
+const unlabeledSignatures = ref([]);
+const clusters = ref([]);
+const counts = ref({ total: 0, on: 0, off: 0 });
 const selectedAppliance = ref(null);
-const clusters = ref([]); // new for suggested appliances
-const clustering = ref(false); // <-- NEW: track clustering state
-const clusterMessage = ref(""); // <-- NEW: status message
-const counts = ref({ total: 0, on: 0, off: 0 }); // ✅ FIX
+const deviceToDelete = ref(null);
 
-// --- Fetch clusters ---
-const fetchClusters = async () => {
-  if (!deviceId.value) return;
-  try {
-    const clustersRef = collection(db, `devices/${deviceId.value}/clusters`);
-    const snapshot = await getDocs(clustersRef);
-
-    clusters.value = snapshot.docs.map(docSnap => {
-      const data = docSnap.data();
-      return {
-        id: docSnap.id,
-        user_label: data.user_label || "",
-        status: data.status || "unlabeled",
-        summary: data.summary || {},
-        tempLabel: data.user_label || data.ai_suggestion || "", // Pre-fill with AI suggestion
-      };
-    });
-  } catch (err) {
-    console.error("Error fetching clusters:", err);
+// --- DATA FETCHING & ACTIONS ---
+const loadAllData = async () => {
+  // Use the local ref deviceId.value
+  if (!deviceId.value) {
+    // Keep loading true if we are waiting for auth, false if we know it's empty
+    return;
   }
-};
-
-// For testing ONLY!
-// ✅ Count ON/OFF events inside this user's appliance_predictions
-const getPredictionsCounts = async () => {
-  try {
-    const predictionsRef = getAppliancePredictionsRef();
-    if (!predictionsRef) return;
-
-    const snapshot = await getDocs(predictionsRef);
-
-    let onCount = 0;
-    let offCount = 0;
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data.event_type === "ON") {
-        onCount++;
-      } else if (data.event_type === "OFF") {
-        offCount++;
-      }
-    });
-
-    counts.value = {
-      total: snapshot.size,
-      on: onCount,
-      off: offCount,
-    };
-
-    console.log("✅ Counts updated:", counts.value);
-  } catch (error) {
-    console.error("Error counting predictions:", error);
-    counts.value = { total: 0, on: 0, off: 0 };
-  }
-};
-
-// Remove this after getting the right amount of data for training set
-
-
-const dailyData = [
-  { label: "12AM", value: 5 },
-  { label: "2AM", value: 3 },
-  { label: "4AM", value: 2 },
-  { label: "6AM", value: 8 },
-  { label: "8AM", value: 15 },
-  { label: "10AM", value: 20 },
-  { label: "12PM", value: 25 },
-  { label: "2PM", value: 28 },
-  { label: "4PM", value: 30 },
-  { label: "6PM", value: 35 },
-  { label: "8PM", value: 25 },
-  { label: "10PM", value: 15 },
-];
-const weeklyData = [
-  { label: "Mon", value: 20 },
-  { label: "Tue", value: 25 },
-  { label: "Wed", value: 22 },
-  { label: "Thu", value: 18 },
-  { label: "Fri", value: 24 },
-  { label: "Sat", value: 27 },
-  { label: "Sun", value: 19 },
-];
-const monthlyData = [
-  { label: "Jan", value: 420 },
-  { label: "Feb", value: 380 },
-  { label: "Mar", value: 410 },
-  { label: "Apr", value: 350 },
-  { label: "May", value: 480 },
-  { label: "Jun", value: 520 },
-  { label: "Jul", value: 600 },
-  { label: "Aug", value: 580 },
-  { label: "Sep", value: 450 },
-  { label: "Oct", value: 400 },
-  { label: "Nov", value: 370 },
-  { label: "Dec", value: 430 },
-];
-const yearlyData = [
-  { label: "2025", value: 1450 },
-  { label: "2026", value: 1520 },
-  { label: "2027", value: 1390 },
-  { label: "2028", value: 1500 },
-];
-const activePeriod = ref("Weekly");
-
-// --- Helpers: dynamic references based on discovered deviceId ---
-const getAppliancePredictionsRef = () => {
-  if (!deviceId.value) return null;
-  return collection(db, `devices/${deviceId.value}/appliance_predictions`);
-};
-
-// Fetch signatures (confirmed => labeledDevices, unidentified => unlabeledSignatures)
-const fetchApplianceSignatures = async () => {
-  if (!authReady.value || !userId) return;
-
   loading.value = true;
-  unlabeledSignatures.value = [];
-  labeledDevices.value = [];
-
   try {
-    if (!deviceId.value) {
-      console.warn("No deviceId found for user; fetchApplianceSignatures skipped.");
-      return;
-    }
-
-    const predictionsRef = getAppliancePredictionsRef();
-    if (!predictionsRef) return;
-
-    const q = query(predictionsRef);
-    const querySnapshot = await getDocs(q);
-
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-
-      // Accept both 'confirmed_label' (preferred) or 'label' (legacy) fields
-      const confirmedLabel = data.confirmed_label || data.label || null;
-
-      if (data.status === "confirmed" && confirmedLabel) {
-        labeledDevices.value.push({
-          id: docSnap.id,
-          name: confirmedLabel,
-          location: "N/A",
-          status: "Active",
-          usage: 0,
-          maxUsage: 1,
-          icon: "/src/images/icons/ref.svg",
-        });
-      } else {
-        // Unidentified / unlabeled signature - show AI suggestion if present
-        unlabeledSignatures.value.push({
-          id: docSnap.id,
-          tempLabel: "",
-          ai_prediction: data.predicted_label || "Unknown",
-          confidence: data.confidence || null,
-        });
-      }
-    });
+    const [applianceData, countData] = await Promise.all([
+      applianceService.getAppliances(deviceId.value),
+      applianceService.getApplianceCounts(deviceId.value)
+    ]);
+    
+    labeledDevices.value = applianceData.labeled;
+    clusters.value = applianceData.suggested;
+    counts.value = countData;
 
   } catch (error) {
-    console.error("Failed to fetch or process signatures:", error);
+    console.error("Failed to load appliance data:", error);
   } finally {
     loading.value = false;
   }
 };
 
-// --- Confirm appliance doc creation ---
-const confirmApplianceFromCluster = async (cluster, deviceId) => {
-  try {
-    const confirmedRef = doc(
-      db,
-      `devices/${deviceId}/confirmed_appliances/${cluster.id}`
-    );
-
-    await setDoc(confirmedRef, {
-      cluster_id: cluster.id,
-      user_label: cluster.user_label,
-      centroid: cluster.centroid || [],
-      summary: cluster.summary || {},
-      created_at: cluster.created_at || serverTimestamp(),
-      confirmed_at: serverTimestamp(),
-    });
-
-    console.log(`✅ Confirmed appliance created: ${cluster.user_label}`);
-  } catch (err) {
-    console.error("Error creating confirmed appliance:", err);
-  }
-};
-
-// --- Confirm cluster label (also create confirmed appliance) ---
-const confirmClusterLabel = async (cluster) => {
-  if (!cluster.tempLabel) return;
-  try {
-    const clusterRef = doc(db, `devices/${deviceId.value}/clusters`, cluster.id);
-    await updateDoc(clusterRef, {
-      user_label: cluster.tempLabel,
-      status: "labeled",
-    });
-
-    cluster.user_label = cluster.tempLabel;
-    cluster.status = "labeled";
-
-    // ✅ Immediately create confirmed appliance document
-    await confirmApplianceFromCluster(cluster, deviceId.value);
-
-  } catch (err) {
-    console.error("Failed to label cluster:", err);
-  }
-};
-
-// --- Confirm all suggested clusters (bulk) ---
-const addAllSuggested = async () => {
-  if (!deviceId.value) return;
-
-  const confirmPromises = clusters.value.map(async (cluster) => {
-    // Only process clusters that are unlabeled and have a temporary label
-    if (cluster.status === 'unlabeled' && cluster.tempLabel) {
-      await confirmClusterLabel(cluster);                 // ✅ updates cluster + creates confirmed appliance
-      await confirmApplianceFromCluster(cluster, deviceId.value); // ✅ redundant safety, ensures doc exists
-    }
-  });
-
-  await Promise.all(confirmPromises);
-
-  // Re-fetch appliances so main list updates
-  await fetchApplianceSignatures();
-};
-
-
-const PREDICT_URL = import.meta.env.VITE_PREDICT_URL; 
-
 const startScanning = async () => {
+  if (!deviceId.value) return;
   showModal.value = true;
   loadingSignatures.value = true;
-
   try {
-    if (!deviceId.value) {
-      unlabeledSignatures.value = [];
-      return;
-    }
-
-    const predictionsRef = getAppliancePredictionsRef();
-    if (!predictionsRef) return;
-
-    // Query only "unidentified" signatures (status === "unidentified")
-    const q = query(predictionsRef, where("status", "==", "unidentified"));
-    const snapshot = await getDocs(q);
-
-    unlabeledSignatures.value = [];
-
-    const predictionPromises = snapshot.docs.map(async (docSnap) => {
-      const data = docSnap.data();
-
-      // Initialize the signature object
-      const signatureObj = {
-        id: docSnap.id,
-        tempLabel: "",
-        ai_prediction: null,
-        confidence: null,
-        readings: data.signature || [],
-      };
-
-      // Push immediately for Vue reactivity
-      unlabeledSignatures.value.push(signatureObj);
-
-      // Always call the prediction API
-      try {
-        const resp = await fetch(PREDICT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            device_id: deviceId.value,
-            signature: signatureObj.readings,
-          }),
-        });
-
-        const result = await resp.json();
-
-        // Update signature object in-place (reactive)
-        signatureObj.ai_prediction = result.predicted_label;
-        signatureObj.confidence =
-          result.predicted_probabilities?.[result.predicted_label] || null;
-
-        // Update Firestore with new prediction and confidence
-        await updateDoc(doc(predictionsRef, signatureObj.id), {
-          predicted_label: signatureObj.ai_prediction,
-          confidence: signatureObj.confidence,
-        });
-      } catch (apiError) {
-        console.error("Prediction API failed for signature:", signatureObj.id, apiError);
-      }
-    });
-
-    // Wait for all predictions to finish
-    await Promise.all(predictionPromises);
+    const newSignatures = await applianceService.scanForNewSignatures(deviceId.value);
+    unlabeledSignatures.value = newSignatures;
   } catch (error) {
     console.error("Scanning failed:", error);
   } finally {
@@ -633,110 +359,60 @@ const startScanning = async () => {
   }
 };
 
-const CLUSTER_URL = import.meta.env.VITE_CLUSTER_URL; // e.g. your Cloud Run service
-
 const clusterSignatures = async () => {
-  if (!deviceId.value) {
-    console.error("No device configured; cannot cluster signatures.");
-    return;
-  }
-
+  if (!deviceId.value) return;
   clustering.value = true;
   clusterMessage.value = "Clustering signatures... please wait.";
-
   try {
-    const resp = await fetch(CLUSTER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device_id: deviceId.value })
-    });
-
-    const result = await resp.json();
-    console.log("Clustering result:", result);
-
-    if (result.detail) {
-      // Show backend-provided detail message
-      clusterMessage.value = result.detail;
-    } else {
-      clusterMessage.value = "Clustering complete. Refreshing results...";
-      await fetchClusters();
-      clusterMessage.value = "Suggested appliances updated successfully";
-    }
+    const result = await applianceService.triggerClustering(deviceId.value);
+    clusterMessage.value = result.detail || "Clustering complete. Refreshing results...";
+    await loadAllData(); // Refresh data after clustering
   } catch (err) {
-    console.error("Failed to trigger clustering:", err);
     clusterMessage.value = "Clustering failed. Please try again.";
+    console.error("Failed to trigger clustering:", err);
   } finally {
-    setTimeout(() => { 
-      clustering.value = false;
-      clusterMessage.value = "";
-    }, 4000); // auto-hide after 4s
+    setTimeout(() => { clustering.value = false; clusterMessage.value = ""; }, 4000);
   }
 };
 
-
-// --- updateLabel: mark prediction as confirmed + add confirmed_label (no hardcoded user/device) ---
-const updateLabel = async (signatureId) => {
-  const signatureToUpdate = unlabeledSignatures.value.find(s => s.id === signatureId);
-  if (!signatureToUpdate || !signatureToUpdate.tempLabel) return;
-
+const confirmClusterLabel = async (cluster) => {
+  if (!deviceId.value) return;
   try {
-    const predictionsRef = getAppliancePredictionsRef();
-    if (!predictionsRef) {
-      console.error("No device configured; cannot update label.");
-      return;
-    }
-
-    await updateDoc(doc(predictionsRef, signatureId), {
-      status: "confirmed",
-      confirmed_label: signatureToUpdate.tempLabel,
-      confirmed_at: new Date()
-    });
-
-    // Update UI lists
-    unlabeledSignatures.value = unlabeledSignatures.value.filter(s => s.id !== signatureId);
-    labeledDevices.value.push({
-      id: signatureId,
-      name: signatureToUpdate.tempLabel,
-      location: "N/A",
-      status: "Active",
-      usage: 0,
-      maxUsage: 1,
-      icon: "/src/images/icons/ref.svg",
-    });
-
-  } catch (error) {
-    console.error("Failed to update signature:", error);
+    await applianceService.confirmClusterLabel(deviceId.value, cluster);
+    cluster.status = "labeled";
+    await loadAllData(); // Refresh the main appliance list
+  } catch (err) {
+    console.error("Failed to label cluster:", err);
   }
 };
 
-// --- Delete logic (uses discovered device path) ---
+const addAllSuggested = async () => {
+  if (!deviceId.value) return;
+  const promises = clusters.value
+    .filter(c => c.status === 'unlabeled' && c.tempLabel)
+    .map(c => applianceService.confirmClusterLabel(deviceId.value, c));
+  
+  await Promise.all(promises);
+  await loadAllData();
+};
+
+const updateLabel = async (signatureId) => {
+    // This function can be implemented if individual signature labeling is still needed
+};
+
 const promptDelete = (device) => {
-  const deviceIdLocal = typeof device === 'string' ? device : device.id;
-  deviceToDelete.value = deviceIdLocal;
+  deviceToDelete.value = device;
   showDeleteModal.value = true;
 };
 
-const confirmDelete = async (deviceIdLocal) => {
-  if (!deviceIdLocal || !userId) {
-    console.error("User ID or device ID is not available. Aborting delete operation.");
-    showDeleteModal.value = false;
-    deviceToDelete.value = null;
-    return;
-  }
-
+const confirmDelete = async () => {
+  if (!deviceToDelete.value || !deviceId.value) return;
   try {
-    if (!deviceId.value) {
-      console.error("No configured device for this account; cannot delete signature.");
-      return;
-    }
-    const predictionsRef = getAppliancePredictionsRef();
-    if (!predictionsRef) return;
-
-    await deleteDoc(doc(predictionsRef, deviceIdLocal));
-    labeledDevices.value = labeledDevices.value.filter(d => d.id !== deviceIdLocal);
-    console.log(`Device ${deviceIdLocal} successfully deleted.`);
+    await applianceService.deleteAppliance(deviceId.value, deviceToDelete.value.id);
+    await loadAllData(); // Refresh the list
+    Swal.fire('Deleted!', 'The appliance has been removed.', 'success');
   } catch (error) {
-    console.error("Failed to remove device:", error);
+    Swal.fire('Error!', 'Failed to remove the appliance.', 'error');
   } finally {
     showDeleteModal.value = false;
     deviceToDelete.value = null;
@@ -747,75 +423,29 @@ const viewApplianceDetails = (device) => {
   selectedAppliance.value = device;
 };
 
-// --- discover deviceId for the signed-in user ---
-// tries multiple likely locations for deviceId in user's Firestore record
-const fetchUserDeviceId = async () => {
-  if (!userId) return;
 
-  try {
-    // 1) try doc: artifacts/{appId}/users/{userId}
-    const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userProfile', 'profile');
-    const userSnap = await getDoc(userDocRef);
-    if (userSnap.exists()) {
-      const data = userSnap.data();
-      // common field names: deviceId, primaryDeviceId, devices (array), devices_map, namedDevices
-      if (data.deviceId) {
-        deviceId.value = data.deviceId;
-        return;
-      }
-      if (data.primaryDeviceId) {
-        deviceId.value = data.primaryDeviceId;
-        return;
-      }
-      if (Array.isArray(data.devices) && data.devices.length > 0) {
-        // devices might be array of ids or objects with id
-        const first = data.devices[0];
-        deviceId.value = (typeof first === 'string') ? first : (first.deviceId || first.id || null);
-        if (deviceId.value) return;
-      }
+// --- LIFECYCLE & WATCHERS ---
+
+// 1. WATCHER (The Key Fix)
+// Watch for the user profile to load, then grab the deviceId and fetch data.
+watch(() => userProfile.value, (newProfile) => {
+    if (newProfile && newProfile.deviceId) {
+        deviceId.value = newProfile.deviceId;
+        loadAllData();
+    } else {
+       // Optional: Handle case where user logs out or has no device
+       loading.value = false; 
     }
+}, { immediate: true, deep: true });
 
-    // 2) try subcollection: artifacts/{appId}/users/{userId}/devices (pick first doc id or deviceId field)
-    const devicesCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'devices');
-    const devicesSnapshot = await getDocs(devicesCollectionRef);
-    if (!devicesSnapshot.empty) {
-      const firstDoc = devicesSnapshot.docs[0];
-      const d = firstDoc.data();
-      deviceId.value = d.deviceId || firstDoc.id || null;
-      if (deviceId.value) return;
-    }
-
-    // 3) fallback - try to find any device doc in /devices that references this user (optional)
-    // (omitted for now - keep minimal and non-intrusive)
-    console.warn("No deviceId found in user profile. Please register device in Dashboard.");
-  } catch (err) {
-    console.error("Error fetching user deviceId:", err);
-  }
-};
-
-// --- Lifecycle Hook ---
-onMounted(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      userId = user.uid;
-      authReady.value = true;
-      console.log(`User authenticated: ${userId}`);
-
-      // attempt to find this user's deviceId from Firestore
-      await fetchUserDeviceId();
-
-      // once deviceId discovery attempted, fetch existing signatures (if deviceId found)
-      await fetchApplianceSignatures();
-
-      await getPredictionsCounts(); // ✅ update totals
-
-      // Fetch Clustered Unidentified Appliances
-      await fetchClusters(); // NEW
-      unsubscribe(); // stop listening once setup is done
-    }
-  });
-});
+// Mock chart data as this page doesn't fetch time-series data for it
+const activePeriod = ref("Weekly");
+const dailyData = ref([]);
+const weeklyData = ref([]);
+const monthlyData = ref([]);
+const yearlyData = ref([]);
 </script>
+
 
 <style scoped>
 /* Circular Wave Animation */
