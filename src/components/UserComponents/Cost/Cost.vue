@@ -108,6 +108,7 @@ import { watch, nextTick } from 'vue';
 import Plotly from 'plotly.js-dist-min';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, HeadingLevel, WidthType } from "docx";
 import { saveAs } from "file-saver";
 
 // Import Child Components
@@ -115,7 +116,7 @@ import CostMetricsCard from './CostMetricsCard.vue';
 import CostBreakdown from './CostBreakdown.vue';
 import BillingHistory from './BillingHistory.vue';
 
-// --- PROPS & EMITS ---
+// --- PROPS ---
 const props = defineProps({
     loading: Boolean,
     error: String,
@@ -127,12 +128,17 @@ const props = defineProps({
     breakdownStats: Object,
     billingHistory: Array,
     chartPlotData: Object,
-    rawData: Array
+    rawData: Array,
+    // ADDED: We need the rate to calculate cost in the export
+    currentRate: { 
+        type: Number, 
+        default: 0 
+    } 
 });
 
 const emit = defineEmits(['update:activeFilter', 'update:userBudget']);
 
-// --- CHART RENDERING ---
+// --- CHART RENDERING (Unchanged) ---
 const updateCharts = () => {
   const costDiv = document.getElementById('cost-trend-chart');
   const usageDiv = document.getElementById('usage-pattern-chart');
@@ -159,22 +165,73 @@ const updateCharts = () => {
   Plotly.newPlot('usage-pattern-chart', [{ x: xValues, y: yUsage, type: 'bar', marker: { color: '#10b981' }, hovertemplate: '<b>%{x}</b><br>%{y:.2f} kWh<extra></extra>' }], { ...commonLayout, yaxis: { ...commonLayout.yaxis, title: 'Energy (kWh)' } }, { displayModeBar: false, responsive: true });
 };
 
-// --- EXPORT LOGIC ---
+// --- EXPORT LOGIC (FIXED) ---
 const handleExport = (format) => {
-    if (!props.rawData || !props.rawData.length) {
+  // FIX 1: Use props.rawData (not rawData.value)
+  if (!props.rawData || !props.rawData.length) {
       alert("No data available to export.");
       return;
-    }
-    const filename = `EnerGreen_Cost_Report_${new Date().toISOString().split('T')[0]}`;
-    const exportData = [...props.rawData].reverse().map(d => ({ date: d.date, grid: (d.gridKwhTotal || 0).toFixed(2), solar: (d.solarKwhTotal || 0).toFixed(2), cost: (d.cost || 0).toFixed(2) }));
-    if (format === 'csv') {
-        const headers = "Date,Grid Usage (kWh),Solar Savings (kWh),Cost (PHP)\n";
-        const rows = exportData.map(r => `${r.date},${r.grid},${r.solar},${r.cost}`).join("\n");
-        saveAs(new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
-    }
+  }
+
+  const filename = `EnerGreen_Cost_Report_${new Date().toISOString().split('T')[0]}`;
+  
+  // FIX 2: Use props.rawData and props.currentRate
+  const exportData = [...props.rawData].reverse().map(d => ({
+    date: d.date,
+    grid: (d.gridKwhTotal || 0).toFixed(2),
+    solar: (d.solarKwhTotal || 0).toFixed(2),
+    // Calculate cost using the passed prop
+    cost: ((d.gridKwhTotal || 0) * props.currentRate).toFixed(2)
+  }));
+
+  if (format === 'csv') exportCSV(exportData, filename);
+  if (format === 'pdf') exportPDF(exportData, filename);
+  if (format === 'word') exportWord(exportData, filename);
 };
 
-// --- WATCHER to update charts when data from parent changes ---
+const exportCSV = (data, filename) => {
+  const headers = "Date,Grid Usage (kWh),Solar Savings (kWh),Cost (PHP)\n";
+  const rows = data.map(r => `${r.date},${r.grid},${r.solar},${r.cost}`).join("\n");
+  saveAs(new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
+};
+
+const exportPDF = (data, filename) => {
+  const doc = new jsPDF();
+  doc.setFontSize(18); doc.setTextColor(40, 167, 69);
+  doc.text("EnerGreen Cost Report", 14, 20);
+  
+  autoTable(doc, {
+    startY: 30,
+    head: [['Date', 'Grid (kWh)', 'Solar (kWh)', 'Cost (PHP)']],
+    body: data.map(r => [r.date, r.grid, r.solar, r.cost]),
+    theme: 'grid',
+    headStyles: { fillColor: [40, 167, 69] }
+  });
+  doc.save(`${filename}.pdf`);
+};
+
+const exportWord = async (data, filename) => {
+  const tableRows = [
+    new TableRow({ children: ["Date", "Grid (kWh)", "Solar (kWh)", "Cost (PHP)"].map(t => new TableCell({ children: [new Paragraph({ text: t, bold: true })] })) }),
+    ...data.map(r => new TableRow({ children: [r.date, r.grid, r.solar, r.cost].map(t => new TableCell({ children: [new Paragraph(t)] })) }))
+  ];
+  
+  const doc = new Document({ 
+      sections: [{ 
+          children: [
+              new Paragraph({ text: "EnerGreen Cost Report", heading: HeadingLevel.HEADING_1 }), 
+              new Table({ 
+                  rows: tableRows, 
+                  width: { size: 100, type: WidthType.PERCENTAGE } // Corrected WidthType usage
+              })
+          ] 
+      }] 
+  });
+  
+  saveAs(await Packer.toBlob(doc), `${filename}.docx`);
+};
+
+// --- WATCHER ---
 watch(() => props.chartPlotData, () => {
     nextTick(() => {
         updateCharts();
