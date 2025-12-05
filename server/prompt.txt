@@ -1,0 +1,31 @@
+Act as a Senior Vue 3 and Tailwind CSS Engineer. I need you to create a new component called "KobeGuide.vue".
+
+Unlike my previous "blob" assistants, Kobe is a UI-based Onboarding Guide (similar to a product tour or walkthrough wizard).
+
+Here are the specific requirements:
+
+1.  **Visual Style (Reference: Dribbble Popover):**
+    * It should be a clean, floating card (white background, shadow-xl, rounded-xl) that positions itself next to specific elements on the page.
+    * It must have a "beak" or arrow pointing to the element it is highlighting.
+    * Inside the card, include a small avatar or icon representing "Kobe" in the header to maintain the persona, but the main focus is the text content.
+
+2.  **Functionality:**
+    * It accepts a prop called `steps` (an array of objects containing: `targetId`, `title`, `message`, `voiceText`).
+    * It needs to dynamically calculate its position (top, bottom, left, or right) relative to the `targetId` element on the screen so it doesn't go off-screen.
+    * If the user scrolls, the guide should follow or re-position.
+
+3.  **Audio/Voice:**
+    * Use the browser's native `window.speechSynthesis` API.
+    * When a step loads, Kobe should automatically speak the `message`.
+    * If the user clicks "Next" or "Done", the current speech must stop immediately.
+
+4.  **Controls:**
+    * **Next Button:** Moves to the next step.
+    * **Back Button:** Moves to the previous step (if applicable).
+    * **Done Button:** Appears on the final step to close the guide and emit a 'complete' event.
+    * **Skip:** A small text button to exit the tour early.
+
+5.  **Highlighting:**
+    * (Optional but preferred) When active, add a subtle border or "ring" effect to the target element being discussed to draw focus.
+
+Please provide the full Vue 3 Script Setup code and the Tailwind HTML template. Ensure the positioning logic is robust.
