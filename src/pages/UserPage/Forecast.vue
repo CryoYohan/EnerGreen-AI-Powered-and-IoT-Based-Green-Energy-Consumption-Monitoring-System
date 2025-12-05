@@ -365,9 +365,9 @@ const listenToPredictions = (id) => {
         const latest = docs[0];
         const previous = docs[1];
 
-        latestPredictionTimestamp.value = latest.timestamp;
-        rawPredictions.value = latest.data.predictions || { lightgbm: [], prophet: [] };
-
+              latestPredictionTimestamp.value = latest.timestamp;
+              rawPredictions.value = latest.data.predictions || { lightgbm: [], prophet: [] };
+              anomalies.value = latest.data.anomalies || []; // Extract anomalies here
         // Helper to add hours logic
         const addHours = (preds) =>
           preds.map(p => {
@@ -417,10 +417,10 @@ const listenToPredictions = (id) => {
           overviewMetrics.value = [];
         }
       } else {
-        rawPredictions.value = { lightgbm: [], prophet: [] };
-        overviewMetrics.value = [];
-        latestPredictionTimestamp.value = null;
-      }
+              rawPredictions.value = { lightgbm: [], prophet: [] };
+              overviewMetrics.value = [];
+              latestPredictionTimestamp.value = null;
+              anomalies.value = []; // Set anomalies to empty if no predictions are found      }
       isLoading.value = false;
     },
     (err) => {
@@ -429,21 +429,7 @@ const listenToPredictions = (id) => {
     }
   );
 
-  const anomaliesQuery = query(
-    collection(db, `devices/${id}/anomalies`),
-    orderBy("timestamp", "desc"),
-    limit(10) 
-  );
 
-  anomaliesUnsubscribe = onSnapshot(anomaliesQuery, (snapshot) => {
-    if(!snapshot.empty) {
-        anomalies.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } else {
-        anomalies.value = [];
-    }
-  }, (err) => {
-      console.error("Error listening to anomalies:", err);
-  });
 };
 
 watch(deviceId, (id) => { if (id) listenToPredictions(id); }, { immediate: true });
@@ -461,7 +447,6 @@ onMounted(() => {
 onUnmounted(() => {
     if (unsubscribeAuth) unsubscribeAuth();
     if (predictionsUnsubscribe) predictionsUnsubscribe();
-    if (anomaliesUnsubscribe) anomaliesUnsubscribe();
 });
 
 const fetchCarbonRate = async () => {
