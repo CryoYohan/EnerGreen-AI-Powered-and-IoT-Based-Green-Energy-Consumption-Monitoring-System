@@ -280,7 +280,7 @@ export default {
           const fetchedDeviceId = profileData.deviceId;
           if (fetchedDeviceId) {
             this.deviceId = fetchedDeviceId;
-            this.fetchRealtimeData();
+            // Data fetching is now triggered by the deviceId watcher
           } else {
             console.log("No device ID found for this user.");
             this.deviceId = null;
@@ -642,6 +642,14 @@ export default {
 
     handleSetDeviceId() {
       console.log('Navigating to Set Device ID page...');
+    }
+  },
+
+  watch: {
+    deviceId(newId, oldId) {
+      if (newId && newId !== oldId) {
+        this.fetchRealtimeData();
+      }
     }
   },
 

@@ -174,6 +174,8 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
+
+const currentTime = ref(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 import Plotly from "plotly.js-dist-min";
 
 const props = defineProps({
