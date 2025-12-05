@@ -25,7 +25,7 @@
                 <span class="text-2xl font-bold text-green-600 dark:text-green-400">₱</span>
               </div>
               <svg 
-                v-else-if="metric.title === 'Consumption'" 
+                v-else-if="metric.title === 'Grid Consumption'" 
                 class="w-6 h-6 text-blue-600 dark:text-blue-400" 
                 fill="none" 
                 stroke="currentColor" 
@@ -34,7 +34,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
               </svg>
               <svg 
-                v-else-if="metric.title === 'Solar Generation'" 
+                v-else-if="metric.title === 'Solar Consumption'" 
                 class="w-6 h-6 text-yellow-600 dark:text-yellow-400" 
                 fill="none" 
                 stroke="currentColor" 
@@ -200,18 +200,18 @@ const dailyMetrics = computed(() => [
     definition: `${(userProfile.value?.electricityProvider || '').toUpperCase()} Current rate`
   },
   {
-    title: 'Consumption',
-    cost: `${totalKwhToday.value.toFixed(4)} kWh`,
+    title: 'Grid Consumption',
+    cost: `${gridKwh.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {
     title: "Today's Estimated Cost",
-    cost: pesoFormatter.format(totalKwhToday.value * currentRate.value),
+    cost: pesoFormatter.format(gridKwh.value * currentRate.value),
     definition: 'Based on today\'s usage'
   },
   {
-    title: 'Solar Generation',
-    cost: `${solarKwh.value.toFixed(2)} kWh`,
+    title: 'Solar Consumption',
+    cost: `${solarKwh.value.toFixed(4)} kWh`,
     definition: 'Today'
   },
   {

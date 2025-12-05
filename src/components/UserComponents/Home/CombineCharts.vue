@@ -140,14 +140,16 @@ const createChart = () => {
   if (energyChart) energyChart.destroy();
 
   const labels = currentData.value.map(item => item.label);
-  const kwhValues = currentData.value.map(item => item.value);
+  const gridKwhValues = currentData.value.map(item => item.grid || 0);
+  const solarKwhValues = currentData.value.map(item => item.solar || 0);
   const costValues = currentCostData.value.map(item => item.value);
   const savingsValues = currentSavingsData.value.map(item => item.value);
 
   const baseColors = {
     grid: isDarkMode.value ? '#4A5568' : '#E2E8F0',
     ticks: isDarkMode.value ? '#CBD5E0' : '#4A5568',
-    bar: 'rgba(76, 175, 80, 0.8)',
+    barGrid: 'rgba(76, 175, 80, 0.8)', // green-500 (reverted)
+    barSolar: 'rgba(245, 158, 11, 0.8)', // amber-500
     line: isDarkMode.value ? '#E5E7EB' : '#1F2937',
     cost: '#2563eb',     // blue
     savings: '#f59e0b',  // amber
@@ -157,27 +159,22 @@ const createChart = () => {
   const datasets = [
     {
       type: 'bar',
-      label: `Total ${props.tooltipUnit}`,
-      data: kwhValues,
-      backgroundColor: baseColors.bar,
-      borderColor: 'transparent',
-      borderWidth: 1,
+      label: `Grid ${props.tooltipUnit}`,
+      data: gridKwhValues,
+      backgroundColor: baseColors.barGrid,
+      yAxisID: 'y',
+    },
+    {
+      type: 'bar',
+      label: `Solar ${props.tooltipUnit}`,
+      data: solarKwhValues,
+      backgroundColor: baseColors.barSolar,
       yAxisID: 'y',
     },
   ];
 
   if (chartType.value === 'combined') {
     datasets.push(
-      {
-        type: 'line',
-        label: 'Trend',
-        data: kwhValues,
-        borderColor: baseColors.line,
-        backgroundColor: 'transparent',
-        tension: 0.4,
-        pointRadius: 3,
-        yAxisID: 'y',
-      },
       {
         type: 'line',
         label: 'Cost (₱)',
@@ -218,6 +215,7 @@ const createChart = () => {
     },
     scales: {
       x: {
+        stacked: true,
         title: {
           display: true,
           text: props.xAxisLabel,
@@ -227,6 +225,7 @@ const createChart = () => {
         grid: { color: baseColors.grid },
       },
       y: {
+        stacked: true,
         title: {
           display: true,
           text: `Total ${props.tooltipUnit}`,
@@ -252,7 +251,7 @@ const createChart = () => {
   };
 
   energyChart = new Chart(chartCanvasRef.value, {
-    type: chartType.value === 'combined' ? 'bar' : 'bar',
+    type: 'bar',
     data: { labels, datasets },
     options,
   });
