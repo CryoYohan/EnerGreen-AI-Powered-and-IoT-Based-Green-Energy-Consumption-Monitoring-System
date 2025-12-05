@@ -1,0 +1,23 @@
+Error fetching carbon rate: ReferenceError: limit is not defined
+    at fetchCarbonRate (Home.vue:215:7)
+    at Home.vue:336:5
+    at chunk-JWJ3HAGN.js?v=cdd00bce:5049:40
+    at callWithErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2342:19)
+    at callWithAsyncErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2349:17)
+    at hook.__weh.hook.__weh (chunk-JWJ3HAGN.js?v=cdd00bce:5029:19)
+    at flushPostFlushCbs (chunk-JWJ3HAGN.js?v=cdd00bce:2527:28)
+    at flushJobs (chunk-JWJ3HAGN.js?v=cdd00bce:2569:5)
+fetchCarbonRate @ Home.vue:223
+predictionService.js:35 Error fetching global rates: ReferenceError: getDoc is not defined
+    at Module.loadGlobalRates (predictionService.js:19:26)
+    at Forecast.vue:320:27
+    at chunk-JWJ3HAGN.js?v=cdd00bce:5049:40
+    at callWithErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2342:19)
+    at callWithAsyncErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2349:17)
+    at hook.__weh.hook.__weh (chunk-JWJ3HAGN.js?v=cdd00bce:5029:19)
+    at flushPostFlushCbs (chunk-JWJ3HAGN.js?v=cdd00bce:2527:28)
+    at flushJobs (chunk-JWJ3HAGN.js?v=cdd00bce:2569:5)
+loadGlobalRates @ predictionService.js:35
+2plotly.min.js:8 Uncaught Error: No DOM element with id 'voltageChart' exists on the page.
+PredictionSummaryCard.vue:216 Uncaught ReferenceError: currentTime is not defined
+    at PredictionSummaryCard.vue:216:5

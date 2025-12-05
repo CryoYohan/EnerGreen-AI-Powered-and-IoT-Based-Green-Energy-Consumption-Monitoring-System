@@ -107,21 +107,9 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
-import { ArrowPathIcon, SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon } from '@heroicons/vue/24/outline'; // Imported icons here
-import {
-  auth,
-  db,
-  doc,
-  onAuthStateChanged,
-  onSnapshot,
-  collection,
-  query,
-  orderBy,
-  limit,
-  Timestamp,
-  where,
-  getDocs, // Added getDocs for the carbon rate fetch
-} from "../../firebase.js"; // Ensure getDocs is imported from your firebase.js
+import { useAuth } from "@/composables/useAuth"; 
+import * as dashboardService from '@/services/dashboardService.js';
+import { db, doc, onSnapshot, collection, query, getDocs, orderBy, limit } from "../../firebase.js"; 
 
 // Import your components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
@@ -129,46 +117,28 @@ import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 import SourcesChart from "@/components/UserComponents/Home/SourcesChart.vue";
 import CombineCharts from "@/components/UserComponents/Home/CombineCharts.vue";
-import MetricsCard from "@/components/ReusableComponents/MetricsCard.vue";
 import Dashboard from "@/components/ReusableComponents/RealTimeDataCard.vue";
 
-import { useDarkMode } from "@/composables/useDarkMode.js";
-const { isDarkMode } = useDarkMode();
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const { user, userProfile, isLoading: authLoading } = useAuth(appId);
 
-
-import { useAuth } from "@/composables/useAuth"; 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Make sure this is still defined
-const { user, userProfile, isLoading: authLoading } = useAuth(appId); // Use the composable
-
-// Reactive state for user data
-// Change userName and userFirstName to be computed properties directly tied to userProfile
-const userName = computed(() => {
-    // Read directly from the composable's state
-    return userProfile.value?.fullName || 'Guest'; 
-});
-
-const userFirstName = computed(() => {
-  return userName.value.split(' ')[0] || 'Guest';
-});
-
-// Reactive state for chart data
+// --- Local Component State ---
+const userName = computed(() => userProfile.value?.fullName || 'Guest');
+const userFirstName = computed(() => userName.value.split(' ')[0] || 'Guest');
 const activePeriod = ref("Weekly");
+const deviceId = ref(null);
 
-// Daily data will now store hourly data (still needs raw readings)
+// --- Data for Child Components ---
 const dailyData = ref([]); 
 const weeklyData = ref([]);
 const monthlyData = ref([]);
 const yearlyData = ref([]);
-const deviceId = ref(null);
 
-// Reactive state for total kWh consumed today
-const totalKwhToday = ref(0);
 const gridKwh = ref(0);
 const solarKwh = ref(0);
 const topConsumers = ref([]);
 const loadingConsumers = ref(true);
 
-// New refs for cost & savings timelines
 const dailyCostData = ref([]);
 const weeklyCostData = ref([]);
 const monthlyCostData = ref([]);
@@ -179,20 +149,12 @@ const weeklySavingsData = ref([]);
 const monthlySavingsData = ref([]);
 const yearlySavingsData = ref([]);
 
-const currentRate = ref(0); // ₱ per kWh
-const carbonRateKg = ref(0.7) // fallback default
+const currentRate = ref(0);
+const carbonRateKg = ref(0.7);
 
-const estimatedSavings = computed(() => {
-  return solarKwh.value * currentRate.value;
-});
+const pesoFormatter = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 });
+const estimatedSavings = computed(() => solarKwh.value * currentRate.value);
 
-const pesoFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-});
-
-// Metrics Card Data - now using proper SVG icons
 const dailyMetrics = computed(() => [
   {
     title: 'Current Cost',
@@ -220,6 +182,9 @@ const dailyMetrics = computed(() => [
     definition: 'Today'
   },
 ]);
+
+// --- Data Fetching Functions ---
+
 const fetchUtilityRate = (provider) => {
   if (!provider) {
     console.warn("No electricity provider specified for rate fetch.");
@@ -232,7 +197,6 @@ const fetchUtilityRate = (provider) => {
   onSnapshot(rateRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Dynamically access the rate field, e.g., data['vecoKwhRate']
       currentRate.value = data.kwhRate || 0;
     } else {
       console.warn(`No rate document found for provider: ${provider}`);
@@ -258,378 +222,118 @@ const fetchCarbonRate = async () => {
   } catch (err) {
     console.error("Error fetching carbon rate:", err)
   }
-}
-
-const showOnboarding = ref(false);
-
-// Keep fetchDeviceId to set the deviceId based on the profile data
-const fetchDeviceId = () => {
-  // We no longer need to fetch the profile document since useAuth already did it.
-  // We only need to react to userProfile.value changes.
-  if (userProfile.value) {
-    deviceId.value = userProfile.value.deviceId || null;
-    // userName is now computed, so no need to set it here
-  } else {
-    console.log("No user profile found, setting to Guest state.");
-    deviceId.value = null;
-    // userName is already 'Guest' via computed
-    clearAllData();
-  }
 };
 
-/**
- * NEW: Efficiently aggregates daily summaries into weekly, monthly, and yearly chart data.
- * @param {Array<object>} summaries An array of daily summary documents.
- */
-const processDailySummaries = (summaries) => {
-  // Use Philippine time for grouping
-  const phTime = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila' });
-  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
-  // Groupings
-  const weeklyTotals = {}; // Key: Day of Week (0-6)
-  const monthlyTotals = {}; // Key: Month-Year (e.g., "Jan-2025")
-  const yearlyTotals = {}; // Key: Year (e.g., "2025")
-  
-  // Calculate a 7-day cutoff for weekly data
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - 7);
-  cutoffDate.setHours(0, 0, 0, 0);
+const fetchPageData = async () => {
+  if (!deviceId.value) return;
 
-  // Process all summaries
-  summaries.forEach(summary => {
-    const date = new Date(summary.date);
-    const gridKwh = summary.gridKwhTotal || 0;
-    const solarKwh = summary.solarKwhTotal || 0;
-    
-    // WEEKLY GROUPING - FIXED
-    if (date > cutoffDate) {
-      const dateKey = date.toISOString().slice(0, 10); // "YYYY-MM-DD"
-      if (!weeklyTotals[dateKey]) {
-        weeklyTotals[dateKey] = { 
-          grid: 0, 
-          solar: 0, 
-          label: weekday[date.getDay()] 
-        };
-      }
-      weeklyTotals[dateKey].grid += gridKwh;
-      weeklyTotals[dateKey].solar += solarKwh;
-    }
+  // Fetch historical data for W, M, Y charts
+  const historicalData = await dashboardService.getHistoricalChartData(deviceId.value);
+  weeklyData.value = historicalData.weeklyData;
+  monthlyData.value = historicalData.monthlyData;
+  yearlyData.value = historicalData.yearlyData;
 
-    // MONTHLY GROUPING
-    const month = date.getMonth();
-    const year = date.getFullYear();
-    const monthlyKey = `${monthNames[month]}-${year}`;
-    if (!monthlyTotals[monthlyKey]) {
-      monthlyTotals[monthlyKey] = { grid: 0, solar: 0 };
-    }
-    monthlyTotals[monthlyKey].grid += gridKwh;
-    monthlyTotals[monthlyKey].solar += solarKwh;
+  // Fetch today's hourly data
+  dailyData.value = await dashboardService.getHourlyChartData(deviceId.value);
 
-    // YEARLY GROUPING
-    const yearlyKey = year.toString();
-    if (!yearlyTotals[yearlyKey]) {
-      yearlyTotals[yearlyKey] = { grid: 0, solar: 0 };
-    }
-    yearlyTotals[yearlyKey].grid += gridKwh;
-    yearlyTotals[yearlyKey].solar += solarKwh;
-  });
-
-  // -----------------------------------------------------------
-  // 1. Weekly Data (Mon → Today) - FIXED VERSION
-  // -----------------------------------------------------------
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Get Monday of this week (6 days before today)
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - 6); // 7-day window (Mon–Sun)
-
-  // Collect last 7 days (Monday → Today)
-  // Build last 7 days in order (Mon → Sun)
-  const lastSevenDays = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(today.getDate() - i);
-    const dateKey = d.toISOString().slice(0, 10);
-
-    const dayData = weeklyTotals[dateKey] || { grid: 0, solar: 0, label: weekday[d.getDay()] };
-    lastSevenDays.push({
-      label: dayData.label,
-      grid: dayData.grid,
-      solar: dayData.solar,
-      value: dayData.grid + dayData.solar
-    });
-  }
-
-weeklyData.value = lastSevenDays;
-
-
-  weeklyData.value = lastSevenDays;
-
-  // 2. Monthly Data
-  // -----------------------------------------------------------
-  monthlyData.value = Object.keys(monthlyTotals).map(key => ({
-    label: key.split('-')[0],
-    grid: monthlyTotals[key].grid,
-    solar: monthlyTotals[key].solar,
-    value: monthlyTotals[key].grid + monthlyTotals[key].solar
-  }));
-
-  // 3. Yearly Data
-  // -----------------------------------------------------------
-  yearlyData.value = Object.keys(yearlyTotals).map(year => ({
-    label: year,
-    grid: yearlyTotals[year].grid,
-    solar: yearlyTotals[year].solar,
-    value: yearlyTotals[year].grid + yearlyTotals[year].solar
-  }));
-  
-  // Update cost and savings timelines
   updateCostAndSavingsData();
+  fetchTopConsumers(); // Fetch appliance data separately
 };
 
+const setupRealtimeListeners = (id) => {
+    if (!id) return;
+    const todayDate = new Date().toISOString().slice(0, 10);
+    const todaySummaryRef = doc(db, `devices/${id}/daily_summaries/${todayDate}`);
 
-/**
- * Fetches data from three sources: today's raw readings (for hourly), 
- * the current day's summary (for today's totals), and all daily summaries (for charts).
- */
-// --- A. ALL DAILY SUMMARIES (FOR WEEKLY/MONTHLY/YEARLY CHARTS) ---
-// One-time read (massive read optimization)
- const fetchDailySummaries = async () => {
-  try {
-    if (!deviceId.value) {
-      console.warn("Device ID not available yet.");
-      return;
-    }
-
-    const allSummariesQuery = query(
-      collection(db, `devices/${deviceId.value}/daily_summaries`), // ✅ FIXED
-      orderBy("date", "desc"),
-      limit(365)
-    );
-    const querySnapshot = await getDocs(allSummariesQuery);
-
-    const dailySummaries = [];
-    querySnapshot.forEach(doc => {
-      const data = doc.data();
-      dailySummaries.push(data);
-    });
-
-    if (dailySummaries.length === 0) {
-      console.warn("No daily summaries found for this device.");
-      weeklyData.value = [];
-      monthlyData.value = [];
-      yearlyData.value = [];
-      updateCostAndSavingsData();
-      return;
-    }
-
-    processDailySummaries(JSON.parse(JSON.stringify(dailySummaries)));
-  } catch (error) {
-    console.error("Error fetching daily summaries:", error);
-  }
-};
-
-
-const fetchEnergyAndApplianceData = async (deviceIdRef) => {
-  if (!deviceIdRef) {
-    console.warn("No deviceId provided for energy data fetch.");
-    return;
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const startOfDay = Timestamp.fromDate(today);
-
-  // ✅ FIXED Firestore path
-  const readingsQuery = query(
-    collection(db, `devices/${deviceIdRef}/realtime_readings`),
-    where("timestamp", ">=", startOfDay),
-    orderBy("timestamp", "asc")
-  );
-
-  onSnapshot(readingsQuery, (querySnapshot) => {
-    const rawReadings = [];
-    const gridReadings = [];
-    const solarReadings = [];
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const readingTime = data.timestamp ? data.timestamp.toDate() : new Date();
-      const reading = { ...data, timestamp: readingTime };
-
-      if (readingTime >= today) {
-        if (reading.energySource === "Grid") gridReadings.push(reading);
-        else if (reading.energySource === "Solar") solarReadings.push(reading);
-      }
-    });
-
-    const calculateKwhDeltaForHourly = (readings) => {
-      if (!readings || readings.length < 2) return { total: 0, hourly: {} };
-      let totalDelta = 0;
-      const hourly = {};
-
-      for (let i = 1; i < readings.length; i++) {
-        const delta = readings[i].kwhConsumed - readings[i - 1].kwhConsumed;
-        if (delta > 0) {
-          totalDelta += delta;
-          const hour = readings[i].timestamp.getHours();
-          hourly[hour] = (hourly[hour] || 0) + delta;
+    // Listen for today's summary (for metric cards)
+    return onSnapshot(todaySummaryRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            gridKwh.value = data.gridKwhTotal || 0;
+            solarKwh.value = data.solarKwhTotal || 0;
+        } else {
+            gridKwh.value = 0;
+            solarKwh.value = 0;
         }
-      }
-      return { total: totalDelta, hourly };
-    };
-
-    const gridResults = calculateKwhDeltaForHourly(gridReadings);
-    const solarResults = calculateKwhDeltaForHourly(solarReadings);
-
-    dailyData.value = Array.from({ length: 24 }, (_, i) => ({
-      label: `${i}:00`,
-      grid: gridResults.hourly[i] || 0,
-      solar: solarResults.hourly[i] || 0,
-      value: (gridResults.hourly[i] || 0) + (solarResults.hourly[i] || 0)
-    }));
-
-  }, (error) => console.error("Error fetching electricity data:", error));
-
-  // ✅ FIXED Summary path
-  const todayDate = new Date().toISOString().slice(0, 10);
-  const todaySummaryRef = doc(db, `devices/${deviceIdRef}/daily_summaries/${todayDate}`);
-
-  onSnapshot(todaySummaryRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      gridKwh.value = data.gridKwhTotal || 0;
-      solarKwh.value = data.solarKwhTotal || 0;
-      totalKwhToday.value = gridKwh.value + solarKwh.value;
-    } else {
-      gridKwh.value = 0;
-      solarKwh.value = 0;
-      totalKwhToday.value = 0;
-    }
-    updateCostAndSavingsData();
-  });
-
-  // ✅ FIXED Top consumers path
-  const consumersQuery = query(collection(db, `devices/${deviceIdRef}/appliances`));
-
-  try {
-    loadingConsumers.value = true;
-    const snapshot = await getDocs(consumersQuery);
-    const fetchedAppliances = snapshot.docs.map(doc => ({
-      id: doc.id,
-      name: doc.data().name || 'Unknown Appliance',
-      usage: doc.data().kwhConsumed || 0,
-    }));
-
-    topConsumers.value =
-      fetchedAppliances.length === 0
-        ? [{ name: "No Smart Plug Detected", usage: 0 }]
-        : fetchedAppliances.sort((a, b) => b.usage - a.usage);
-  } catch (error) {
-    console.error("Error fetching appliances:", error);
-    topConsumers.value = [{ name: "No Smart Plug Detected", usage: 0 }];
-  } finally {
-    loadingConsumers.value = false;
-  }
+        updateCostAndSavingsData();
+    });
 };
 
+const fetchTopConsumers = async () => {
+    if (!deviceId.value) return;
+    loadingConsumers.value = true;
+    try {
+        const consumersQuery = query(collection(db, `devices/${deviceId.value}/appliances`));
+        const snapshot = await getDocs(consumersQuery);
+        topConsumers.value = snapshot.docs.map(doc => ({ ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching top consumers:", error);
+    } finally {
+        loadingConsumers.value = false;
+    }
+};
 
+// --- Helper Functions ---
 const clearAllData = () => {
   dailyData.value = [];
   weeklyData.value = [];
   monthlyData.value = [];
   yearlyData.value = [];
-  totalKwhToday.value = 0;
   gridKwh.value = 0;
   solarKwh.value = 0;
   topConsumers.value = [];
-  loadingConsumers.value = false;
   updateCostAndSavingsData();
 };
 
-/**
- * Helper to map kWh data arrays into cost & savings data arrays.
- */
 const updateCostAndSavingsData = () => {
-  const mapToCostSavings = (arr) => {
-    return {
-      cost: arr.map(item => ({
-        label: item.label,
-        // Cost is calculated based on GRID consumption
-        value: (item.grid ?? item.value ?? 0) * currentRate.value 
-      })),
-      savings: arr.map(item => ({
-        label: item.label,
-        // Savings is calculated based on SOLAR generation
-        value: (item.solar ?? 0) * currentRate.value 
-      }))
-    };
-  };
+  const mapToCostSavings = (arr) => ({
+    cost: arr.map(item => ({ label: item.label, value: (item.grid ?? item.value ?? 0) * currentRate.value })),
+    savings: arr.map(item => ({ label: item.label, value: (item.solar ?? 0) * currentRate.value }))
+  });
 
-  // Daily
   const dailyMapped = mapToCostSavings(dailyData.value);
   dailyCostData.value = dailyMapped.cost;
   dailySavingsData.value = dailyMapped.savings;
 
-  // Weekly
   const weeklyMapped = mapToCostSavings(weeklyData.value);
   weeklyCostData.value = weeklyMapped.cost;
   weeklySavingsData.value = weeklyMapped.savings;
 
-  // Monthly
   const monthlyMapped = mapToCostSavings(monthlyData.value);
   monthlyCostData.value = monthlyMapped.cost;
   monthlySavingsData.value = monthlyMapped.savings;
 
-  // Yearly
   const yearlyMapped = mapToCostSavings(yearlyData.value);
   yearlyCostData.value = yearlyMapped.cost;
   yearlySavingsData.value = yearlyMapped.savings;
 };
 
+// --- Lifecycle & Watchers ---
+let unsubscribeSummary = null;
 
 watch(userProfile, (newProfile) => {
-    // This watcher runs whenever useAuth successfully loads or clears the profile.
     if (newProfile) {
         deviceId.value = newProfile.deviceId || null;
-        // Fetch the utility rate based on the user's provider
-        fetchUtilityRate(newProfile.electricityProvider);
-    } else if (user.value === null) {
-        // User logged out
+        fetchUtilityRate(newProfile.electricityProvider); // Restore call to fetch rate
+    } else {
         deviceId.value = null;
         clearAllData();
-    } else {
-        // Profile is loading or missing, handle gracefully
-        fetchDeviceId();
     }
 }, { immediate: true });
 
-// The watch(deviceId, ...) below is now cleaner:
 watch(deviceId, (newDeviceId) => {
+  if (unsubscribeSummary) unsubscribeSummary();
+
   if (newDeviceId) {
-    fetchEnergyAndApplianceData(newDeviceId); // Call with the raw ID
-    fetchDailySummaries();
+    fetchPageData();
+    unsubscribeSummary = setupRealtimeListeners(newDeviceId);
   } else {
     clearAllData();
   }
 }, { immediate: true });
 
-
-
-onMounted(async () => {
-  // All user/profile/device ID fetching is now handled by the composable and the watcher.
-  // We only keep non-auth related fetches here.
-  fetchCarbonRate();
-
-  const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
-  if (!hasSeenOnboarding) {
-    showOnboarding.value = true;
-    localStorage.setItem("hasSeenOnboarding", "true");
-  }
+onMounted(() => {
+    fetchCarbonRate(); // Restore call to fetch carbon rate
 });
 
 </script>
