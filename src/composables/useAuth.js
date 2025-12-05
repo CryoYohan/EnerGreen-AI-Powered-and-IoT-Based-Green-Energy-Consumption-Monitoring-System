@@ -36,6 +36,7 @@ export function useAuth(appId) {
   const waitForAuthReady = () => isAuthReadyPromise;
 
   const isPremium = computed(() => userProfile.value?.subscriptionTier === 'Premium');
+  const isAdmin = computed(() => userProfile.value?.role === 'admin');
   const displayPhotoURL = computed(() => {
     return userProfile.value?.photoURL || defaultStorageURL.value || localFallbackURL;
   });
@@ -107,5 +108,5 @@ export function useAuth(appId) {
     unsubscribe();
   });
 
-  return { user, userProfile, isLoading, error, isPremium, displayPhotoURL, waitForAuthReady };
+  return { user, userProfile, isLoading, error, isPremium, isAdmin, displayPhotoURL, waitForAuthReady };
 }
