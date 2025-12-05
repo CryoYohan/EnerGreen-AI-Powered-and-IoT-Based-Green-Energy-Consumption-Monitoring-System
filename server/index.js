@@ -7,6 +7,7 @@ import { userRouter } from './userRoutes.js';
 import { publicRouter } from './publicRoutes.js';
 import { agentRouter } from './agentRoutes.js';
 import { adminAgentRouter } from './adminAgentRoutes.js';
+import { kobeAgentRouter } from './kobeAgentRoutes.js';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/admin/agent', adminAgentRouter);
 app.use('/api/user', userRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/agent', agentRouter);
+app.use('/api/kobe', kobeAgentRouter);
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {

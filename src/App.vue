@@ -10,7 +10,16 @@
     <transition name="fade">
       <div v-if="shouldShowAgent">
         <AdminAgentButton v-if="isAdmin" />
-        <AgentButton v-else />
+        <template v-else>
+          <KobeAgentButton @start-tour="startTour" />
+          <KobeGuide 
+            v-model:isOpen="isTourOpen" 
+            :steps="activeTourSteps" 
+            @complete="handleTourComplete" 
+            @skip="isTourOpen = false"
+          />
+          <AgentButton />
+        </template>
       </div>
     </transition>
     
@@ -19,24 +28,49 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuth } from '@/composables/useAuth.js';
 import AgentButton from '@/components/ReusableComponents/AgentButton.vue';
 import AdminAgentButton from '@/components/ReusableComponents/AdminAgentButton.vue';
+import KobeAgentButton from '@/components/ReusableComponents/KobeAgentButton.vue';
+import KobeGuide from '@/components/ReusableComponents/KobeGuide.vue';
 import ToastContainer from '@/components/ReusableComponents/ToastContainer.vue';
+import { tourSteps as allTourSteps } from '@/data/kobeTours.js';
 
 const route = useRoute();
-const { user, isAdmin } = useAuth('default-app-id');
+const { user, isAdmin, isPremium } = useAuth('default-app-id');
+const isTourOpen = ref(false);
+
+// Dynamic Tour Steps based on current page
+const activeTourSteps = computed(() => {
+  const pageName = route.name; // e.g., 'Home', 'Forecast', 'Appliances'
+  return allTourSteps[pageName] || allTourSteps['Home']; // Fallback to Home if undefined
+});
+
+const startTour = () => {
+  isTourOpen.value = true;
+};
+
+const handleTourComplete = () => {
+  console.log("Tour completed!");
+  isTourOpen.value = false;
+};
 
 // Computed Property for Visibility Logic
 const shouldShowAgent = computed(() => {
   // Condition A: User must be authenticated
   if (!user.value) return false;
 
-  // Condition B: Current route must be a "protected" route (e.g. Home, Profile)
-  // This prevents it from showing on Landing Page or 401 during redirects
-  return route.meta.requiresAuth === true;
+  // Condition B: Current route must be a "protected" route
+  if (route.meta.requiresAuth !== true) return false;
+
+  // Condition C: Role-based visibility
+  // 1. Admins always see their agent (AdminAgentButton)
+  if (isAdmin.value) return true;
+
+  // 2. Regular users must be Premium to see Kobe/Christine
+  return isPremium.value;
 });
 </script>
 

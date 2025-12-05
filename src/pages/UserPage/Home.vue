@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen min-w-screen flex flex-col bg-[#F9FAFB] dark:bg-gray-900 font-poppins dark:text-gray-100">
     <UserHeader />
-    <Heading :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview"/>
+    <Heading id="overview-header" :title="`Welcome Back, ${userName}!`" subtitle="Here's your energy consumption overview"/>
 
     <!-- Integrated Metrics Card -->
-    <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div id="overview-metrics" class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div 
           v-for="(metric, index) in dailyMetrics" 
@@ -57,9 +57,12 @@
       </div>
     </div>
 
-    <Dashboard />
+    <div id="energy-card">
+      <Dashboard />
+    </div>
 
-    <CombineCharts
+    <div id="charts-section" class="mx-auto w-full max-w-9xl px-4 sm:px-6 lg:px-8 py-6">
+      <CombineCharts
       chartTitle="Electricity Usage"
       :activePeriod="activePeriod"
       @update:activePeriod="activePeriod = $event"
@@ -80,6 +83,7 @@
       xAxisLabel="Time"
       tooltipUnit="kWh"
     />
+    </div>
     
     <SourcesChart 
       :grid-kwh="gridKwh" 

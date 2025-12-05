@@ -4,6 +4,7 @@
     <UserHeader />
     
     <Heading
+      id="simulation-header"
       title="Simulate Solar"
       subtitle="Curious about Solar? See how much you could save. Use our simulator to preview energy and cost savings based on your usage patterns and location"
     />
