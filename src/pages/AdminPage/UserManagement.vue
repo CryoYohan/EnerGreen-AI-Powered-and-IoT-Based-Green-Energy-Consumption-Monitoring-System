@@ -61,17 +61,7 @@
 
     <Footer />
     
-    <!-- Notifications -->
-    <transition name="fade">
-      <div v-if="popup.show" 
-        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
-          popup.type === 'info' ? 'bg-blue-500' : popup.type === 'success' ? 'bg-green-500' : 'bg-red-500']">
-        <span v-if="popup.type === 'success'">✅</span>
-        <span v-else-if="popup.type === 'error'">⚠️</span>
-        <span v-else>ℹ️</span>
-        {{ popup.message }}
-      </div>
-    </transition>
+git 
 
     <!-- ADD USER MODAL -->
     <transition name="fade">
