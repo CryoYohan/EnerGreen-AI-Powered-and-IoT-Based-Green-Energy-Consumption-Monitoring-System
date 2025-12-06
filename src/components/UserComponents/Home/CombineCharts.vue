@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-col flex w-[96%] self-center p-5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300 my-8">
+  <div class="flex-col flex w-full self-center p-5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300 my-8">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6">
       <div class="mb-4 sm:mb-0">
         <h2 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">{{ chartTitle }}</h2>
@@ -138,12 +138,18 @@ const currentData = computed(() => {
 const createChart = () => {
   if (!chartCanvasRef.value) return;
   if (energyChart) energyChart.destroy();
+  
 
-  const labels = currentData.value.map(item => item.label);
-  const gridKwhValues = currentData.value.map(item => item.grid || 0);
-  const solarKwhValues = currentData.value.map(item => item.solar || 0);
-  const costValues = currentCostData.value.map(item => item.value);
-  const savingsValues = currentSavingsData.value.map(item => item.value);
+    const reversedData = currentData.value.slice().reverse();
+    const reversedCost = currentCostData.value.slice().reverse();
+    const reversedSavings = currentSavingsData.value.slice().reverse();
+
+    // Map the REVERSED data to the chart variables
+    const labels = reversedData.map(item => item.label);
+    const gridKwhValues = reversedData.map(item => item.grid || 0);
+    const solarKwhValues = reversedData.map(item => item.solar || 0);
+    const costValues = reversedCost.map(item => item.value);
+    const savingsValues = reversedSavings.map(item => item.value);
 
   const baseColors = {
     grid: isDarkMode.value ? '#4A5568' : '#E2E8F0',
