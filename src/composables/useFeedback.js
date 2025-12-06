@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from 'vue';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import api from '../services/api'; // Assuming you have a configured axios instance
+import { adminService } from '@/services/adminService';
 
 export function useFeedback() {
   const feedback = ref([]);
@@ -71,14 +71,13 @@ export function useFeedback() {
 
   const resolveFeedback = async (feedbackItem) => {
     try {
-      const response = await api.post('/api/admin/feedback/resolve', {
-        feedbackId: feedbackItem.id,
-        userId: feedbackItem.uid,
-        feedbackText: feedbackItem.text
-      });
+      const response = await adminService.resolveFeedback(
+        feedbackItem.id,
+        feedbackItem.uid,
+        feedbackItem.text
+      );
       
       if (response.data.success) {
-        console.log(`Feedback ${feedbackItem.id} marked as resolved.`);
         return { success: true };
       }
     } catch (err) {

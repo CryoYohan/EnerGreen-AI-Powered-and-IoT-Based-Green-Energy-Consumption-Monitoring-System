@@ -76,39 +76,21 @@ import Devices from "@/components/AdminComponents/Hardware/Devices.vue";
 import Firmware from "@/components/AdminComponents/Hardware/Firmware.vue";
 
 const devices = ref([]);
-const users = ref([]); 
+const users = ref([]); // New: Store users here
 const loading = ref(true);
 const router = useRouter(); 
 
-// ✅ ADDED: Notification State
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("success"); 
-
 let unsubscribeDevices = null;
-let unsubscribeUsers = null; 
+let unsubscribeUsers = null; // New: Listener for users
 let unsubscribeAuth = null; 
 
-// ✅ ADDED: Helper to Trigger Notification
-const showNotification = (message, type = 'success') => {
-  popupMessage.value = message;
-  popupType.value = type;
-  showPopup.value = true;
-  
-  // Auto hide after 3 seconds
-  setTimeout(() => {
-    showPopup.value = false;
-  }, 3000);
-};
-
-// ✅ ADDED: Handler for Device Addition
-const handleDeviceAdded = (deviceId) => {
-  showNotification(`Device ${deviceId} registered successfully!`, 'success');
-};
-
 onMounted(() => {
+  // 1. Auth Listener (Gatekeeper)
   unsubscribeAuth = onAuthStateChanged(auth, (user) => {
     if (user) {
+      // --- LOGGED IN ---
+      
+      // 2. Fetch Devices (if not already fetching)
       if (!unsubscribeDevices) { 
         const devicesQuery = query(collection(db, "devices"));
         unsubscribeDevices = onSnapshot(devicesQuery, (querySnapshot) => {
@@ -120,10 +102,13 @@ onMounted(() => {
         });
       }
 
+      // 3. Fetch Users (New Logic for Dropdowns)
       if (!unsubscribeUsers) {
+        // collectionGroup queries all 'userProfile' collections in the DB
         const usersQuery = query(collectionGroup(db, 'userProfile'));
         unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
           users.value = querySnapshot.docs.map(doc => ({
+            // The parent ID is the User UID
             uid: doc.ref.parent.parent.id, 
             ...doc.data()
           }));
@@ -131,6 +116,8 @@ onMounted(() => {
       }
 
     } else {
+      // --- LOGGED OUT ---
+      // Clean up everything immediately
       if (unsubscribeDevices) {
         unsubscribeDevices();
         unsubscribeDevices = null;
@@ -139,11 +126,13 @@ onMounted(() => {
         unsubscribeUsers();
         unsubscribeUsers = null;
       }
+      // Router guard handles redirect, but this is a safe fallback
       router.push('/');
     }
   });
 });
 
+// Cleanup when leaving the page
 onUnmounted(() => {
   if (unsubscribeDevices) unsubscribeDevices();
   if (unsubscribeUsers) unsubscribeUsers();
@@ -154,37 +143,28 @@ const dynamicMetrics = computed(() => {
   return [
     {
       title: 'Total devices',
+      // icon: '/src/Images/Icons/devices.svg', // Icon file path removed
       cost: devices.value.length.toString(),
       definition: 'All Registered Units'
     },
     {
       title: 'Active',
+      // icon: '/src/Images/Icons/active.svg', // Icon file path removed
       cost: devices.value.filter(d => d.status === 'Active').length.toString(),
       definition: 'Devices Currently Online'
     },
     {
       title: 'Offline',
+      // icon: '/src/Images/Icons/offlline.svg', // Icon file path removed
       cost: devices.value.filter(d => d.status === 'Offline').length.toString(),
       definition: 'Devices Currently Offline'
     },
     {
       title: 'Maintenance',
+      // icon: '/src/Images/Icons/maintenance.svg', // Icon file path removed
       cost: devices.value.filter(d => d.status === 'Maintenance').length.toString(),
       definition: 'Devices in Maintenance'
     },
   ];
 });
 </script>
-
-<style scoped>
-/* ✅ ADDED: Transition Styles for the popup */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>
