@@ -131,7 +131,7 @@
           <div class="relative">
             <div @click.stop="toggleProfileDropdown"
               class="flex items-center space-x-2 cursor-pointer focus:outline-none">
-              <img class="w-8 h-8 rounded-full object-cover" :src="profilePic" alt="Profile Picture" />
+              <img class="w-8 h-8 rounded-full object-cover" :src="displayPhotoURL" alt="Profile Picture" />
               <a class="cursor-pointer text-gray-800 dark:text-gray-100">{{ userName }}</a>
             </div>
 
@@ -167,7 +167,7 @@
             <Notification v-if="showNotifications" :isMobile="true" @click.stop />
           </div>
           <img @click="navigateTo('Profile')"
-            class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none" :src="profilePic"
+            class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none" :src="displayPhotoURL"
             alt="Profile Picture" />
         </div>
       </div>
@@ -306,165 +306,91 @@
 
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useDarkMode } from "@/composables/useDarkMode.js"
-import { getStorage, ref as storageRef, getDownloadURL } from "firebase/storage";
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useDarkMode } from "@/composables/useDarkMode.js";
 import { useAuth } from '@/composables/useAuth.js';
 import { useNotifications } from '@/composables/useNotifications.js';
-// Import the Heroicons
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebase.js';
+
+// Import Heroicons
 import {
-  Bars3Icon,
-  XMarkIcon,
-  LightBulbIcon,
-  BellIcon,
-  SunIcon,
-  MoonIcon,
-  UserCircleIcon,
-  Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
-  HomeIcon,
-  CubeIcon,
-  FireIcon,
-  CloudArrowUpIcon,
-  BookOpenIcon,
-} from '@heroicons/vue/24/outline'
+  Bars3Icon, XMarkIcon, LightBulbIcon, BellIcon, SunIcon, MoonIcon, UserCircleIcon,
+  Cog6ToothIcon, ArrowRightOnRectangleIcon, HomeIcon, CubeIcon, FireIcon, CloudArrowUpIcon, BookOpenIcon,
+} from '@heroicons/vue/24/outline';
 
-// Import the Tips and Notification components
-import Tips from '../UserComponents/Home/Tips.vue'
-import Notification from '../ReusableComponents/Notification.vue'
-import {
-  auth,
-  db,
-  doc,
-  onAuthStateChanged,
-  onSnapshot,
-  signOut
-} from '../../firebase.js'
-// state variables
-const isMobileMenuOpen = ref(false)
-const showNotifications = ref(false)
-const isProfileDropdownOpen = ref(false)
-const userName = ref('Guest')
-// Default local fallback, will be replaced by cloud default if available
-const profilePic = ref('/src/Images/profile/pfp.png')
-const showTipsModal = ref(false)
-const tipsComponent = ref(null)
-const router = useRouter()
+// Import Components
+import Tips from '../UserComponents/Home/Tips.vue';
+import Notification from '../ReusableComponents/Notification.vue';
 
-// Hardcoded App ID for this component
-const appId = 'default-app-id'; 
-
-const { user } = useAuth(appId);
+// --- Composables ---
+const router = useRouter();
+const { isDarkMode, toggleDarkMode } = useDarkMode();
+const { user, userProfile, displayPhotoURL } = useAuth('default-app-id');
 const userId = computed(() => user.value?.uid);
-
 const { hasUnread } = useNotifications(userId);
 
-// Storage reference for default picture
-const defaultProfilePicUrl = ref('/src/Images/profile/pfp.png');
+// --- Local State ---
+const isMobileMenuOpen = ref(false);
+const showNotifications = ref(false);
+const isProfileDropdownOpen = ref(false);
+const showTipsModal = ref(false);
+const tipsComponent = ref(null);
 
-// dark mode
-const { isDarkMode, toggleDarkMode } = useDarkMode()
-// methods
+// --- Computed Properties for UI ---
+const userName = computed(() => userProfile.value?.fullName || 'Guest');
+
+// --- Methods ---
 const openTipsModal = async () => {
-  showTipsModal.value = true
-  await nextTick()
-  tipsComponent.value?.fetchAndGenerate()
-}
+  showTipsModal.value = true;
+  await nextTick();
+  tipsComponent.value?.fetchAndGenerate();
+};
 
-const toggleMobileMenu = () => {
-  isMobileMenuOpen.value = !isMobileMenuOpen.value
-}
+const toggleMobileMenu = () => isMobileMenuOpen.value = !isMobileMenuOpen.value;
 const toggleNotifications = () => {
-  showNotifications.value = !showNotifications.value
-  if (showNotifications.value) isProfileDropdownOpen.value = false
-}
+  showNotifications.value = !showNotifications.value;
+  if (showNotifications.value) isProfileDropdownOpen.value = false;
+};
 const toggleProfileDropdown = () => {
-  isProfileDropdownOpen.value = !isProfileDropdownOpen.value
-  if (isProfileDropdownOpen.value) showNotifications.value = false
-}
+  isProfileDropdownOpen.value = !isProfileDropdownOpen.value;
+  if (isProfileDropdownOpen.value) showNotifications.value = false;
+};
 const navigateTo = (routeName) => {
-  router.push({ name: routeName })
-  isMobileMenuOpen.value = false
-  showNotifications.value = false
-  isProfileDropdownOpen.value = false
-}
+  router.push({ name: routeName });
+  isMobileMenuOpen.value = false;
+  showNotifications.value = false;
+  isProfileDropdownOpen.value = false;
+};
 const closeDropdowns = (event) => {
-  const notificationIcon = document.querySelector('.relative > svg')
-  const profileSection = document.querySelector('.relative.flex.items-center.space-x-2')
+  // This logic can be simplified or refined, but keeping as is for now.
+  const notificationIcon = document.querySelector('.relative > svg');
+  const profileSection = document.querySelector('.relative > .flex.items-center.space-x-2');
   if (notificationIcon && !notificationIcon.contains(event.target) && showNotifications.value) {
-    showNotifications.value = false
+    showNotifications.value = false;
   }
   if (profileSection && !profileSection.contains(event.target) && isProfileDropdownOpen.value) {
-    isProfileDropdownOpen.value = false
-  }
-}
-
-// Fetch the cloud default profile picture
-const fetchDefaultProfilePic = async () => {
-  try {
-    const storage = getStorage();
-    /// In UserHeader.vue
-    const pathReference = storageRef(storage, 'gs://energreen-ai-powered-iot-based.firebasestorage.app/profile_pictures/Default/pfp.png');
-    defaultProfilePicUrl.value = await getDownloadURL(pathReference);
-  } catch (error) {
-    // Suppress console warning if it's just a permissions issue/not found, to keep console clean
-    // console.warn("Could not fetch default profile pic from Storage, using local fallback.", error.code);
+    isProfileDropdownOpen.value = false;
   }
 };
 
-const fetchUserProfile = (userId) => {
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
-  try {
-    const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`)
-    onSnapshot(userProfileRef, (userProfileSnap) => {
-      if (userProfileSnap.exists()) {
-        const profileData = userProfileSnap.data()
-        userName.value = profileData.fullName || 'Guest'
-        // Use user's photo, OR the cloud default, OR local fallback
-        profilePic.value = profileData.photoURL || defaultProfilePicUrl.value
-      } else {
-        userName.value = 'Guest'
-        profilePic.value = defaultProfilePicUrl.value
-      }
-    }, (error) => {
-      console.error("Error listening to user profile in UserHeader:", error)
-      userName.value = 'Guest'
-    })
-  } catch (error) {
-    console.error("Error setting up user profile listener in UserHeader:", error)
-    userName.value = 'Guest'
-  }
-}
 const signOutUser = async () => {
   try {
-    await signOut(auth)
-    router.push({ name: 'Landing' })
+    await signOut(auth);
+    router.push({ name: 'Landing' });
   } catch (error) {
-    console.error("Error signing out:", error)
+    console.error("Error signing out:", error);
   }
-}
-// lifecycle
+};
+
+// --- Lifecycle Hooks ---
 onMounted(() => {
-  document.addEventListener('click', closeDropdowns)
-  
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      // 1. Fetch the default image URL NOW (inside auth context)
-      await fetchDefaultProfilePic();
-      
-      // 2. Then set up the user listener
-      fetchUserProfile(user.uid)
-    } else {
-      userName.value = 'Guest'
-      profilePic.value = '/src/Images/profile/pfp.png'
-      defaultProfilePicUrl.value = '/src/Images/profile/pfp.png'
-    }
-  })
-})
+  document.addEventListener('click', closeDropdowns);
+});
 onBeforeUnmount(() => {
-  document.removeEventListener('click', closeDropdowns)
-})
+  document.removeEventListener('click', closeDropdowns);
+});
 </script>
 
 <style scoped>

@@ -33,7 +33,7 @@
           <img 
             @click="navigateTo('AdminProfile')" 
             class="w-7 h-7 cursor-pointer rounded-full object-cover focus:outline-none" 
-            :src="profilePic" 
+            :src="displayPhotoURL" 
             alt="Profile Picture"
           >
         </div>
@@ -163,7 +163,7 @@
             >
               <img 
                 class="w-8 h-8 rounded-full object-cover" 
-                :src="profilePic" 
+                :src="displayPhotoURL" 
                 alt="Profile Picture" 
               />
               <a class="cursor-pointer text-gray-800 dark:text-gray-100">{{ userName }}</a>
@@ -338,162 +338,74 @@ import { useDarkMode } from "@/composables/useDarkMode.js"
 import Notification from '../ReusableComponents/Notification.vue'
 import { useAuth } from '@/composables/useAuth.js';
 import { useNotifications } from '@/composables/useNotifications.js';
+import { auth } from '../../firebase.js';
 
 // Import Heroicons
 import {
-  Bars3Icon,
-  XMarkIcon,
-  BellIcon,
-  SunIcon,
-  MoonIcon,
-  UserCircleIcon,
-  ArrowRightOnRectangleIcon,
-  HomeIcon,
-  CpuChipIcon,
-  UsersIcon,
-  ChartBarIcon,
-  CurrencyDollarIcon,
-  ChatBubbleLeftEllipsisIcon
-} from '@heroicons/vue/24/outline'
+  Bars3Icon, XMarkIcon, BellIcon, SunIcon, MoonIcon, UserCircleIcon, ArrowRightOnRectangleIcon, HomeIcon,
+  CpuChipIcon, UsersIcon, ChartBarIcon, CurrencyDollarIcon, ChatBubbleLeftEllipsisIcon
+} from '@heroicons/vue/24/outline';
 
-import {
-  auth,
-  db,
-  doc,
-  onAuthStateChanged,
-  onSnapshot,
-} from '../../firebase.js'
-
-// state
-const isMobileMenuOpen = ref(false)
-const showNotifications = ref(false)
-const isProfileDropdownOpen = ref(false)
-const userName = ref('Admin')
-const profilePic = ref('/src/Images/profile/pfp.png')
-
-let unsubscribeProfile = null;
-
-const route = useRoute()
-const router = useRouter()
-const { isDarkMode, toggleDarkMode } = useDarkMode()
-
-// Hardcoded App ID for this component
-const appId = 'default-app-id'; 
-
-const { user } = useAuth(appId);
+// --- Composables ---
+const router = useRouter();
+const { isDarkMode, toggleDarkMode } = useDarkMode();
+const { user, userProfile, displayPhotoURL } = useAuth('default-app-id');
 const userId = computed(() => user.value?.uid);
-
 const { hasUnread } = useNotifications(userId);
 
-// methods
-const toggleMobileMenu = () => isMobileMenuOpen.value = !isMobileMenuOpen.value
-const toggleNotifications = () => {
-  showNotifications.value = !showNotifications.value
-  if (showNotifications.value) isProfileDropdownOpen.value = false
-}
-const toggleProfileDropdown = () => {
-  isProfileDropdownOpen.value = !isProfileDropdownOpen.value
-  if (isProfileDropdownOpen.value) showNotifications.value = false
-}
-const navigateTo = (routeName) => {
-  router.push({ name: routeName })
-  isMobileMenuOpen.value = false
-  showNotifications.value = false
-  isProfileDropdownOpen.value = false
-}
+// --- Local State ---
+const isMobileMenuOpen = ref(false);
+const showNotifications = ref(false);
+const isProfileDropdownOpen = ref(false);
 
-// close dropdowns on outside click
+// --- Computed properties for UI from useAuth ---
+const userName = computed(() => userProfile.value?.fullName || 'Admin');
+
+// --- Methods ---
+const toggleMobileMenu = () => isMobileMenuOpen.value = !isMobileMenuOpen.value;
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value;
+  if (showNotifications.value) isProfileDropdownOpen.value = false;
+};
+const toggleProfileDropdown = () => {
+  isProfileDropdownOpen.value = !isProfileDropdownOpen.value;
+  if (isProfileDropdownOpen.value) showNotifications.value = false;
+};
+const navigateTo = (routeName) => {
+  router.push({ name: routeName });
+  isMobileMenuOpen.value = false;
+  showNotifications.value = false;
+  isProfileDropdownOpen.value = false;
+};
+
 const closeDropdowns = (event) => {
-  const notificationIcon = document.querySelector('.relative > svg')
-  const profileSection = document.querySelector('.relative.flex.items-center.space-x-2')
+  const notificationIcon = document.querySelector('.relative > svg');
+  const profileSection = document.querySelector('.relative.flex.items-center.space-x-2');
   if (notificationIcon && !notificationIcon.contains(event.target) && showNotifications.value) {
-    showNotifications.value = false
+    showNotifications.value = false;
   }
   if (profileSection && !profileSection.contains(event.target) && isProfileDropdownOpen.value) {
-    isProfileDropdownOpen.value = false
+    isProfileDropdownOpen.value = false;
   }
-}
-
-// fetch admin profile
-const fetchAdminProfile = (userId) => {
-  // Clear existing listener if any
-  if (unsubscribeProfile) {
-    unsubscribeProfile();
-    unsubscribeProfile = null;
-  }
-
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'
-  try {
-    const adminProfileRef = doc(db, `artifacts/${appId}/users/${userId}/userProfile/profile`)
-    
-    unsubscribeProfile = onSnapshot(adminProfileRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data()
-        userName.value = data.fullName || 'Admin'
-        profilePic.value = data.photoURL || '/src/Images/profile/pfp.png'
-      } else {
-        userName.value = 'Admin'
-        profilePic.value = '/src/Images/profile/pfp.png'
-      }
-    }, (error) => {
-       // Quietly handle permission errors on logout
-       if (error.code === 'permission-denied') {
-         console.log("Profile listener stopped (permission denied).");
-       } else {
-         console.error("Error listening to admin profile:", error);
-       }
-    })
-  } catch (err) {
-    console.error("Error setting up admin profile listener:", err)
-    userName.value = 'Admin'
-  }
-}
+};
 
 const signOutUser = async () => {
   try {
-    // 1. Unsubscribe FIRST to prevent permission errors
-    if (unsubscribeProfile) {
-      unsubscribeProfile();
-      unsubscribeProfile = null;
-    }
-
-    // 2. Sign out from Firebase
     await signOut(auth);
-
-    // 3. Redirect to Landing Page
     router.push({ name: 'Landing' });
-    
   } catch (error) {
     console.error("Error during sign out:", error);
   }
-}
+};
 
-// lifecycle
+// --- Lifecycle ---
 onMounted(() => {
-  document.addEventListener('click', closeDropdowns)
-  
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      fetchAdminProfile(user.uid)
-    } else {
-      // IF USER LOGS OUT via other means (tab close, expiration)
-      userName.value = 'Admin'
-      profilePic.value = '/src/Images/profile/pfp.png'
-      
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
-        unsubscribeProfile = null;
-      }
-    }
-  })
-})
+  document.addEventListener('click', closeDropdowns);
+});
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', closeDropdowns)
-  if (unsubscribeProfile) {
-    unsubscribeProfile();
-  }
-})
+  document.removeEventListener('click', closeDropdowns);
+});
 </script>
 
 <style scoped>

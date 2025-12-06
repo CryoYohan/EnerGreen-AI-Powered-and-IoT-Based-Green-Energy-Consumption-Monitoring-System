@@ -8,7 +8,19 @@
     <!-- Floating Agent Button -->
     <!-- Only show if User is logged in AND current page requires authentication -->
     <transition name="fade">
-      <AgentButton v-if="shouldShowAgent" />
+      <div v-if="shouldShowAgent">
+        <AdminAgentButton v-if="isAdmin" />
+        <template v-else>
+          <KobeAgentButton @start-tour="startTour" />
+          <KobeGuide 
+            v-model:isOpen="isTourOpen" 
+            :steps="activeTourSteps" 
+            @complete="handleTourComplete" 
+            @skip="isTourOpen = false"
+          />
+          <AgentButton />
+        </template>
+      </div>
     </transition>
     
     <ToastContainer />
@@ -16,36 +28,49 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { auth, onAuthStateChanged } from '@/firebase'; 
-import { useRoute } from 'vue-router'; // 1. Import useRoute
+import { computed, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { useAuth } from '@/composables/useAuth.js';
 import AgentButton from '@/components/ReusableComponents/AgentButton.vue';
+import AdminAgentButton from '@/components/ReusableComponents/AdminAgentButton.vue';
+import KobeAgentButton from '@/components/ReusableComponents/KobeAgentButton.vue';
+import KobeGuide from '@/components/ReusableComponents/KobeGuide.vue';
 import ToastContainer from '@/components/ReusableComponents/ToastContainer.vue';
+import { tourSteps as allTourSteps } from '@/data/kobeTours.js';
 
-const user = ref(null);
-const route = useRoute(); // 2. Get current route object
-let unsubscribe;
+const route = useRoute();
+const { user, isAdmin, isPremium } = useAuth('default-app-id');
+const isTourOpen = ref(false);
 
-// 3. Computed Property for Visibility Logic
+// Dynamic Tour Steps based on current page
+const activeTourSteps = computed(() => {
+  const pageName = route.name; // e.g., 'Home', 'Forecast', 'Appliances'
+  return allTourSteps[pageName] || allTourSteps['Home']; // Fallback to Home if undefined
+});
+
+const startTour = () => {
+  isTourOpen.value = true;
+};
+
+const handleTourComplete = () => {
+  console.log("Tour completed!");
+  isTourOpen.value = false;
+};
+
+// Computed Property for Visibility Logic
 const shouldShowAgent = computed(() => {
   // Condition A: User must be authenticated
   if (!user.value) return false;
 
-  // Condition B: Current route must be a "protected" route (e.g. Home, Profile)
-  // This prevents it from showing on Landing Page or 401 during redirects
-  return route.meta.requiresAuth === true;
-});
+  // Condition B: Current route must be a "protected" route
+  if (route.meta.requiresAuth !== true) return false;
 
-onMounted(() => {
-  unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    user.value = currentUser;
-  });
-});
+  // Condition C: Role-based visibility
+  // 1. Admins always see their agent (AdminAgentButton)
+  if (isAdmin.value) return true;
 
-onUnmounted(() => {
-  if (unsubscribe) {
-    unsubscribe();
-  }
+  // 2. Regular users must be Premium to see Kobe/Christine
+  return isPremium.value;
 });
 </script>
 

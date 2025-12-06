@@ -215,34 +215,40 @@
 </template>
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { auth, db } from '../../firebase.js'; 
-import { doc, collection, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
+import { auth } from '../../firebase.js'; 
 import { onAuthStateChanged } from 'firebase/auth';
+import * as predictionService from '@/services/predictionService.js';
+import { currentRate, carbonRateKg } from '@/services/predictionService.js'; // Import reactive rates
+
+// Import UI Components
 import PredictionLineChart from '@/components/UserComponents/Forecast/PredictionLineChart.vue';
 import PredictionSummaryCard from '@/components/UserComponents/Forecast/PredictionSummaryCard.vue';
 import Heading from '@/components/ReusableComponents/Heading.vue';
 import UserHeader from '@/components/ReusableComponents/UserHeader.vue';
 import Footer from '@/components/ReusableComponents/Footer.vue';
-import api from '@/services/api.js';
 
-const userName = ref('Guest');
+// --- Local Component State ---
 const deviceId = ref(null);
 const anomalies = ref([]); 
 const rawPredictions = ref({ lightgbm: [], prophet: [] });
-const activeModel = ref('lightgbm'); // Changed default to lightgbm
+const activeModel = ref('lightgbm');
 const currentInterval = ref('Next Day');
 const isLoading = ref(true);
 const isPredicting = ref(false);
-const currentRate = ref(0);
-const carbonRateKg = ref(0.7);
 const overviewMetrics = ref([]);
 const latestPredictionTimestamp = ref(null); 
 
-// Notification State
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("info");
 
+// --- Formatters & Helpers ---
+const pesoFormatter = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 });
+const formatTime = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 const showNotification = (message, type = "info", duration = 3000) => {
   popupMessage.value = message;
   popupType.value = type;
@@ -250,21 +256,12 @@ const showNotification = (message, type = "info", duration = 3000) => {
   setTimeout(() => (showPopup.value = false), duration);
 };
 
-// Pesos formatter
-const pesoFormatter = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 });
-
-// Formatters
-const formatTime = (isoString) => {
-  if (!isoString) return '';
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
-
-// Computed
+// --- Computed Properties for the Template ---
 const filteredPredictions = computed(() => rawPredictions.value[activeModel.value] || []);
+
 const forecastsForDisplay = computed(() =>
   filteredPredictions.value.map(p => {
-    const predictedKwh = p.predicted_consumption_kwh || ((p.prediction_value_watt * p.hours_in_interval) / 1000);
+    const predictedKwh = p.predicted_consumption_kwh || 0;
     return {
       ...p,
       predicted_consumption_kwh: predictedKwh,
@@ -273,7 +270,9 @@ const forecastsForDisplay = computed(() =>
     };
   })
 );
+
 const activeForecast = computed(() => forecastsForDisplay.value.find(f => f.interval === currentInterval.value) || null);
+
 const chartData = computed(() => {
   if (!filteredPredictions.value.length) return [];
   return filteredPredictions.value.map(p => ({
@@ -284,217 +283,17 @@ const chartData = computed(() => {
   }));
 });
 
-// Computed metrics
 const nextMonthPrediction = computed(() => {
-  if (!rawPredictions.value.lightgbm) return '0.00';
-  const pred = rawPredictions.value.lightgbm.find(p => p.interval === 'Next Month');
+  const pred = rawPredictions.value.lightgbm?.find(p => p.interval === 'Next Month');
   return pred ? (pred.predicted_consumption_kwh || 0).toFixed(2) : '0.00';
 });
 
 const nextDayPrediction = computed(() => {
-  if (!rawPredictions.value.lightgbm) return '0.00';
-  const pred = rawPredictions.value.lightgbm.find(p => p.interval === 'Next Day');
+  const pred = rawPredictions.value.lightgbm?.find(p => p.interval === 'Next Day');
   return pred ? (pred.predicted_consumption_kwh || 0).toFixed(2) : '0.00';
 });
 
-const confidenceScore = computed(() => {
-  if (!overviewMetrics.value) return 0;
-  const lightgbmMetric = overviewMetrics.value.find(m => m.label.includes('LightGBM'));
-  if (lightgbmMetric) {
-      return parseFloat(lightgbmMetric.value) || 0;
-  }
-  return 0;
-});
-
-// Get logged-in user's deviceId
-const fetchDeviceId = (userId) => {
-  const userProfileRef = doc(db, `artifacts/default-app-id/users/${userId}/userProfile/profile`);
-  onSnapshot(userProfileRef, (snap) => {
-    if (snap.exists()) {
-      const data = snap.data();
-      deviceId.value = data.deviceId || null;
-      userName.value = data.fullName || 'Guest';
-    } else {
-      deviceId.value = null;
-      userName.value = 'Guest';
-    }
-  }, (err) => console.error(err));
-};
-
-// Trigger Cloud Run
-const triggerPredictionRun = async (deviceId) => {
-  if (!deviceId) return;
-  console.log("Triggering prediction run for:", deviceId);
-
-  try {
-    const response = await api.post('/api/user/predict', { 
-      deviceId: deviceId 
-    });
-    console.log("Prediction triggered successfully:", response.data);
-    return response.data;
-  } catch (err) {
-    console.error("Error triggering prediction run:", err);
-    throw err;
-  }
-};
-
-let predictionsUnsubscribe = null;
-let anomaliesUnsubscribe = null;
-
-const listenToPredictions = (id) => {
-  if (predictionsUnsubscribe) predictionsUnsubscribe();
-  if (anomaliesUnsubscribe) anomaliesUnsubscribe();
-  if (!id) return;
-
-  isLoading.value = true;
-
-  const predictionsQuery = query(
-    collection(db, `devices/${id}/predictions`),
-    orderBy("timestamp", "desc"),
-    limit(2)
-  );
-
-  predictionsUnsubscribe = onSnapshot(
-    predictionsQuery,
-    (snapshot) => {
-      if (!snapshot.empty) {
-        const docs = snapshot.docs.map(d => ({
-          data: d.data(),
-          timestamp: d.data().timestamp
-        }));
-        const latest = docs[0];
-        const previous = docs[1];
-
-        latestPredictionTimestamp.value = latest.timestamp;
-        rawPredictions.value = latest.data.predictions || { lightgbm: [], prophet: [] };
-
-        // Helper to add hours logic
-        const addHours = (preds) =>
-          preds.map(p => {
-            let hours = 0;
-            switch (p.interval) {
-              case "Immediate": hours = 1 / 60; break;
-              case "Next Hour": hours = 1; break;
-              case "Next Day": hours = 24; break;
-              case "Next Week": hours = 24 * 7; break;
-              case "Next Month": hours = 24 * 30; break;
-            }
-            return { ...p, hours_in_interval: hours };
-          });
-        rawPredictions.value.lightgbm = addHours(rawPredictions.value.lightgbm);
-        rawPredictions.value.prophet = addHours(rawPredictions.value.prophet);
-
-        if (latest.data.metrics) {
-          const m = latest.data.metrics;
-          const prev = previous?.data.metrics || {};
-
-          overviewMetrics.value = [
-            {
-              label: "Baseline Consumption",
-              value: `${m.baseline_consumption?.toFixed(2)} kWh`,
-              trend: prev.baseline_consumption
-                ? `${((m.baseline_consumption - prev.baseline_consumption) / prev.baseline_consumption * 100).toFixed(2)}% vs last run`
-                : null
-            },
-            {
-              label: "Model Accuracy (LightGBM)",
-              value: `${((m.lightgbm_accuracy ?? 0) * 100).toFixed(2)}%`,
-            },
-            {
-              label: "Model Accuracy (Prophet)",
-              value: `${((m.prophet_accuracy ?? 0) * 100).toFixed(2)}%`,
-            },
-            {
-              label: "Carbon Rate",
-              value: `${carbonRateKg.value.toFixed(2)} kg/kWh`,
-            },
-            {
-              label: "Utility Rate",
-              value: pesoFormatter.format(currentRate.value),
-            }
-          ];
-        } else {
-          overviewMetrics.value = [];
-        }
-      } else {
-        rawPredictions.value = { lightgbm: [], prophet: [] };
-        overviewMetrics.value = [];
-        latestPredictionTimestamp.value = null;
-      }
-      isLoading.value = false;
-    },
-    (err) => {
-      console.error("Error listening to predictions:", err);
-      isLoading.value = false;
-    }
-  );
-
-  const anomaliesQuery = query(
-    collection(db, `devices/${id}/anomalies`),
-    orderBy("timestamp", "desc"),
-    limit(10) 
-  );
-
-  anomaliesUnsubscribe = onSnapshot(anomaliesQuery, (snapshot) => {
-    if(!snapshot.empty) {
-        anomalies.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } else {
-        anomalies.value = [];
-    }
-  }, (err) => {
-      console.error("Error listening to anomalies:", err);
-  });
-};
-
-watch(deviceId, (id) => { if (id) listenToPredictions(id); }, { immediate: true });
-
-let unsubscribeAuth = null;
-onMounted(() => {
-  unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-    if (user) fetchDeviceId(user.uid);
-    else { userName.value = 'Guest'; deviceId.value = null; }
-  });
-  fetchCarbonRate();
-  fetchUtilityRate();
-});
-
-onUnmounted(() => {
-    if (unsubscribeAuth) unsubscribeAuth();
-    if (predictionsUnsubscribe) predictionsUnsubscribe();
-    if (anomaliesUnsubscribe) anomaliesUnsubscribe();
-});
-
-const fetchCarbonRate = async () => {
-  try {
-    const q = query(
-      collection(db, "artifacts/default-app-id/public/data/carbon_emission_rates"),
-      orderBy("date_updated", "desc"),
-      limit(1)
-    );
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      carbonRateKg.value = snapshot.docs[0].data().carbonRateKg;
-    }
-  } catch (err) {
-    console.error("Error fetching carbon rate:", err);
-  }
-};
-
-const fetchUtilityRate = () => {
-  const rateRef = doc(db, "artifacts/default-app-id/public/data/utility_rates/veco");
-  onSnapshot(rateRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      currentRate.value = data.vecoKwhRate || 0;
-    } else {
-      currentRate.value = 0;
-    }
-  }, (error) => {
-    console.error("Error fetching VECO rate:", error);
-    currentRate.value = 0;
-  });
-};
-
+// --- Actions ---
 const handlePredictNow = async () => {
   if (!deviceId.value) return;
   
@@ -502,29 +301,67 @@ const handlePredictNow = async () => {
   showNotification("Generating new forecast...", "info");
 
   try {
-    const result = await triggerPredictionRun(deviceId.value);
-    const aiResponse = result.data; 
-
-    if (aiResponse && aiResponse.success === false) {
-       throw new Error(aiResponse.error || "AI processing failed.");
-    }
-    
-    const successMsg = aiResponse?.message || "Forecast updated successfully!";
+    const result = await predictionService.triggerPredictionRun(deviceId.value);
+    const successMsg = result?.message || "Forecast update requested successfully!";
     showNotification(successMsg, "success");
-
   } catch (err) {
-    console.error(err);
     const msg = err.response?.data?.error || err.message || "Prediction failed";
-    
-    if (msg.includes("No historical data")) {
-       showNotification(msg, "info", 5000);
-    } else {
-       showNotification(`Error: ${msg}`, "error");
-    }
+    showNotification(`Error: ${msg}`, msg.includes("No historical data") ? "info" : "error", 5000);
   } finally {
     isPredicting.value = false;
   }
 };
+
+
+// --- Lifecycle & Data Subscription ---
+let unsubscribeAuth = null;
+let unsubscribePredictions = null;
+
+onMounted(() => {
+  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    if (unsubscribePredictions) unsubscribePredictions(); // Stop listening for old user's data
+
+    if (user) {
+      isLoading.value = true;
+      const profile = await predictionService.getUserProfile(user.uid);
+      deviceId.value = profile?.deviceId || null;
+      
+      if (profile?.electricityProvider) {
+        await predictionService.loadContextualRates(profile.electricityProvider);
+      }
+      
+      if (deviceId.value) {
+        // Subscribe to real-time prediction updates via the service
+        unsubscribePredictions = predictionService.listenToPredictions(deviceId.value, ({ data, error }) => {
+          if (error) {
+            console.error(error);
+            showNotification(error, 'error');
+            isLoading.value = false;
+            return;
+          }
+          
+          const processed = predictionService.processPredictionData(data);
+          latestPredictionTimestamp.value = processed.latestPredictionTimestamp;
+          rawPredictions.value = processed.rawPredictions;
+          anomalies.value = processed.anomalies;
+          overviewMetrics.value = processed.overviewMetrics;
+          isLoading.value = false;
+        });
+      } else {
+        isLoading.value = false;
+      }
+    } else {
+      // User logged out
+      deviceId.value = null;
+      isLoading.value = false;
+    }
+  });
+});
+
+onUnmounted(() => {
+  if (unsubscribeAuth) unsubscribeAuth();
+  if (unsubscribePredictions) unsubscribePredictions();
+});
 </script>
 <style scoped>
 .fade-enter-active,

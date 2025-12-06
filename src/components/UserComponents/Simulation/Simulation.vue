@@ -3,7 +3,7 @@
     <div class=" mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
       
       <!-- Input Panel -->
-      <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-2xl">
+      <div id="simulation-inputs" class="lg:col-span-1 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-2xl">
         <!-- Header -->
         <div class="flex items-center mb-8 pb-4 border-b border-gray-200 dark:border-gray-600">
           <div class="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg mr-4">
@@ -13,7 +13,7 @@
         </div>
 
         <!-- Monthly Bill Input -->
-        <div class="mb-8">
+        <div id="monthly-bill-input" class="mb-8">
           <div class="flex items-center justify-between mb-3">
             <label for="monthly-bill" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Average Monthly Bill (PHP)
@@ -33,7 +33,7 @@
         </div>
 
         <!-- System Size Slider -->
-        <div class="mb-8">
+        <div id="system-size-slider" class="mb-8">
           <div class="flex items-center justify-between mb-3">
             <label for="system-size" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Solar System Size (kWp)
@@ -87,7 +87,7 @@
       </div>
 
       <!-- Savings Panel -->
-      <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
+      <div id="simulation-results" class="lg:col-span-2 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
         <!-- Header -->
         <div class="flex items-center mb-8 pb-4 border-b border-gray-200 dark:border-gray-600">
           <div class="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg mr-4">

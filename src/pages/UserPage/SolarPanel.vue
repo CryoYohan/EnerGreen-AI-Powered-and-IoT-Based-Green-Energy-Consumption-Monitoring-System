@@ -121,149 +121,40 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, nextTick } from 'vue';
-import { db } from '@/firebase.js';
-import { collection, query, getDocs, orderBy, limit, doc, getDoc, where, onSnapshot, Timestamp } from 'firebase/firestore';
-import { useAuth } from '@/composables/useAuth'; 
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
+import { useAuth } from '@/composables/useAuth';
+import * as solarService from '@/services/solarService.js';
 import Plotly from 'plotly.js-dist-min';
 import { SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon } from '@heroicons/vue/24/outline';
-
-// Export Libraries
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
+// Added imports for Word export
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, HeadingLevel, WidthType } from "docx";
 
 // Components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 
-// State
+// --- STATE ---
 const timeFilters = ['Daily', 'Weekly', 'Monthly', 'Yearly']; 
 const activeFilter = ref('Weekly');
 const loading = ref(true);
 const error = ref(null);
-const rawData = ref([]); // Weekly/Monthly/Yearly Data
-const hourlyData = ref([]); // Daily Data (Realtime)
+
+const rawData = ref([]); 
+const hourlyData = ref([]);
 const currentRate = ref(12.0); 
 const carbonRate = ref(0.71);
+const chartPlotData = ref({ xValues: [], ySolar: [], yGrid: [] });
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const { userProfile, isLoading: authLoading } = useAuth(appId);
-const deviceId = ref(null);
-
-// --- Watchers ---
-watch(userProfile, (newProfile) => {
-  if (newProfile && newProfile.deviceId) {
-    deviceId.value = newProfile.deviceId;
-  } else {
-    deviceId.value = null;
-    rawData.value = [];
-    hourlyData.value = [];
-    if (!authLoading.value) {
-      loading.value = false;
-      error.value = "No solar device linked to account.";
-    }
-  }
-}, { immediate: true });
-
-watch(deviceId, async (newId) => {
-  if (newId) {
-    await fetchRates();
-    fetchSolarData(newId); // Historical
-    fetchHourlyData(newId); // Today's Hourly
-  }
-}, { immediate: true });
-
-watch(activeFilter, () => {
-  updateCharts();
-});
-
-// --- Data Fetching ---
-const fetchRates = async () => {
-  try {
-    const rateSnap = await getDoc(doc(db, 'artifacts/default-app-id/public/data/utility_rates/veco'));
-    if (rateSnap.exists()) currentRate.value = rateSnap.data().vecoKwhRate || 12.0;
-  } catch (e) { console.error(e); }
-};
-
-// A. Historical Data (W/M/Y)
-const fetchSolarData = async (id) => {
-  loading.value = true;
-  try {
-    const q = query(collection(db, `devices/${id}/daily_summaries`), orderBy('date', 'desc'), limit(365));
-    const snap = await getDocs(q);
-    
-    if (!snap.empty) rawData.value = snap.docs.map(doc => doc.data());
-    else rawData.value = [];
-
-    loading.value = false;
-    await nextTick();
-    updateCharts();
-  } catch (e) {
-    console.error(e);
-    error.value = "Failed to load solar data.";
-    loading.value = false;
-  }
-};
-
-// B. Hourly Data (Daily)
+const { userProfile, waitForAuthReady } = useAuth('default-app-id');
 let hourlyUnsubscribe = null;
-const fetchHourlyData = (id) => {
-  if (hourlyUnsubscribe) hourlyUnsubscribe();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startOfDay = Timestamp.fromDate(today);
-
-  const q = query(
-    collection(db, `devices/${id}/realtime_readings`),
-    where("timestamp", ">=", startOfDay),
-    orderBy("timestamp", "asc")
-  );
-
-  hourlyUnsubscribe = onSnapshot(q, (snap) => {
-    const readings = snap.docs.map(doc => doc.data());
-    
-    // Separate streams based on Source
-    const solarReadings = readings.filter(r => r.energySource === 'Solar');
-    const gridReadings = readings.filter(r => r.energySource === 'Grid');
-
-    // Helper to Process Deltas
-    const processDeltas = (list) => {
-      const hours = {};
-      for (let i = 1; i < list.length; i++) {
-        const delta = list[i].kwhConsumed - list[i-1].kwhConsumed;
-        if (delta > 0) {
-           const h = list[i].timestamp.toDate().getHours();
-           hours[h] = (hours[h] || 0) + delta;
-        }
-      }
-      return hours;
-    };
-
-    const solarHourly = processDeltas(solarReadings);
-    const gridHourly = processDeltas(gridReadings);
-
-    // Merge into one array [0..23]
-    hourlyData.value = Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i}:00`,
-      solar: solarHourly[i] || 0,
-      grid: gridHourly[i] || 0
-    }));
-    
-    if (activeFilter.value === 'Daily') updateCharts();
-  });
-};
-
-// --- Computed Metrics ---
+// --- COMPUTED PROPERTIES ---
 const currentViewData = computed(() => {
-  // If Daily, calculate sum from hourlyData
-  if (activeFilter.value === 'Daily') {
-     return hourlyData.value; // Array of objects { solar, grid }
-  }
-  // Else use rawData
+  if (activeFilter.value === 'Daily') return hourlyData.value;
   let days = 7;
   if (activeFilter.value === 'Monthly') days = 30;
   if (activeFilter.value === 'Yearly') days = 365;
@@ -271,193 +162,167 @@ const currentViewData = computed(() => {
 });
 
 const calculatedMetrics = computed(() => {
-  let totalSolar = 0;
-  let totalGrid = 0;
-
-  if (activeFilter.value === 'Daily') {
-    totalSolar = hourlyData.value.reduce((acc, c) => acc + c.solar, 0);
-    totalGrid = hourlyData.value.reduce((acc, c) => acc + c.grid, 0);
-  } else {
-    // Use daily summaries fields
-    const data = currentViewData.value;
-    totalSolar = data.reduce((acc, curr) => acc + (curr.solarKwhTotal || 0), 0);
-    totalGrid = data.reduce((acc, curr) => acc + (curr.gridKwhTotal || 0), 0);
-  }
-
-  const totalEnergy = totalSolar + totalGrid;
-  const independence = totalEnergy > 0 ? (totalSolar / totalEnergy) * 100 : 0;
-
-  return [
-    { title: 'Solar Generation', value: `${totalSolar.toFixed(1)} kWh`, subtitle: 'Produced this period', icon: SunIcon, iconColor: 'text-yellow-500' },
-    { title: 'Grid Usage', value: `${totalGrid.toFixed(1)} kWh`, subtitle: 'Imported from utility', icon: BoltIcon, iconColor: 'text-gray-500' },
-    { title: 'Energy Independence', value: `${independence.toFixed(1)}%`, subtitle: '% of power from Solar', icon: Battery50Icon, iconColor: 'text-emerald-500' },
-    { title: 'Peak Power', value: `4.2 kW`, subtitle: 'System Capacity', icon: SunIcon, iconColor: 'text-orange-500' }
-  ];
+    if (!currentViewData.value.length && activeFilter.value !== 'Daily') return [];
+    
+    const metrics = solarService.calculateMetrics(currentViewData.value, activeFilter.value === 'Daily');
+    return [
+        { ...metrics[0], icon: SunIcon, iconColor: 'text-yellow-500' },
+        { ...metrics[1], icon: BoltIcon, iconColor: 'text-gray-500' },
+        { ...metrics[2], icon: Battery50Icon, iconColor: 'text-emerald-500' },
+        { ...metrics[3], icon: SunIcon, iconColor: 'text-orange-500' }
+    ];
 });
 
-const savingsValue = computed(() => {
-  let totalSolar = 0;
-  if (activeFilter.value === 'Daily') {
-     totalSolar = hourlyData.value.reduce((acc, c) => acc + c.solar, 0);
-  } else {
-     totalSolar = currentViewData.value.reduce((acc, curr) => acc + (curr.solarKwhTotal || 0), 0);
-  }
-  return (totalSolar * currentRate.value).toFixed(2);
+const impactStats = computed(() => {
+  return solarService.calculateImpact(currentViewData.value, activeFilter.value === 'Daily', currentRate.value, carbonRate.value);
 });
 
-const co2Avoided = computed(() => {
-  const totalSolar = activeFilter.value === 'Daily' 
-     ? hourlyData.value.reduce((acc, c) => acc + c.solar, 0)
-     : currentViewData.value.reduce((acc, c) => acc + (c.solarKwhTotal || 0), 0);
-  return (totalSolar * carbonRate.value).toFixed(1);
-});
+const savingsValue = computed(() => impactStats.value.savingsValue);
+const co2Avoided = computed(() => impactStats.value.co2Avoided);
+const treesPlanted = computed(() => impactStats.value.treesPlanted);
 
-const treesPlanted = computed(() => {
-  return (Number(co2Avoided.value) / 1.6).toFixed(1); 
-});
 
-// --- Export Logic ---
-const handleExport = (format) => {
-  const data = currentViewData.value;
-  if (!data || !data.length) return alert("No data to export.");
-  
-  const filename = `EnerGreen_Solar_Report_${activeFilter.value}_${new Date().toISOString().split('T')[0]}`;
-  const isDaily = activeFilter.value === 'Daily';
+// --- DATA FETCHING ---
+const fetchAllData = async () => {
+    const profile = userProfile.value;
+    
+    if (!profile || !profile.deviceId) {
+        console.warn("Waiting for Device ID...");
+        return;
+    }
 
-  // Prepare Data Rows
-  const exportData = data.map(d => {
-    const label = isDaily ? d.hour : d.date;
-    const solar = isDaily ? d.solar : (d.solarKwhTotal || 0);
-    const grid = isDaily ? d.grid : (d.gridKwhTotal || 0);
-    const savings = solar * currentRate.value;
-    return {
-      label: label,
-      solar: solar.toFixed(3),
-      grid: grid.toFixed(3),
-      savings: savings.toFixed(2)
-    };
-  });
+    loading.value = true;
+    error.value = null;
 
-  if (format === 'csv') exportCSV(exportData, filename, isDaily ? 'Hour' : 'Date');
-  if (format === 'pdf') exportPDF(exportData, filename, isDaily ? 'Hour' : 'Date');
-  if (format === 'word') exportWord(exportData, filename, isDaily ? 'Hour' : 'Date');
+    try {
+        const [rate, carbon, summaries] = await Promise.all([
+            solarService.getUtilityRate(profile.electricityProvider),
+            solarService.getCarbonRate(),
+            solarService.getDailySummaries(profile.deviceId)
+        ]);
+        
+        currentRate.value = rate;
+        carbonRate.value = carbon;
+        rawData.value = summaries;
+
+        if (hourlyUnsubscribe) hourlyUnsubscribe();
+        hourlyUnsubscribe = solarService.listenToHourlyReadings(profile.deviceId, (readings) => {
+            hourlyData.value = solarService.processHourlyDeltas(readings);
+        });
+
+        loading.value = false;
+        await nextTick();
+        updateCharts();
+
+    } catch (e) {
+        console.error("Failed to fetch solar data:", e);
+        error.value = "Could not load solar panel data.";
+        loading.value = false;
+    } 
 };
 
-const exportCSV = (data, filename, timeLabel) => {
-  const headers = `${timeLabel},Solar Generation (kWh),Grid Usage (kWh),Savings (PHP)\n`;
-  const rows = data.map(r => `${r.label},${r.solar},${r.grid},${r.savings}`).join("\n");
+// --- CHARTING ---
+const updateCharts = () => {
+    const chartDiv = document.getElementById('solar-mix-chart');
+    if (!chartDiv) return;
+
+    chartPlotData.value = solarService.processDataForChart(rawData.value, hourlyData.value, activeFilter.value);
+    const { xValues, ySolar, yGrid } = chartPlotData.value;
+    
+    if (!xValues || xValues.length === 0) {
+        Plotly.purge(chartDiv);
+        return;
+    }
+    
+    const traceSolar = { x: xValues, y: ySolar, name: 'Solar', type: 'bar', marker: { color: '#EAB308' } };
+    const traceGrid = { x: xValues, y: yGrid, name: 'Grid', type: 'bar', marker: { color: '#9CA3AF' } };
+    const layout = { barmode: 'stack', margin: { l: 40, r: 20, t: 20, b: 40 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', showlegend: false, xaxis: { gridcolor: '#e5e7eb', showgrid: false }, yaxis: { gridcolor: '#e5e7eb', title: 'Energy (kWh)' }, font: { family: 'Poppins, sans-serif' } };
+    
+    Plotly.newPlot('solar-mix-chart', [traceGrid, traceSolar], layout, { displayModeBar: false, responsive: true });
+};
+
+// --- EXPORT LOGIC (ADAPTED FOR SOLAR PAGE) ---
+const handleExport = (format) => {
+  // Use .value because these are local refs, not props
+  if (!rawData.value || !rawData.value.length) {
+      alert("No data available to export.");
+      return;
+  }
+
+  const filename = `EnerGreen_Solar_Report_${new Date().toISOString().split('T')[0]}`;
+  
+  const exportData = [...rawData.value].reverse().map(d => ({
+    date: d.date,
+    grid: (d.gridKwhTotal || 0).toFixed(2),
+    solar: (d.solarKwhTotal || 0).toFixed(2),
+    // Calculated Savings (Solar * Rate) instead of Cost
+    savings: ((d.solarKwhTotal || 0) * currentRate.value).toFixed(2)
+  }));
+
+  if (format === 'csv') exportCSV(exportData, filename);
+  if (format === 'pdf') exportPDF(exportData, filename);
+  if (format === 'word') exportWord(exportData, filename);
+};
+
+const exportCSV = (data, filename) => {
+  const headers = "Date,Grid Usage (kWh),Solar Gen (kWh),Savings (PHP)\n";
+  const rows = data.map(r => `${r.date},${r.grid},${r.solar},${r.savings}`).join("\n");
   saveAs(new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
 };
 
-const exportPDF = (data, filename, timeLabel) => {
+const exportPDF = (data, filename) => {
   const doc = new jsPDF();
-  doc.setFontSize(18); doc.setTextColor(234, 179, 8); // Yellow-500
+  doc.setFontSize(18); doc.setTextColor(234, 179, 8); // Yellow for Solar
   doc.text("EnerGreen Solar Report", 14, 20);
   
-  doc.setFontSize(11); doc.setTextColor(100);
-  doc.text(`Period: ${activeFilter.value}`, 14, 30);
-  doc.text(`Total Savings: PHP ${savingsValue.value}`, 14, 36);
-  
   autoTable(doc, {
-    startY: 45,
-    head: [[timeLabel, 'Solar (kWh)', 'Grid (kWh)', 'Savings (PHP)']],
-    body: data.map(r => [r.label, r.solar, r.grid, r.savings]),
+    startY: 30,
+    head: [['Date', 'Grid (kWh)', 'Solar (kWh)', 'Savings (PHP)']],
+    body: data.map(r => [r.date, r.grid, r.solar, r.savings]),
     theme: 'grid',
-    headStyles: { fillColor: [234, 179, 8] } // Yellow Header
+    headStyles: { fillColor: [234, 179, 8] } // Yellow header
   });
   doc.save(`${filename}.pdf`);
 };
 
-const exportWord = async (data, filename, timeLabel) => {
+const exportWord = async (data, filename) => {
   const tableRows = [
-    new TableRow({ children: [timeLabel, "Solar (kWh)", "Grid (kWh)", "Savings (PHP)"].map(t => new TableCell({ children: [new Paragraph({ text: t, bold: true })] })) }),
-    ...data.map(r => new TableRow({ children: [r.label, r.solar, r.grid, r.savings].map(t => new TableCell({ children: [new Paragraph(t)] })) }))
+    new TableRow({ children: ["Date", "Grid (kWh)", "Solar (kWh)", "Savings (PHP)"].map(t => new TableCell({ children: [new Paragraph({ text: t, bold: true })] })) }),
+    ...data.map(r => new TableRow({ children: [r.date, r.grid, r.solar, r.savings].map(t => new TableCell({ children: [new Paragraph(t)] })) }))
   ];
-  const doc = new Document({ sections: [{ children: [new Paragraph({ text: "EnerGreen Solar Report", heading: HeadingLevel.HEADING_1 }), new Paragraph({ text: `Total Savings: PHP ${savingsValue.value}` }), new Table({ rows: tableRows, width: { size: 100, type: "pct" } })] }] });
+  
+  const doc = new Document({ 
+      sections: [{ 
+          children: [
+              new Paragraph({ text: "EnerGreen Solar Report", heading: HeadingLevel.HEADING_1 }), 
+              new Table({ 
+                  rows: tableRows, 
+                  width: { size: 100, type: WidthType.PERCENTAGE }
+              })
+          ] 
+      }] 
+  });
+  
   saveAs(await Packer.toBlob(doc), `${filename}.docx`);
 };
 
-// --- Chart Logic ---
-const updateCharts = () => {
-  const chartDiv = document.getElementById('solar-mix-chart');
-  if (!chartDiv) return;
+// --- WATCHERS ---
+watch(() => userProfile.value?.deviceId, (newDeviceId) => {
+    if (newDeviceId) {
+        fetchAllData();
+    }
+}, { immediate: true });
 
-  let xValues = [];
-  let ySolar = [];
-  let yGrid = [];
+onUnmounted(() => {
+  if (hourlyUnsubscribe) hourlyUnsubscribe();
+});
 
-  if (activeFilter.value === 'Daily') {
-    // --- DAILY (Hourly Data) ---
-    xValues = hourlyData.value.map(d => d.hour);
-    ySolar = hourlyData.value.map(d => d.solar);
-    yGrid = hourlyData.value.map(d => d.grid);
-
-  } else if (activeFilter.value === 'Yearly') {
-    // --- YEARLY (Monthly Aggregation) ---
-    const monthlyData = {};
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    rawData.value.forEach(d => {
-      const [year, month] = d.date.split('-'); 
-      const key = `${year}-${month}`;
-      if (!monthlyData[key]) {
-        monthlyData[key] = {
-           label: monthNames[parseInt(month) - 1],
-           solar: 0,
-           grid: 0,
-           sort: new Date(d.date).getTime()
-        };
-      }
-      monthlyData[key].solar += (d.solarKwhTotal || 0);
-      monthlyData[key].grid += (d.gridKwhTotal || 0);
-    });
-
-    const sortedMonths = Object.values(monthlyData).sort((a, b) => a.sort - b.sort).slice(-12);
-    xValues = sortedMonths.map(m => m.label);
-    ySolar = sortedMonths.map(m => m.solar);
-    yGrid = sortedMonths.map(m => m.grid);
-
-  } else {
-    // --- WEEKLY / MONTHLY (Daily Data) ---
-    let days = activeFilter.value === 'Weekly' ? 7 : 30;
-    const chronologicData = rawData.value.slice(0, days).reverse();
-
-    xValues = chronologicData.map(d => {
-      const [year, month, day] = d.date.split('-').map(Number);
-      const date = new Date(year, month - 1, day);
-      if (activeFilter.value === 'Weekly') return date.toLocaleDateString('en-US', { weekday: 'short' }); 
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    });
-
-    ySolar = chronologicData.map(d => d.solarKwhTotal || 0);
-    yGrid = chronologicData.map(d => d.gridKwhTotal || 0);
-  }
-
-  // Plotly Config
-  const traceSolar = {
-    x: xValues, y: ySolar, name: 'Solar', type: 'bar', marker: { color: '#EAB308' }, 
-    hovertemplate: '<b>%{x}</b><br>Solar: %{y:.2f} kWh<extra></extra>'
-  };
-
-  const traceGrid = {
-    x: xValues, y: yGrid, name: 'Grid', type: 'bar', marker: { color: '#9CA3AF' },
-    hovertemplate: '<b>%{x}</b><br>Grid: %{y:.2f} kWh<extra></extra>'
-  };
-
-  const layout = {
-    barmode: 'stack',
-    margin: { l: 40, r: 20, t: 20, b: 40 },
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    legend: { orientation: 'h', y: 1.1, x: 0.3 },
-    showlegend: false, 
-    xaxis: { gridcolor: '#e5e7eb', showgrid: false, tickfont: { size: 11, color: '#6b7280' } },
-    yaxis: { gridcolor: '#e5e7eb', title: 'Energy (kWh)', tickfont: { size: 11, color: '#6b7280' } },
-    font: { family: 'Poppins, sans-serif', color: '#6b7280' }
-  };
-
-  Plotly.newPlot('solar-mix-chart', [traceGrid, traceSolar], layout, { displayModeBar: false, responsive: true });
-};
+watch(activeFilter, updateCharts);
+watch(hourlyData, () => {
+    if (activeFilter.value === 'Daily') {
+        updateCharts();
+    }
+});
 </script>
 
 <style scoped>

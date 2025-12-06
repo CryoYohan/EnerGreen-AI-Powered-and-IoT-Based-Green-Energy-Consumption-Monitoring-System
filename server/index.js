@@ -6,11 +6,14 @@ import { adminRouter } from './adminRoutes.js';
 import { userRouter } from './userRoutes.js';
 import { publicRouter } from './publicRoutes.js';
 import { agentRouter } from './agentRoutes.js';
+import { adminAgentRouter } from './adminAgentRoutes.js';
+import { kobeAgentRouter } from './kobeAgentRoutes.js';
 
 const app = express();
 
 // This tells Express to trust the Load Balancer's headers (Cloud Run standard)
 app.set('trust proxy', 1);
+
 
 // 2. ARMOR: Use Helmet immediately
 app.use(helmet());
@@ -44,9 +47,11 @@ app.use(express.json());
 
 // Mount Routes
 app.use('/api/admin', adminRouter);
+app.use('/api/admin/agent', adminAgentRouter);
 app.use('/api/user', userRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/agent', agentRouter);
+app.use('/api/kobe', kobeAgentRouter);
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
