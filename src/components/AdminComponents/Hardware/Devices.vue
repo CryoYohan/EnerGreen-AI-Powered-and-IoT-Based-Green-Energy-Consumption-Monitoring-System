@@ -122,7 +122,7 @@
 
     <transition name="fade">
       <div v-if="showPopup" 
-        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-[100] flex items-center gap-2', 
           popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
         <span v-if="popupType === 'success'">✅</span>
         <span v-else-if="popupType === 'error'">⚠️</span>
@@ -270,11 +270,11 @@ const saveDeviceChanges = async () => {
     }
 
     closeEditModal();
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Device & User updated', showConfirmButton: false, timer: 3000 });
+    showNotification('Device & User updated successfully', 'success');
     
   } catch (error) {
     console.error("Error updating device:", error);
-    Swal.fire('Error', error.message, 'error');
+    showNotification(error.message, 'error');
   }
 };
 
@@ -283,37 +283,40 @@ const toggleDeviceStatus = async (device) => {
   // Determine current state
   const isInactive = device.status === 'Inactive';
   
-  // Define new state and UI text based on current status
+  // Define new state
   const newStatus = isInactive ? 'Active' : 'Inactive';
-  const actionVerb = isInactive ? 'Activate' : 'Deactivate';
-  const confirmColor = isInactive ? '#10B981' : '#F59E0B'; // Green or Amber
   
-  const result = await Swal.fire({
-    title: `${actionVerb} Device?`,
-    text: `Are you sure you want to ${actionVerb.toLowerCase()} ${device.deviceId}?`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: confirmColor,
-    cancelButtonColor: '#6B7280',
-    confirmButtonText: `Yes, ${actionVerb.toLowerCase()} it`
-  });
-
-  if (result.isConfirmed) {
-    try {
-      await updateDoc(doc(db, 'devices', device.deviceId), {
-        status: newStatus
-      });
-      
-      Swal.fire(
-        `${actionVerb}d!`,
-        `The device is now ${newStatus}.`,
-        'success'
-      );
-    } catch (error) {
-      console.error(`Error ${actionVerb.toLowerCase()}ing device:`, error);
-      Swal.fire('Error', `Failed to ${actionVerb.toLowerCase()} device.`, 'error');
-    }
+  try {
+    await updateDoc(doc(db, 'devices', device.deviceId), {
+      status: newStatus
+    });
+    
+    showNotification(`Device is now ${newStatus}`, 'success');
+  } catch (error) {
+    console.error(`Error updating device status:`, error);
+    showNotification(`Failed to update device status.`, 'error');
   }
+};
+
+const executeToggleStatus = async () => {
+  await toggleDeviceStatus(confirmDevice.value);
+  closeConfirmModal();
+};
+
+// --- CONFIRMATION MODAL ---
+const showConfirmModal = ref(false);
+const confirmDevice = ref({});
+const confirmActionVerb = ref('');
+
+const openConfirmModal = (device) => {
+  confirmDevice.value = device;
+  confirmActionVerb.value = device.status === 'Inactive' ? 'Activate' : 'Deactivate';
+  showConfirmModal.value = true;
+};
+
+const closeConfirmModal = () => {
+  showConfirmModal.value = false;
+  confirmDevice.value = {};
 };
 
 const statusClasses = (status) => {
