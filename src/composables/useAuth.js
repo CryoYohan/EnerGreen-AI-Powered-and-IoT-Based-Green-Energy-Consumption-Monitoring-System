@@ -1,5 +1,5 @@
 import { ref, computed, onUnmounted } from 'vue';
-import { auth, db, doc, getDoc } from '../firebase.js';
+import { auth, db, doc, onSnapshot } from '../firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
@@ -41,9 +41,14 @@ export function useAuth(appId) {
     return userProfile.value?.photoURL || defaultStorageURL.value || localFallbackURL;
   });
 
-  const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-    isLoading.value = true;
-    error.value = null;
+  let profileUnsubscribe = null;
+
+  const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    // If there's an existing profile listener, unsubscribe first (e.g., user switch)
+    if (profileUnsubscribe) {
+      profileUnsubscribe();
+      profileUnsubscribe = null;
+    }
 
     if (firebaseUser) {
       user.value = {
@@ -51,49 +56,46 @@ export function useAuth(appId) {
         email: firebaseUser.email,
         emailVerified: firebaseUser.emailVerified,
       };
+      
+      isLoading.value = true;
+      error.value = null;
+
       try {
-        let attempts = 3;
-        while (attempts > 0) {
-          try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${firebaseUser.uid}/userProfile/profile`);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              userProfile.value = { id: userDoc.id, ...userDoc.data() };
-              console.log('useAuth: Profile fetched:', userProfile.value);
-              break;
-            } else {
-              userProfile.value = null;
-              error.value = 'User profile not found in Firestore';
-              console.error('useAuth: Profile document does not exist for user:', firebaseUser.uid);
-              break;
-            }
-          } catch (err) {
-            console.error(`useAuth: Firestore fetch attempt ${4 - attempts}:`, err.message);
-            attempts--;
-            if (attempts === 0) {
-              error.value = `Failed to fetch user profile: ${err.message}`;
-              userProfile.value = null;
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        const userDocRef = doc(db, `artifacts/${appId}/users/${firebaseUser.uid}/userProfile/profile`);
+        
+        // Use onSnapshot for real-time updates
+        profileUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            userProfile.value = { id: docSnap.id, ...docSnap.data() };
+            // console.log('useAuth: Profile updated:', userProfile.value);
+          } else {
+            userProfile.value = null;
+            error.value = 'User profile not found in Firestore';
+            console.error('useAuth: Profile document does not exist for user:', firebaseUser.uid);
           }
-        }
+          isLoading.value = false;
+          
+          if (isAuthReadyPromiseResolve) isAuthReadyPromiseResolve();
+        }, (err) => {
+          console.error('useAuth: Profile snapshot error:', err.message);
+          error.value = err.message;
+          isLoading.value = false;
+        });
+
       } catch (err) {
-        console.error('useAuth: Unexpected error in profile fetch:', err.message);
+        console.error('useAuth: Unexpected error setting up profile listener:', err.message);
         error.value = err.message;
         userProfile.value = null;
+        isLoading.value = false;
       }
     } else {
       user.value = null;
       userProfile.value = null;
       console.log('useAuth: No user authenticated');
+      isLoading.value = false;
+
+      if (isAuthReadyPromiseResolve) isAuthReadyPromiseResolve();
     }
-
-    isLoading.value = false;
-
-    if (isAuthReadyPromiseResolve) {
-      isAuthReadyPromiseResolve();
-    }
-
   }, (err) => {
     console.error('useAuth: Auth state error:', err.message);
     error.value = err.message;
@@ -105,7 +107,8 @@ export function useAuth(appId) {
   });
 
   onUnmounted(() => {
-    unsubscribe();
+    authUnsubscribe();
+    if (profileUnsubscribe) profileUnsubscribe();
   });
 
   return { user, userProfile, isLoading, error, isPremium, isAdmin, displayPhotoURL, waitForAuthReady };
