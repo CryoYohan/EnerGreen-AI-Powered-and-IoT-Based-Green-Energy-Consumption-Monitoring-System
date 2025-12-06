@@ -62,12 +62,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { db, auth } from '@/firebase.js'; 
-import { collection, query, onSnapshot, collectionGroup } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth'; 
+import { onMounted, onUnmounted } from 'vue';
+import { useHardware } from '@/composables/useHardware.js';
 
+// Components
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
@@ -75,19 +73,13 @@ import InventoryDevice from "@/components/AdminComponents/Hardware/InventoryDevi
 import Devices from "@/components/AdminComponents/Hardware/Devices.vue";
 import Firmware from "@/components/AdminComponents/Hardware/Firmware.vue";
 
-const devices = ref([]);
-const users = ref([]); 
-const loading = ref(true);
-const router = useRouter(); 
-
-// ✅ ADDED: Notification State
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("success"); 
-
-let unsubscribeDevices = null;
-let unsubscribeUsers = null; 
-let unsubscribeAuth = null; 
+const {
+  devices,
+  users,
+  dynamicMetrics,
+  initHardwareListeners,
+  cleanupHardwareListeners
+} = useHardware();
 
 // ✅ ADDED: Helper to Trigger Notification
 const showNotification = (message, type = 'success') => {
@@ -107,84 +99,10 @@ const handleDeviceAdded = (deviceId) => {
 };
 
 onMounted(() => {
-  unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      if (!unsubscribeDevices) { 
-        const devicesQuery = query(collection(db, "devices"));
-        unsubscribeDevices = onSnapshot(devicesQuery, (querySnapshot) => {
-          devices.value = querySnapshot.docs.map(doc => doc.data());
-          loading.value = false;
-        }, (error) => {
-          console.error("Error fetching devices:", error);
-          loading.value = false;
-        });
-      }
-
-      if (!unsubscribeUsers) {
-        const usersQuery = query(collectionGroup(db, 'userProfile'));
-        unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
-          users.value = querySnapshot.docs.map(doc => ({
-            uid: doc.ref.parent.parent.id, 
-            ...doc.data()
-          }));
-        });
-      }
-
-    } else {
-      if (unsubscribeDevices) {
-        unsubscribeDevices();
-        unsubscribeDevices = null;
-      }
-      if (unsubscribeUsers) {
-        unsubscribeUsers();
-        unsubscribeUsers = null;
-      }
-      router.push('/');
-    }
-  });
+  initHardwareListeners();
 });
 
 onUnmounted(() => {
-  if (unsubscribeDevices) unsubscribeDevices();
-  if (unsubscribeUsers) unsubscribeUsers();
-  if (unsubscribeAuth) unsubscribeAuth();
-});
-
-const dynamicMetrics = computed(() => {
-  return [
-    {
-      title: 'Total devices',
-      cost: devices.value.length.toString(),
-      definition: 'All Registered Units'
-    },
-    {
-      title: 'Active',
-      cost: devices.value.filter(d => d.status === 'Active').length.toString(),
-      definition: 'Devices Currently Online'
-    },
-    {
-      title: 'Offline',
-      cost: devices.value.filter(d => d.status === 'Offline').length.toString(),
-      definition: 'Devices Currently Offline'
-    },
-    {
-      title: 'Maintenance',
-      cost: devices.value.filter(d => d.status === 'Maintenance').length.toString(),
-      definition: 'Devices in Maintenance'
-    },
-  ];
+  cleanupHardwareListeners();
 });
 </script>
-
-<style scoped>
-/* ✅ ADDED: Transition Styles for the popup */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

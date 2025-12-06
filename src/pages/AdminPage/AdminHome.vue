@@ -175,10 +175,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
-import { db, auth } from "@/firebase.js";
-import { collection, query, onSnapshot, collectionGroup, orderBy, limit } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onMounted, onUnmounted } from "vue";
+import { useAdminDashboard } from "@/composables/useAdminDashboard.js";
 
 // Components
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
@@ -187,185 +185,29 @@ import Footer from "@/components/ReusableComponents/Footer.vue";
 import Firmware from "@/components/AdminComponents/Home/FirmwareEchoHeroes.vue";
 import OverviewStatus from "@/components/AdminComponents/Home/OverviewStatus.vue";
 
-// --- State ---
-const stats = reactive({
-  totalUsers: 0,
-  totalDevices: 0,
-  activeDevices: 0,
-  systemHealth: 100
-});
+// --- Composable Logic ---
+const {
+  initListeners,
+  cleanupListeners,
+  dailyMetrics,
+  firmwareChartData,
+  lastFirmwareDate,
+  ecoHeroes,
+  attentionDevices,
+  recentDevices,
+  inventoryChartData,
+  statusCounts
+} = useAdminDashboard();
 
-const firmwareReleases = ref([]);
-const ecoHeroes = ref([]);
-const devices = ref([]);
-const users = ref([]); 
-const recentDevices = ref([]);
-const attentionDevices = ref([]);
-
-let unsubscribeAuth = null;
-let unsubscribeUsers = null;
-let unsubscribeDevices = null;
-let unsubscribeFirmware = null;
-// --- 1. Fetch Real-Time Data ---
 onMounted(() => {
-  unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      
-      // A. Users (Count & Subscription Data) // 🟢 FIX: Correctly populate users.value
-      unsubscribeUsers = onSnapshot(query(collectionGroup(db, 'userProfile')), (snap) => {
-        stats.totalUsers = snap.size;
-        
-        // 🟢 THE FIX IS HERE: Mapping the subscription data to the users ref
-        users.value = snap.docs.map(doc => {
-            const d = doc.data();
-            return {
-                ...d,
-                subscriptionTier: d.subscriptionTier || 'Free' // Ensure tier exists
-            };
-        });
-        
-        // Mock Heroes for now
-        ecoHeroes.value = [
-           { name: "John Bake", co2: "29.4 kg", img: "/src/Images/profile/pfp.png" },
-           { name: "Kate Lim", co2: "18 kg", img: "/src/Images/profile/pfp.png" },
-           { name: "Marc Homes", co2: "13 kg", img: "/src/Images/profile/pfp.png" },
-        ];
-      });
-
-      // B. Devices (Inventory, Recent, Attention)
-      unsubscribeDevices = onSnapshot(collection(db, 'devices'), (snap) => {
-        const allDevices = snap.docs.map(d => d.data());
-        devices.value = allDevices;
-        
-        stats.totalDevices = allDevices.length;
-        stats.activeDevices = allDevices.filter(d => d.status === 'Active').length;
-        
-        if (stats.totalDevices > 0) {
-          stats.systemHealth = ((stats.activeDevices / stats.totalDevices) * 100).toFixed(1);
-        }
-
-        // 1. Attention Needed (Offline or Maintenance)
-        attentionDevices.value = allDevices.filter(d => 
-          d.status === 'Offline' || d.status === 'Maintenance'
-        );
-
-        // 2. Recent Activity (Sort by lastSync descending)
-        const sorted = [...allDevices].sort((a, b) => {
-           const dateA = a.lastSync?.seconds || 0;
-           const dateB = b.lastSync?.seconds || 0;
-           return dateB - dateA;
-        });
-        recentDevices.value = sorted.slice(0, 5); // Top 5
-      });
-
-      // C. Firmware (Latest Version)
-      const qFirmware = query(collection(db, 'firmware_releases'), orderBy('uploadedAt', 'desc'), limit(5));
-      unsubscribeFirmware = onSnapshot(qFirmware, (snap) => {
-        firmwareReleases.value = snap.docs.map(d => d.data());
-      });
-
-    }
-  });
+  initListeners();
 });
 
 onUnmounted(() => {
-  if (unsubscribeUsers) unsubscribeUsers();
-  if (unsubscribeDevices) unsubscribeDevices();
-  if (unsubscribeFirmware) unsubscribeFirmware();
-  if (unsubscribeAuth) unsubscribeAuth();
+  cleanupListeners();
 });
 
-// --- 2. Computed Props ---
-
-// 🟢 NEW HELPER: Identify premium users for MRR calculation
-const premiumUsers = computed(() => users.value.filter(u => u.subscriptionTier === 'Premium'));
-// 🟢 NEW HELPER: Identify sold devices for Hardware Revenue calculation
-const soldDevices = computed(() => devices.value.filter(d => d.ownerName && d.ownerName.trim() !== ''));
-
-const dailyMetrics = computed(() => {
-    // 1. Calculate MRR (Monthly Recurring Revenue)
-    // Uses the now correctly populated `premiumUsers` computed property
-    const monthlyRevenue = premiumUsers.value.length * 599; // Assuming ₱599/month per premium user
-
-    // 2. Calculate Hardware Revenue (Cumulative Lifetime Sales)
-    // Uses the `soldDevices` computed property
-    const hardwareRevenue = soldDevices.value.length * 4999; // Assuming ₱4999/unit
-
-    // 3. Calculate Total Revenue (MRR + Total Hardware Sales)
-    const totalRevenue = monthlyRevenue + hardwareRevenue;
-
-   return [
-      { 
-         title: 'Total devices', 
-         cost: stats.totalDevices.toString(), 
-         definition: 'All Registered Units' 
-      },
-      { 
-         title: 'Active Users', 
-         cost: stats.totalUsers.toString(), 
-         definition: 'Registered Accounts' 
-      },
-      { 
-         title: 'System Health', 
-         cost: stats.systemHealth + '%', 
-         definition: 'Fleet Availability' 
-      },
-      { 
-         title: 'Latest Firmware', 
-         cost: firmwareReleases.value[0]?.version || 'v0.0.0', 
-         definition: 'Current Release' 
-      },
-      { 
-         title: 'Total Revenue', 
-         cost: `₱${totalRevenue.toLocaleString()}`, 
-         // Now the MRR value here should be correct
-         definition: `MRR: ₱${monthlyRevenue.toLocaleString()} + Hardware: ₱${hardwareRevenue.toLocaleString()}` 
-      },
-   ];
-});
-
-const firmwareChartData = computed(() => {
-  const latest = firmwareReleases.value[0]?.version || 'v1.0.0';
-  return {
-    labels: [latest, "Older Versions"],
-    datasets: [{
-      data: [85, 15], 
-      backgroundColor: ["#22C55E", "#60A5FA"],
-      borderWidth: 0,
-      cutout: "60%"
-    }]
-  };
-});
-
-const lastFirmwareDate = computed(() => {
-  const date = firmwareReleases.value[0]?.uploadedAt?.toDate();
-  return date ? date.toLocaleDateString() : 'N/A';
-});
-
-const inventoryChartData = computed(() => {
-  const plugs = devices.value.filter(d => d.type === 'Smart Plug').length;
-  const panels = devices.value.filter(d => d.type === 'Solar Panel').length;
-  const meters = devices.value.filter(d => d.type === 'Smart Meter').length;
-  const others = devices.value.length - (plugs + panels + meters);
-  
-  return {
-    labels: ["Smart Plugs", "Solar Panels", "Smart Meters", "Others"],
-    datasets: [{
-      data: [plugs, panels, meters, others],
-      backgroundColor: ["#22C55E", "#60A5FA", "#EAA552", "#EA52C4"],
-      borderWidth: 0,
-      cutout: "60%"
-    }]
-  };
-});
-
-const statusCounts = computed(() => ({
-  active: stats.activeDevices,
-  offline: devices.value.filter(d => d.status === 'Offline').length,
-  maintenance: devices.value.filter(d => d.status === 'Maintenance').length
-}));
-
-// Helpers
+// Helpers (Pure View Logic)
 const getStatusClass = (status) => {
   if (status === 'Active') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
   if (status === 'Offline') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';

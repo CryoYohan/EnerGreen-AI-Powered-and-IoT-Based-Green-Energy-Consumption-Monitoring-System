@@ -89,7 +89,6 @@
         </div>
 
         <!-- RIGHT: Subscription Management (1/3 Width) -->
-        <!-- Fixed Layout: Flex column with gap to prevent overlapping -->
         <div class="lg:col-span-1 flex flex-col gap-6 h-full">
            
            <!-- Active Subscriptions List -->
@@ -159,9 +158,9 @@
 
     <!-- Notification Toast -->
     <transition name="fade">
-      <div v-if="showPopup" 
+      <div v-if="popup.show" 
            class="fixed top-24 right-5 z-[100] px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-white/10 backdrop-blur-md bg-gray-900 text-white">
-        <span class="font-medium text-sm">{{ popupMessage }}</span>
+        <span class="font-medium text-sm">{{ popup.message }}</span>
       </div>
     </transition>
 
@@ -169,68 +168,38 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { db } from "@/firebase.js";
-import { collection, query, onSnapshot, collectionGroup } from "firebase/firestore";
-import api from "@/services/api"; 
+import { computed, onMounted, onUnmounted } from "vue";
 import Swal from "sweetalert2";
+import { useSalesAnalytics } from "@/composables/useSalesAnalytics.js";
 
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
-import { CurrencyDollarIcon, UserGroupIcon, ChartBarIcon, ShoppingCartIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline';
+import { CurrencyDollarIcon, UserGroupIcon, ChartBarIcon, ShoppingCartIcon } from '@heroicons/vue/24/outline';
 
-// State
-const devices = ref([]);
-const users = ref([]);
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("info");
-
-// --- Listeners ---
-let unsubDevices = null;
-let unsubUsers = null;
+const {
+  users,
+  popup,
+  soldDevices,
+  inventoryDevices,
+  premiumUsers,
+  freeUsersCount,
+  
+  initSalesListeners,
+  cleanupSalesListeners,
+  updateUserSubscription
+} = useSalesAnalytics();
 
 onMounted(() => {
-  // 1. Listen to Devices (For Hardware Inventory & Sales)
-  const qDevices = query(collection(db, 'devices'));
-  unsubDevices = onSnapshot(qDevices, (snap) => {
-    devices.value = snap.docs.map(doc => ({ deviceId: doc.id, ...doc.data() }));
-  }, (error) => console.error("Devices Error:", error));
-
-  // 2. Listen to Users (For Subscriptions)
-  const qUsers = query(collectionGroup(db, 'userProfile'));
-  unsubUsers = onSnapshot(qUsers, (snap) => {
-    users.value = snap.docs.map(doc => {
-        const d = doc.data();
-        const uid = doc.ref.parent.parent ? doc.ref.parent.parent.id : doc.id;
-        
-        // ✅ FIX: Map fullName to name, set fallback
-        return { 
-            userId: uid, 
-            name: d.fullName || d.name || 'User', // Fallback ensures no empty strings
-            email: d.email || 'No Email',
-            subscriptionTier: d.subscriptionTier || 'Free',
-            ...d 
-        };
-    });
-  }, (error) => console.error("Users Error:", error));
+  initSalesListeners();
 });
 
 onUnmounted(() => {
-  if (unsubDevices) unsubDevices();
-  if (unsubUsers) unsubUsers();
+  cleanupSalesListeners();
 });
 
-// --- Logic ---
-const soldDevices = computed(() => devices.value.filter(d => d.ownerName && d.ownerName.trim() !== ''));
-const inventoryDevices = computed(() => devices.value.filter(d => !d.ownerName || d.ownerName.trim() === ''));
-
-const premiumUsers = computed(() => users.value.filter(u => u.subscriptionTier === 'Premium'));
-const freeUsersCount = computed(() => users.value.length - premiumUsers.value.length);
-
+// View-Specific Computed Props (Metrics)
 const computedKpiMetrics = computed(() => {
-  // UPDATED PRICES: Hardware: 4999, Software: 599
   const hardwareRevenue = soldDevices.value.length * 4999;
   const monthlyRevenue = premiumUsers.value.length * 599;
 
@@ -266,15 +235,7 @@ const computedKpiMetrics = computed(() => {
   ];
 });
 
-// --- Actions ---
-
-const showNotification = (msg, type = 'info') => {
-  popupMessage.value = msg;
-  popupType.value = type;
-  showPopup.value = true;
-  setTimeout(() => showPopup.value = false, 3000);
-};
-
+// UI Interaction
 const openSubModal = async (user) => {
     const { value: newTier } = await Swal.fire({
         title: `Manage ${user.name}`,
@@ -291,20 +252,7 @@ const openSubModal = async (user) => {
     });
 
     if (newTier && newTier !== user.subscriptionTier) {
-        try {
-            const response = await api.post('/api/admin/sales/update-subscription', {
-                targetUid: user.userId,
-                tier: newTier,
-                status: 'Active'
-            });
-            
-            if(response.data.success) {
-                showNotification(`User updated to ${newTier}`, 'success');
-            }
-        } catch (e) {
-            const msg = e.response?.data?.error || e.message;
-            showNotification(`Update failed: ${msg}`, 'error');
-        }
+        await updateUserSubscription(user.userId, newTier);
     }
 };
 </script>
