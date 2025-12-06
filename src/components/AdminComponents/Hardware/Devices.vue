@@ -46,7 +46,7 @@
                 <button @click="openEditModal(device)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">Edit</button>
                 
                 <button 
-                  @click="toggleDeviceStatus(device)" 
+                  @click="openConfirmModal(device)" 
                   :class="device.status === 'Inactive' 
                     ? 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300' 
                     : 'text-amber-600 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300'"
@@ -98,6 +98,39 @@
       </div>
     </div>
 
+    <transition name="fade">
+      <div v-if="showConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeConfirmModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+          <h3 class="text-xl font-semibold mb-4" 
+              :class="confirmActionVerb === 'Activate' ? 'text-green-600' : 'text-amber-600'">
+            Confirm {{ confirmActionVerb }}
+          </h3>
+          <p class="mb-6 text-gray-700 dark:text-gray-300">
+            Are you sure you want to <strong>{{ confirmActionVerb.toLowerCase() }}</strong> device <strong>{{ confirmDevice.deviceId }}</strong>?
+          </p>
+          <div class="flex justify-center gap-4">
+            <button @click="closeConfirmModal" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+            <button @click="executeToggleStatus" 
+                    :class="confirmActionVerb === 'Activate' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'"
+                    class="px-4 py-2 text-white rounded-md transition-colors">
+              Yes, {{ confirmActionVerb }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="showPopup" 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popupType === 'success'">✅</span>
+        <span v-else-if="popupType === 'error'">⚠️</span>
+        <span v-else>ℹ️</span>
+        {{ popupMessage }}
+      </div>
+    </transition>
+
   </div>
 </template>
 
@@ -106,7 +139,6 @@ import { ref, computed, reactive } from 'vue';
 import { db } from '@/firebase.js';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useDarkMode } from '@/composables/useDarkMode.js';
-import Swal from 'sweetalert2';
 
 const props = defineProps({
   devices: { type: Array, default: () => [] },
@@ -117,6 +149,21 @@ const { isDarkMode } = useDarkMode();
 const searchTerm = ref("");
 const selectedType = ref("");
 const selectedStatus = ref("");
+
+// Notification State
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("success"); 
+
+// Helper Function for Notifications
+const showNotification = (message, type = 'success') => {
+  popupMessage.value = message;
+  popupType.value = type;
+  showPopup.value = true;
+  setTimeout(() => {
+    showPopup.value = false;
+  }, 3000);
+};
 
 const headers = [
   { key: "deviceId", label: "Device ID" },
@@ -178,97 +225,87 @@ const saveDeviceChanges = async () => {
   if (!editingDevice.value.deviceId) return;
   
   const deviceId = editingDevice.value.deviceId;
-  const newUserId = editForm.userId; // The new user ID (or "" if unassigned)
-  const oldUserId = editingDevice.value.userId; // The previous owner
+  const newUserId = editForm.userId; 
+  const oldUserId = editingDevice.value.userId; 
 
   try {
     const deviceRef = doc(db, 'devices', deviceId);
-    
-    // 1. Find selected user object to get their Name
     const selectedUser = props.users.find(u => u.uid === newUserId);
-    const userName = selectedUser ? selectedUser.fullName : null; // Null if unassigned
+    const userName = selectedUser ? selectedUser.fullName : null; 
     
-    // 2. Update Device Document
     await updateDoc(deviceRef, {
-      userId: newUserId || null, // Ensure null if empty string
+      userId: newUserId || null,
       ownerName: userName,
       status: editForm.status,
       location: editForm.location
     });
 
-    // --- SYNC LOGIC ---
-
-    // 3. If there was an OLD owner, remove the device from their profile
     if (oldUserId && oldUserId !== newUserId) {
-      // Construct path: users/{oldUserId}/userProfile/profile
-      // We assume standard path. If not found, the update will just fail silently or throw error we catch
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      const oldUserRef = doc(db, `artifacts/${appId}/users/${oldUserId}/userProfile/profile`);
-      
-      // Check if doc exists before updating to prevent errors on deleted users
-      // (Optional optimization, updateDoc fails gracefully on non-existent docs usually)
-      try {
-        await updateDoc(oldUserRef, { deviceId: "None" }); 
-      } catch (e) {
-        console.warn("Could not update old user profile (maybe deleted):", e);
-      }
+      const oldUserRef = doc(db, `users/${oldUserId}/userProfile/profile`); 
+      try { await updateDoc(oldUserRef, { deviceId: "None" }); } catch (e) { console.warn(e); }
     }
-
-    // 4. If there is a NEW owner, assign the device to their profile
     if (newUserId) {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      const newUserRef = doc(db, `artifacts/${appId}/users/${newUserId}/userProfile/profile`);
-      
+      const newUserRef = doc(db, `users/${newUserId}/userProfile/profile`);
       await updateDoc(newUserRef, { deviceId: deviceId });
     }
 
     closeEditModal();
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Device & User updated', showConfirmButton: false, timer: 3000 });
+    showNotification('Device & User updated successfully', 'success');
     
   } catch (error) {
     console.error("Error updating device:", error);
-    Swal.fire('Error', error.message, 'error');
+    showNotification(error.message, 'error');
   }
 };
 
-// --- TOGGLE STATUS LOGIC (Activate / Deactivate) ---
-const toggleDeviceStatus = async (device) => {
-  // Determine current state
+// --- ✅ CONFIRMATION MODAL STATE ---
+const showConfirmModal = ref(false);
+const confirmDevice = ref({});
+const confirmActionVerb = ref('');
+
+// Open the confirmation modal
+const openConfirmModal = (device) => {
+  confirmDevice.value = device;
+  confirmActionVerb.value = device.status === 'Inactive' ? 'Activate' : 'Deactivate';
+  showConfirmModal.value = true;
+};
+
+// Close the confirmation modal
+const closeConfirmModal = () => {
+  showConfirmModal.value = false;
+  confirmDevice.value = {};
+  confirmActionVerb.value = '';
+};
+
+// Execute the action after confirmation
+const executeToggleStatus = async () => {
+  // ✅ FIX: Capture the data BEFORE closing the modal
+  const device = confirmDevice.value;
+  
+  // Safety check
+  if (!device || !device.deviceId) {
+    closeConfirmModal();
+    return;
+  }
+
   const isInactive = device.status === 'Inactive';
-  
-  // Define new state and UI text based on current status
   const newStatus = isInactive ? 'Active' : 'Inactive';
-  const actionVerb = isInactive ? 'Activate' : 'Deactivate';
-  const confirmColor = isInactive ? '#10B981' : '#F59E0B'; // Green or Amber
-  
-  const result = await Swal.fire({
-    title: `${actionVerb} Device?`,
-    text: `Are you sure you want to ${actionVerb.toLowerCase()} ${device.deviceId}?`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: confirmColor,
-    cancelButtonColor: '#6B7280',
-    confirmButtonText: `Yes, ${actionVerb.toLowerCase()} it`
-  });
+  const actionVerb = confirmActionVerb.value;
 
-  if (result.isConfirmed) {
-    try {
-      await updateDoc(doc(db, 'devices', device.deviceId), {
-        status: newStatus
-      });
-      
-      Swal.fire(
-        `${actionVerb}d!`,
-        `The device is now ${newStatus}.`,
-        'success'
-      );
-    } catch (error) {
-      console.error(`Error ${actionVerb.toLowerCase()}ing device:`, error);
-      Swal.fire('Error', `Failed to ${actionVerb.toLowerCase()} device.`, 'error');
-    }
+  // Now safe to close modal
+  closeConfirmModal(); 
+
+  try {
+    await updateDoc(doc(db, 'devices', device.deviceId), {
+      status: newStatus
+    });
+    showNotification(`Device is now ${newStatus}`, 'success');
+  } catch (error) {
+    console.error(`Error ${actionVerb.toLowerCase()}ing device:`, error);
+    showNotification(`Failed to ${actionVerb.toLowerCase()} device.`, 'error');
   }
 };
-
+// --- UTILS ---
 const statusClasses = (status) => {
   const isDark = isDarkMode.value;
   const safeStatus = status || 'Inactive'; 
@@ -291,3 +328,16 @@ const formatLastSync = (timestamp) => {
   return 'N/A';
 };
 </script>
+
+<style scoped>
+/* Transition Styles for the popups */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
