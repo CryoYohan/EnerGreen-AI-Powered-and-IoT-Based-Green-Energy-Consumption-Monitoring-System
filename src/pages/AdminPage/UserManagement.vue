@@ -63,13 +63,13 @@
     
     <!-- Notifications -->
     <transition name="fade">
-      <div v-if="showPopup" 
+      <div v-if="popup.show" 
         :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
-          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
-        <span v-if="popupType === 'success'">✅</span>
-        <span v-else-if="popupType === 'error'">⚠️</span>
+          popup.type === 'info' ? 'bg-blue-500' : popup.type === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popup.type === 'success'">✅</span>
+        <span v-else-if="popup.type === 'error'">⚠️</span>
         <span v-else>ℹ️</span>
-        {{ popupMessage }}
+        {{ popup.message }}
       </div>
     </transition>
 
@@ -248,122 +248,59 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
-import { initializeApp } from "firebase/app"; 
-import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { collectionGroup, collection, query, onSnapshot, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/firebase.js";
-import api from "@/services/api"; 
+import { useUserManagement } from "@/composables/useUserManagement.js";
 
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
-import UserInsights from "@/components/AdminComponents/Users/UserInsights.vue";
-import EcoHeroes from "@/components/AdminComponents/Users/EcoHeroes.vue"; 
 import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
+const {
+  users,
+  devices,
+  isAddingUser,
+  isEditingUser,
+  
+  initUserManagement,
+  cleanupUserManagement,
+  
+  createUser,
+  updateUserStatus,
+  removeUser,
+  updateUserProfile
+} = useUserManagement();
 
-// State
-const auth = getAuth();
-const users = ref([]);
-const devices = ref([]); 
-let unsubscribeUsers = null;
-let unsubscribeDevices = null;
-let unsubscribeAuth = null;
-
-const insights = ref({ growthRate: [10, 12, 14, 15], churnRate: [4, 5, 6, 5], onlineUsers: [25, 28, 32, 37], topHero: "Eco42", labels: ["W1", "W2", "W3", "W4"] });
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("info");
-
-// Add User State
+// Local UI State
 const showAddModal = ref(false);
-const isAddingUser = ref(false);
+const showEditModal = ref(false);
+const isViewOnly = ref(false);
+const popup = reactive({ show: false, message: "", type: "info" });
+
 const newUserForm = reactive({
-  email: '',
-  password: '',
-  fullName: '',
-  phoneNumber: '',
-  address: '',
-  role: 'user',
-  deviceId: 'None',
-  electricityProvider: 'veco', // Default
-  subscriptionTier: 'Free'     // Default
+  email: '', password: '', fullName: '', phoneNumber: '', address: '', 
+  role: 'user', deviceId: 'None', electricityProvider: 'veco', subscriptionTier: 'Free'
 });
 
-// Edit User State (New)
-const showEditModal = ref(false);
-const isEditingUser = ref(false);
-const isViewOnly = ref(false);
-const editUserForm = reactive({}); // Will be populated on open
+const editUserForm = reactive({});
 
-const showNotification = (message, type = "info", duration = 3000) => {
-  popupMessage.value = message;
-  popupType.value = type;
-  showPopup.value = true;
-  setTimeout(() => (showPopup.value = false), duration);
+const showNotification = (message, type = "info") => {
+  popup.message = message;
+  popup.type = type;
+  popup.show = true;
+  setTimeout(() => (popup.show = false), 3000);
 };
 
-// --- 1. INITIALIZATION ---
+// --- Lifecycle ---
 onMounted(() => {
-  unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      
-      // Fetch Users
-      if (!unsubscribeUsers) {
-        const qUsers = query(collectionGroup(db, 'userProfile'));
-        unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
-          users.value = snapshot.docs.map(docSnap => {
-            const data = docSnap.data();
-            const uid = docSnap.ref.parent.parent ? docSnap.ref.parent.parent.id : docSnap.id; 
-            return {
-              userId: uid,
-              docPath: docSnap.ref.path,
-              name: data.fullName || data.name || "Unnamed",
-              email: data.email || "No Email",
-              location: data.address || data.location || "Unknown",
-              smartMeterID: data.deviceId || "None",
-              status: data.status || "Active",
-              role: data.role || "user",
-              photoURL: data.photoURL,
-              // Map new fields if present
-              electricityProvider: data.electricityProvider || 'veco',
-              subscriptionTier: data.subscriptionTier || 'Free',
-              createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
-            };
-          });
-        });
-      }
-
-      // Fetch Devices
-      if (!unsubscribeDevices) {
-        const qDevices = query(collection(db, "devices"));
-        unsubscribeDevices = onSnapshot(qDevices, (snapshot) => {
-          devices.value = snapshot.docs.map(doc => doc.data());
-        });
-      }
-
-    } else {
-      if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
-      if (unsubscribeDevices) { unsubscribeDevices(); unsubscribeDevices = null; }
-    }
-  });
+  initUserManagement();
 });
 
 onUnmounted(() => {
-  if (unsubscribeUsers) unsubscribeUsers();
-  if (unsubscribeDevices) unsubscribeDevices();
-  if (unsubscribeAuth) unsubscribeAuth();
+  cleanupUserManagement();
 });
 
-// --- 2. CREATE USER LOGIC ---
+// --- Handlers ---
+
 const openAddUserModal = () => {
   Object.assign(newUserForm, { 
       email: '', password: '', fullName: '', phoneNumber: '', address: '', 
@@ -373,94 +310,30 @@ const openAddUserModal = () => {
 };
 
 const handleAddUser = async () => {
-  isAddingUser.value = true;
-  let secondaryApp = null;
-
-  try {
-    secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
-    const secondaryAuth = getAuth(secondaryApp);
-
-    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUserForm.email, newUserForm.password);
-    const newUid = userCredential.user.uid;
-
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    
-    const userProfileRef = doc(db, `artifacts/${appId}/users/${newUid}/userProfile/profile`);
-    await setDoc(userProfileRef, {
-      email: newUserForm.email,
-      fullName: newUserForm.fullName,
-      phoneNumber: newUserForm.phoneNumber,
-      address: newUserForm.address,
-      role: newUserForm.role,
-      deviceId: newUserForm.deviceId === 'None' ? null : newUserForm.deviceId,
-      // New Fields
-      electricityProvider: newUserForm.electricityProvider,
-      subscriptionTier: newUserForm.subscriptionTier,
-      subscriptionStatus: 'Active',
-      photoURL: null,
-      status: 'Active',
-      createdAt: serverTimestamp()
-    });
-
-    if (newUserForm.deviceId !== 'None') {
-      const { updateDoc } = await import("firebase/firestore"); 
-      const deviceRef = doc(db, "devices", newUserForm.deviceId);
-      await updateDoc(deviceRef, {
-        userId: newUid,
-        ownerName: newUserForm.fullName,
-        location: newUserForm.address 
-      });
-    }
-
-    await signOut(secondaryAuth);
-    
+  const result = await createUser(newUserForm);
+  if (result.success) {
     showNotification(`User ${newUserForm.fullName} created successfully!`, "success");
     showAddModal.value = false;
-
-  } catch (error) {
-    console.error("Error creating user:", error);
-    showNotification(error.message, "error");
-  } finally {
-    isAddingUser.value = false;
-  }
-};
-
-// --- 3. SECURE BACKEND CALLS (Proxy) ---
-const callCloudFunction = async (action, uid) => {
-  try {
-    const endpoints = {
-      suspend: '/api/admin/suspend-user',
-      enable: '/api/admin/enable-user',
-      delete: '/api/admin/delete-user'
-    };
-
-    const response = await api.post(endpoints[action], { uid });
-    return { success: true, data: response.data };
-
-  } catch (error) {
-    console.error(`Failed to ${action} user:`, error);
-    const msg = error.response?.data?.error || error.message || "Network error";
-    return { success: false, error: msg };
+  } else {
+    showNotification(result.error, "error");
   }
 };
 
 const handleStatusChange = async ({ user, status }) => {
-  const action = status === 'Inactive' ? 'suspend' : 'enable';
-  showNotification(`${action === 'suspend' ? 'Suspending' : 'Enabling'} ${user.name}...`, "info");
-
-  const result = await callCloudFunction(action, user.userId);
+  const action = status === 'Inactive' ? 'Suspending' : 'Enabling';
+  showNotification(`${action} ${user.name}...`, "info");
   
+  const result = await updateUserStatus(user, status);
   if (result.success) {
-      showNotification(`User ${user.name} successfully ${action === 'suspend' ? 'suspended' : 'enabled'}!`, "success");
+    showNotification(`User ${user.name} updated!`, "success");
   } else {
-      showNotification(`Failed: ${result.error}`, "error");
+    showNotification(`Failed: ${result.error}`, "error");
   }
 };
 
 const handleDeleteUser = async (user) => {
   showNotification(`Deleting ${user.name}...`, "info");
-  const result = await callCloudFunction("delete", user.userId);
-  
+  const result = await removeUser(user);
   if (result.success) {
     showNotification("User deleted!", "success");
   } else {
@@ -468,62 +341,47 @@ const handleDeleteUser = async (user) => {
   }
 };
 
-// --- 4. EDIT USER LOGIC (New Modal & Proxy) ---
-// Triggered by @edit-user event from UsersTable
 const openEditModal = (user) => {
-    // Check if the user status is 'deleted'
-    isViewOnly.value = user.status && user.status.toLowerCase() === 'deleted';
-    
-    // Populate the form with existing user data
-    Object.assign(editUserForm, {
-        userId: user.userId,
-        email: user.email,
-        name: user.name,
-        location: user.location,
-        role: user.role,
-        smartMeterID: user.smartMeterID,
-        electricityProvider: user.electricityProvider,
-        subscriptionTier: user.subscriptionTier,
-        status: user.status
-    });
-    showEditModal.value = true;
+  isViewOnly.value = user.status && user.status.toLowerCase() === 'deleted';
+  Object.assign(editUserForm, {
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      location: user.location,
+      role: user.role,
+      smartMeterID: user.smartMeterID,
+      electricityProvider: user.electricityProvider,
+      subscriptionTier: user.subscriptionTier,
+      status: user.status
+  });
+  showEditModal.value = true;
 };
 
 const handleEditUserSubmit = async () => {
-  isEditingUser.value = true;
   showNotification(`Updating profile for ${editUserForm.name}...`, "info");
+  const result = await updateUserProfile(editUserForm.userId, {
+    name: editUserForm.name,
+    location: editUserForm.location, 
+    role: editUserForm.role,
+    deviceId: editUserForm.smartMeterID,
+    electricityProvider: editUserForm.electricityProvider,
+    subscriptionTier: editUserForm.subscriptionTier
+  });
   
-  try {
-    const response = await api.post('/api/admin/edit-user', {
-      uid: editUserForm.userId,
-      updates: {
-        name: editUserForm.name,
-        location: editUserForm.location, 
-        role: editUserForm.role,
-        deviceId: editUserForm.smartMeterID,
-        electricityProvider: editUserForm.electricityProvider,
-        subscriptionTier: editUserForm.subscriptionTier
-      }
-    });
-
-    if (response.data.success) {
-        showNotification("User profile updated successfully!", "success");
-        showEditModal.value = false;
-    }
-  } catch (error) {
-    console.error("Edit failed:", error);
-    const msg = error.response?.data?.error || error.message || "Unknown error";
-    showNotification(`Edit failed: ${msg}`, "error");
-  } finally {
-    isEditingUser.value = false;
+  if (result.success) {
+    showNotification("User profile updated successfully!", "success");
+    showEditModal.value = false;
+  } else {
+    showNotification(`Edit failed: ${result.error}`, "error");
   }
 };
 
+// --- Metrics ---
 const dynamicMetrics = computed(() => {
   return [
     { title: "Total Users", cost: users.value.length.toString() },
-    { title: "Active Users", cost: users.value.filter(u => u.status === 'active').length.toString() },
-    { title: "Inactive Users", cost: users.value.filter(u => u.status === 'inactive').length.toString() },
+    { title: "Active Users", cost: users.value.filter(u => u.status === 'Active' || u.status === 'active').length.toString() },
+    { title: "Inactive Users", cost: users.value.filter(u => u.status === 'Inactive' || u.status === 'inactive').length.toString() },
     { title: "New Users", cost: users.value.filter(u => u.createdAt > new Date(Date.now() - 30*24*60*60*1000)).length.toString() },
   ];
 });
