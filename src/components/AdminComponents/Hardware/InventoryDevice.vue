@@ -121,7 +121,7 @@
 
     <transition name="fade">
       <div v-if="showPopup" 
-        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-[100] flex items-center gap-2', 
           popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
         <span v-if="popupType === 'success'">✅</span>
         <span v-else-if="popupType === 'error'">⚠️</span>
