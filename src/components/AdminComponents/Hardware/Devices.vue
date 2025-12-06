@@ -225,87 +225,97 @@ const saveDeviceChanges = async () => {
   if (!editingDevice.value.deviceId) return;
   
   const deviceId = editingDevice.value.deviceId;
-  const newUserId = editForm.userId; 
-  const oldUserId = editingDevice.value.userId; 
+  const newUserId = editForm.userId; // The new user ID (or "" if unassigned)
+  const oldUserId = editingDevice.value.userId; // The previous owner
 
   try {
     const deviceRef = doc(db, 'devices', deviceId);
-    const selectedUser = props.users.find(u => u.uid === newUserId);
-    const userName = selectedUser ? selectedUser.fullName : null; 
     
+    // 1. Find selected user object to get their Name
+    const selectedUser = props.users.find(u => u.uid === newUserId);
+    const userName = selectedUser ? selectedUser.fullName : null; // Null if unassigned
+    
+    // 2. Update Device Document
     await updateDoc(deviceRef, {
-      userId: newUserId || null,
+      userId: newUserId || null, // Ensure null if empty string
       ownerName: userName,
       status: editForm.status,
       location: editForm.location
     });
 
+    // --- SYNC LOGIC ---
+
+    // 3. If there was an OLD owner, remove the device from their profile
     if (oldUserId && oldUserId !== newUserId) {
-      const oldUserRef = doc(db, `users/${oldUserId}/userProfile/profile`); 
-      try { await updateDoc(oldUserRef, { deviceId: "None" }); } catch (e) { console.warn(e); }
+      // Construct path: users/{oldUserId}/userProfile/profile
+      // We assume standard path. If not found, the update will just fail silently or throw error we catch
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const oldUserRef = doc(db, `artifacts/${appId}/users/${oldUserId}/userProfile/profile`);
+      
+      // Check if doc exists before updating to prevent errors on deleted users
+      // (Optional optimization, updateDoc fails gracefully on non-existent docs usually)
+      try {
+        await updateDoc(oldUserRef, { deviceId: "None" }); 
+      } catch (e) {
+        console.warn("Could not update old user profile (maybe deleted):", e);
+      }
     }
+
+    // 4. If there is a NEW owner, assign the device to their profile
     if (newUserId) {
-      const newUserRef = doc(db, `users/${newUserId}/userProfile/profile`);
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const newUserRef = doc(db, `artifacts/${appId}/users/${newUserId}/userProfile/profile`);
+      
       await updateDoc(newUserRef, { deviceId: deviceId });
     }
 
     closeEditModal();
-    showNotification('Device & User updated successfully', 'success');
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Device & User updated', showConfirmButton: false, timer: 3000 });
     
   } catch (error) {
     console.error("Error updating device:", error);
-    showNotification(error.message, 'error');
+    Swal.fire('Error', error.message, 'error');
   }
 };
 
-// --- ✅ CONFIRMATION MODAL STATE ---
-const showConfirmModal = ref(false);
-const confirmDevice = ref({});
-const confirmActionVerb = ref('');
-
-// Open the confirmation modal
-const openConfirmModal = (device) => {
-  confirmDevice.value = device;
-  confirmActionVerb.value = device.status === 'Inactive' ? 'Activate' : 'Deactivate';
-  showConfirmModal.value = true;
-};
-
-// Close the confirmation modal
-const closeConfirmModal = () => {
-  showConfirmModal.value = false;
-  confirmDevice.value = {};
-  confirmActionVerb.value = '';
-};
-
-// Execute the action after confirmation
-const executeToggleStatus = async () => {
-  // ✅ FIX: Capture the data BEFORE closing the modal
-  const device = confirmDevice.value;
-  
-  // Safety check
-  if (!device || !device.deviceId) {
-    closeConfirmModal();
-    return;
-  }
-
+// --- TOGGLE STATUS LOGIC (Activate / Deactivate) ---
+const toggleDeviceStatus = async (device) => {
+  // Determine current state
   const isInactive = device.status === 'Inactive';
+  
+  // Define new state and UI text based on current status
   const newStatus = isInactive ? 'Active' : 'Inactive';
-  const actionVerb = confirmActionVerb.value;
+  const actionVerb = isInactive ? 'Activate' : 'Deactivate';
+  const confirmColor = isInactive ? '#10B981' : '#F59E0B'; // Green or Amber
+  
+  const result = await Swal.fire({
+    title: `${actionVerb} Device?`,
+    text: `Are you sure you want to ${actionVerb.toLowerCase()} ${device.deviceId}?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: confirmColor,
+    cancelButtonColor: '#6B7280',
+    confirmButtonText: `Yes, ${actionVerb.toLowerCase()} it`
+  });
 
-  // Now safe to close modal
-  closeConfirmModal(); 
-
-  try {
-    await updateDoc(doc(db, 'devices', device.deviceId), {
-      status: newStatus
-    });
-    showNotification(`Device is now ${newStatus}`, 'success');
-  } catch (error) {
-    console.error(`Error ${actionVerb.toLowerCase()}ing device:`, error);
-    showNotification(`Failed to ${actionVerb.toLowerCase()} device.`, 'error');
+  if (result.isConfirmed) {
+    try {
+      await updateDoc(doc(db, 'devices', device.deviceId), {
+        status: newStatus
+      });
+      
+      Swal.fire(
+        `${actionVerb}d!`,
+        `The device is now ${newStatus}.`,
+        'success'
+      );
+    } catch (error) {
+      console.error(`Error ${actionVerb.toLowerCase()}ing device:`, error);
+      Swal.fire('Error', `Failed to ${actionVerb.toLowerCase()} device.`, 'error');
+    }
   }
 };
-// --- UTILS ---
+
 const statusClasses = (status) => {
   const isDark = isDarkMode.value;
   const safeStatus = status || 'Inactive'; 
@@ -328,16 +338,3 @@ const formatLastSync = (timestamp) => {
   return 'N/A';
 };
 </script>
-
-<style scoped>
-/* Transition Styles for the popups */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>
