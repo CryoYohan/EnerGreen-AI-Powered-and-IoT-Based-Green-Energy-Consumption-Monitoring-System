@@ -126,7 +126,7 @@ const adminToolFunctions = [
     },
     {
         name: "listRecentFeedback",
-        description: "List recent user feedback submissions, with options to filter by type and limit the number of results.",
+        description: "List recent unresolved user feedback submissions, with options to filter by type and limit the number of results.",
         parameters: {
             type: "OBJECT",
             properties: {
@@ -150,7 +150,7 @@ const adminToolFunctions = [
     },
     {
         name: "summarizeFeedback",
-        description: "Summarizes user feedback over a given period, filtered by type. It provides counts and the content of the feedback.",
+        description: "Summarizes unresolved user feedback over a given period, filtered by type. It provides counts and the content of the feedback.",
         parameters: {
             type: "OBJECT",
             properties: {
@@ -377,23 +377,35 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                         feedbackQuery = feedbackQuery.where('type', '==', type.toUpperCase());
                     }
 
-                    const snapshot = await feedbackQuery.orderBy('createdAt', 'desc').limit(limit).get();
+                    // Fetch a larger batch to account for filtering resolved items in memory
+                    // (Since 'status' might be undefined for new items, we can't easily query != 'resolved')
+                    const fetchLimit = Math.max(limit * 4, 20); 
+                    const snapshot = await feedbackQuery.orderBy('createdAt', 'desc').limit(fetchLimit).get();
 
-                    if (snapshot.empty) {
-                        return { message: `No ${type && type.toLowerCase() !== 'all' ? type.toLowerCase() : ''} feedback found.` };
+                    // Filter: Exclude 'resolved' status. Keeps 'new', null, undefined, etc.
+                    let validDocs = snapshot.docs.filter(doc => doc.data().status !== 'resolved');
+
+                    // Apply the user's requested limit
+                    if (validDocs.length > limit) {
+                        validDocs = validDocs.slice(0, limit);
+                    }
+
+                    if (validDocs.length === 0) {
+                        return { message: `No unresolved ${type && type.toLowerCase() !== 'all' ? type.toLowerCase() : ''} feedback found.` };
                     }
 
                     // Fetch all user profiles concurrently
-                    const userProfilePromises = snapshot.docs.map(doc => getUserProfileData(doc.data().uid).catch(() => null));
+                    const userProfilePromises = validDocs.map(doc => getUserProfileData(doc.data().uid).catch(() => null));
                     const userProfiles = await Promise.all(userProfilePromises);
 
-                    const feedbackList = snapshot.docs.map((doc, index) => {
+                    const feedbackList = validDocs.map((doc, index) => {
                         const data = doc.data();
                         const profile = userProfiles[index];
                         return {
                             submittedBy: profile?.fullName || 'An unknown user',
                             feedbackType: data.type,
-                            feedbackContent: data.text
+                            feedbackContent: data.text,
+                            status: data.status || 'new'
                         };
                     });
 
@@ -491,14 +503,17 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
 
                     const snapshot = await feedbackQuery.orderBy('createdAt', 'desc').get();
 
-                    if (snapshot.empty) {
-                        return { message: `No ${type !== 'all' ? type.toLowerCase() : ''} feedback found in the ${period}.` };
+                    // Filter out resolved feedback
+                    const unresolvedDocs = snapshot.docs.filter(doc => doc.data().status !== 'resolved');
+
+                    if (unresolvedDocs.length === 0) {
+                        return { message: `No unresolved ${type !== 'all' ? type.toLowerCase() : ''} feedback found in the ${period}.` };
                     }
 
-                    const userProfilePromises = snapshot.docs.map(doc => getUserProfileData(doc.data().uid).catch(() => null));
+                    const userProfilePromises = unresolvedDocs.map(doc => getUserProfileData(doc.data().uid).catch(() => null));
                     const userProfiles = await Promise.all(userProfilePromises);
 
-                    const feedbackList = snapshot.docs.map((doc, index) => {
+                    const feedbackList = unresolvedDocs.map((doc, index) => {
                         const data = doc.data();
                         const profile = userProfiles[index];
                         return {
@@ -518,7 +533,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
 
                     return {
                         summary: {
-                            totalFound: snapshot.size,
+                            totalFound: unresolvedDocs.length,
                             period: period,
                             filterType: type,
                             ...(Object.keys(breakdown).length > 0 && { breakdown: breakdown })

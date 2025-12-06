@@ -21,7 +21,7 @@
             </div>
           </div>
 
-          <form @submit.prevent="updateUtilityRate" class="space-y-5">
+          <form @submit.prevent="handleUtilityUpdate" class="space-y-5">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Provider</label>
               <select v-model="utilityForm.providerId" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -86,7 +86,7 @@
             </div>
           </div>
 
-          <form @submit.prevent="updateCarbonRate" class="space-y-5">
+          <form @submit.prevent="handleCarbonUpdate" class="space-y-5">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Region</label>
               <input type="text" value="Philippines (Grid Average)" disabled class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed" />
@@ -141,13 +141,13 @@
 
     <!-- Notification Toast -->
     <transition name="fade">
-      <div v-if="showPopup" 
+      <div v-if="popup.show" 
         :class="['fixed top-24 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
-          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
-        <span v-if="popupType === 'success'">✅</span>
-        <span v-else-if="popupType === 'error'">⚠️</span>
+          popup.type === 'info' ? 'bg-blue-500' : popup.type === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popup.type === 'success'">✅</span>
+        <span v-else-if="popup.type === 'error'">⚠️</span>
         <span v-else>ℹ️</span>
-        {{ popupMessage }}
+        {{ popup.message }}
       </div>
     </transition>
 
@@ -155,30 +155,32 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
-import { db } from '@/firebase.js';
-import { doc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import api from '@/services/api';
+import { reactive, onMounted, onUnmounted, computed, watch } from 'vue';
+import { useRates } from '@/composables/useRates.js';
 
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 
-// State
-const loadingUtility = ref(false);
-const loadingCarbon = ref(false);
-const currentRates = ref({}); // Stores rates by providerId { veco: 12.51, cebeco: 10.20 }
-const lastUpdatedMap = ref({}); // Stores timestamps by providerId
-const currentCarbonRate = ref('---');
-const lastUpdatedCarbon = ref(null);
+const {
+    loadingUtility,
+    loadingCarbon,
+    currentRates,
+    lastUpdatedMap,
+    currentCarbonRate,
+    lastUpdatedCarbon,
+    popup,
+    
+    subscribeToProvider,
+    subscribeToCarbon,
+    cleanupRates,
+    updateUtility,
+    updateCarbon
+} = useRates();
 
-// Notification State
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("info");
-
+// Local Form State
 const utilityForm = reactive({
-  providerId: 'veco', // Default
+  providerId: 'veco',
   rate: ''
 });
 
@@ -186,14 +188,21 @@ const carbonForm = reactive({
   rate: ''
 });
 
-// --- Helpers ---
-const showNotification = (message, type = "info", duration = 3000) => {
-  popupMessage.value = message;
-  popupType.value = type;
-  showPopup.value = true;
-  setTimeout(() => (showPopup.value = false), duration);
-};
+// --- Lifecycle ---
+onMounted(() => {
+  subscribeToProvider(utilityForm.providerId);
+  subscribeToCarbon();
+  
+  watch(() => utilityForm.providerId, (newVal) => {
+      subscribeToProvider(newVal);
+  });
+});
 
+onUnmounted(() => {
+  cleanupRates();
+});
+
+// --- Helpers ---
 const getProviderName = (id) => {
   const names = { veco: 'Visayan Electric', cebeco: 'CEBECO' };
   return names[id] || id.toUpperCase();
@@ -205,7 +214,6 @@ const formatDate = (timestamp) => {
     return date.toLocaleString();
 };
 
-// Computed properties for the currently selected provider
 const currentRateDisplay = computed(() => {
     const val = currentRates.value[utilityForm.providerId];
     return val !== undefined ? val.toFixed(2) : '---';
@@ -216,114 +224,16 @@ const lastUpdatedDisplay = computed(() => {
     return val ? formatDate(val) : null;
 });
 
-// --- API CALLS ---
-const updateUtilityRate = async () => {
-  if (!utilityForm.rate) return;
-  loadingUtility.value = true;
-  try {
-    const response = await api.post('/api/admin/update-utility-rate', {
-      providerId: utilityForm.providerId,
-      providerName: getProviderName(utilityForm.providerId),
-      rate: utilityForm.rate
-    });
-    
-    if (response.data.success) {
-      showNotification(response.data.message, 'success');
-      utilityForm.rate = ''; 
-    }
-  } catch (error) {
-    const msg = error.response?.data?.error || error.message;
-    showNotification(msg, 'error');
-  } finally {
-    loadingUtility.value = false;
-  }
+// --- Handlers ---
+const handleUtilityUpdate = async () => {
+    const success = await updateUtility(utilityForm);
+    if(success) utilityForm.rate = '';
 };
 
-const updateCarbonRate = async () => {
-  if (!carbonForm.rate) return;
-  loadingCarbon.value = true;
-  try {
-    const response = await api.post('/api/admin/update-carbon-rate', {
-      rate: carbonForm.rate
-    });
-    
-    if (response.data.success) {
-      showNotification(response.data.message, 'success');
-      carbonForm.rate = ''; 
-    }
-  } catch (error) {
-    const msg = error.response?.data?.error || error.message;
-    showNotification(msg, 'error');
-  } finally {
-    loadingCarbon.value = false;
-  }
+const handleCarbonUpdate = async () => {
+    const success = await updateCarbon(carbonForm.rate);
+    if(success) carbonForm.rate = '';
 };
-
-// --- LISTENERS ---
-let unsubUtility = null;
-let unsubCarbon = null;
-
-const subscribeToProvider = (providerId) => {
-    // Unsubscribe previous listener if it exists
-    if (unsubUtility) {
-        unsubUtility();
-        unsubUtility = null;
-    }
-
-    // Path: artifacts/default-app-id/public/data/utility_rates/{providerId}
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const rateRef = doc(db, `artifacts/${appId}/public/data/utility_rates`, providerId);
-    
-    unsubUtility = onSnapshot(rateRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            // Handle legacy 'vecoKwhRate' or standard 'kwhRate'
-            const val = data.kwhRate || data.vecoKwhRate || 0;
-            
-            // Update the specific key in the reactive object
-            currentRates.value[providerId] = val;
-            lastUpdatedMap.value[providerId] = data.date_updated || data.lastUpdated;
-        } else {
-            currentRates.value[providerId] = 0;
-            lastUpdatedMap.value[providerId] = null;
-        }
-    }, (error) => {
-        console.error("Error listening to utility rate:", error);
-    });
-};
-
-onMounted(() => {
-  // 1. Initialize Utility Listener
-  subscribeToProvider(utilityForm.providerId);
-
-  // 2. Watch for dropdown changes to switch listeners
-  watch(() => utilityForm.providerId, (newVal) => {
-      subscribeToProvider(newVal);
-  });
-  
-  // 3. Listen to Latest Carbon Rate
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  const carbonQuery = query(
-    collection(db, `artifacts/${appId}/public/data/carbon_emission_rates`),
-    orderBy("date_updated", "desc"),
-    limit(1)
-  );
-  
-  unsubCarbon = onSnapshot(carbonQuery, (snap) => {
-    if (!snap.empty) {
-      const data = snap.docs[0].data();
-      currentCarbonRate.value = data.carbonRateKg;
-      lastUpdatedCarbon.value = data.date_updated;
-    }
-  }, (error) => {
-      console.error("Error listening to carbon rate:", error);
-  });
-});
-
-onUnmounted(() => {
-  if (unsubUtility) unsubUtility();
-  if (unsubCarbon) unsubCarbon();
-});
 </script>
 
 <style scoped>
