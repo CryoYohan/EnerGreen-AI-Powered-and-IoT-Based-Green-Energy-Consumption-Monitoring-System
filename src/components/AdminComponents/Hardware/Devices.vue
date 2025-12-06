@@ -46,7 +46,7 @@
                 <button @click="openEditModal(device)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">Edit</button>
                 
                 <button 
-                  @click="toggleDeviceStatus(device)" 
+                  @click="openConfirmModal(device)" 
                   :class="device.status === 'Inactive' 
                     ? 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300' 
                     : 'text-amber-600 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300'"
@@ -98,6 +98,39 @@
       </div>
     </div>
 
+    <transition name="fade">
+      <div v-if="showConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeConfirmModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+          <h3 class="text-xl font-semibold mb-4" 
+              :class="confirmActionVerb === 'Activate' ? 'text-green-600' : 'text-amber-600'">
+            Confirm {{ confirmActionVerb }}
+          </h3>
+          <p class="mb-6 text-gray-700 dark:text-gray-300">
+            Are you sure you want to <strong>{{ confirmActionVerb.toLowerCase() }}</strong> device <strong>{{ confirmDevice.deviceId }}</strong>?
+          </p>
+          <div class="flex justify-center gap-4">
+            <button @click="closeConfirmModal" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+            <button @click="executeToggleStatus" 
+                    :class="confirmActionVerb === 'Activate' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'"
+                    class="px-4 py-2 text-white rounded-md transition-colors">
+              Yes, {{ confirmActionVerb }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="showPopup" 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popupType === 'success'">✅</span>
+        <span v-else-if="popupType === 'error'">⚠️</span>
+        <span v-else>ℹ️</span>
+        {{ popupMessage }}
+      </div>
+    </transition>
+
   </div>
 </template>
 
@@ -106,7 +139,6 @@ import { ref, computed, reactive } from 'vue';
 import { db } from '@/firebase.js';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useDarkMode } from '@/composables/useDarkMode.js';
-import Swal from 'sweetalert2';
 
 const props = defineProps({
   devices: { type: Array, default: () => [] },
@@ -118,6 +150,21 @@ const searchTerm = ref("");
 const selectedType = ref("");
 const selectedStatus = ref("");
 
+// Notification State
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("success"); 
+
+// Helper Function for Notifications
+const showNotification = (message, type = 'success') => {
+  popupMessage.value = message;
+  popupType.value = type;
+  showPopup.value = true;
+  setTimeout(() => {
+    showPopup.value = false;
+  }, 3000);
+};
+//updated
 const headers = [
   { key: "deviceId", label: "Device ID" },
   { key: "userId", label: "Assigned User" },

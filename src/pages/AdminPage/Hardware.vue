@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen dark:bg-gray-900 min-w-screen  flex flex-col bg-[#F9FAFB] font-poppins"
+    class="min-h-screen dark:bg-gray-900 min-w-screen flex flex-col bg-[#F9FAFB] font-poppins"
   >
     <AdminHeader />
     <Heading title="Hardware Management" subtitle="Monitor EnerGreen Hardware Performance performance"/>
@@ -27,63 +27,47 @@
                 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400': metric.title === 'Maintenance'
               }"
             >
-              <svg 
-                v-if="metric.title === 'Total devices'" 
-                class="w-6 h-6" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              <svg 
-                v-else-if="metric.title === 'Active'" 
-                class="w-6 h-6" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-              <svg 
-                v-else-if="metric.title === 'Offline'" 
-                class="w-6 h-6" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-              <svg 
-                v-else-if="metric.title === 'Maintenance'" 
-                class="w-6 h-6" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              
+              <svg v-if="metric.title === 'Total devices'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              <svg v-else-if="metric.title === 'Active'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <svg v-else-if="metric.title === 'Offline'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <svg v-else-if="metric.title === 'Maintenance'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <InventoryDevice :devices="devices" />
+    
+    <InventoryDevice 
+      :devices="devices" 
+      @device-added="handleDeviceAdded"
+    />
     
     <Devices :devices="devices" :users="users" />
     
     <Firmware />
     <Footer />
+
+    <transition name="fade">
+      <div v-if="showPopup" 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popupType === 'success'">✅</span>
+        <span v-else-if="popupType === 'error'">⚠️</span>
+        <span v-else>ℹ️</span>
+        {{ popupMessage }}
+      </div>
+    </transition>
+
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
-import { useHardware } from '@/composables/useHardware.js';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { db, auth } from '@/firebase.js'; 
+import { collection, query, onSnapshot, collectionGroup } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth'; 
 
-// Components
 import AdminHeader from "@/components/ReusableComponents/AdminHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
@@ -91,19 +75,96 @@ import InventoryDevice from "@/components/AdminComponents/Hardware/InventoryDevi
 import Devices from "@/components/AdminComponents/Hardware/Devices.vue";
 import Firmware from "@/components/AdminComponents/Hardware/Firmware.vue";
 
-const {
-  devices,
-  users,
-  dynamicMetrics,
-  initHardwareListeners,
-  cleanupHardwareListeners
-} = useHardware();
+const devices = ref([]);
+const users = ref([]); // New: Store users here
+const loading = ref(true);
+const router = useRouter(); 
+
+let unsubscribeDevices = null;
+let unsubscribeUsers = null; // New: Listener for users
+let unsubscribeAuth = null; 
 
 onMounted(() => {
-  initHardwareListeners();
+  // 1. Auth Listener (Gatekeeper)
+  unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // --- LOGGED IN ---
+      
+      // 2. Fetch Devices (if not already fetching)
+      if (!unsubscribeDevices) { 
+        const devicesQuery = query(collection(db, "devices"));
+        unsubscribeDevices = onSnapshot(devicesQuery, (querySnapshot) => {
+          devices.value = querySnapshot.docs.map(doc => doc.data());
+          loading.value = false;
+        }, (error) => {
+          console.error("Error fetching devices:", error);
+          loading.value = false;
+        });
+      }
+
+      // 3. Fetch Users (New Logic for Dropdowns)
+      if (!unsubscribeUsers) {
+        // collectionGroup queries all 'userProfile' collections in the DB
+        const usersQuery = query(collectionGroup(db, 'userProfile'));
+        unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
+          users.value = querySnapshot.docs.map(doc => ({
+            // The parent ID is the User UID
+            uid: doc.ref.parent.parent.id, 
+            ...doc.data()
+          }));
+        });
+      }
+
+    } else {
+      // --- LOGGED OUT ---
+      // Clean up everything immediately
+      if (unsubscribeDevices) {
+        unsubscribeDevices();
+        unsubscribeDevices = null;
+      }
+      if (unsubscribeUsers) {
+        unsubscribeUsers();
+        unsubscribeUsers = null;
+      }
+      // Router guard handles redirect, but this is a safe fallback
+      router.push('/');
+    }
+  });
 });
 
+// Cleanup when leaving the page
 onUnmounted(() => {
-  cleanupHardwareListeners();
+  if (unsubscribeDevices) unsubscribeDevices();
+  if (unsubscribeUsers) unsubscribeUsers();
+  if (unsubscribeAuth) unsubscribeAuth();
+});
+
+const dynamicMetrics = computed(() => {
+  return [
+    {
+      title: 'Total devices',
+      // icon: '/src/Images/Icons/devices.svg', // Icon file path removed
+      cost: devices.value.length.toString(),
+      definition: 'All Registered Units'
+    },
+    {
+      title: 'Active',
+      // icon: '/src/Images/Icons/active.svg', // Icon file path removed
+      cost: devices.value.filter(d => d.status === 'Active').length.toString(),
+      definition: 'Devices Currently Online'
+    },
+    {
+      title: 'Offline',
+      // icon: '/src/Images/Icons/offlline.svg', // Icon file path removed
+      cost: devices.value.filter(d => d.status === 'Offline').length.toString(),
+      definition: 'Devices Currently Offline'
+    },
+    {
+      title: 'Maintenance',
+      // icon: '/src/Images/Icons/maintenance.svg', // Icon file path removed
+      cost: devices.value.filter(d => d.status === 'Maintenance').length.toString(),
+      definition: 'Devices in Maintenance'
+    },
+  ];
 });
 </script>

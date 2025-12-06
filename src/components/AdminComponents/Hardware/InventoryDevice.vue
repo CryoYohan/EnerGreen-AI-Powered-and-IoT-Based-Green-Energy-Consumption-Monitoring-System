@@ -1,7 +1,6 @@
 <template>
   <div class="grid m-4 sm:m-5 lg:m-8 grid-cols-1 md:grid-cols-2 gap-6 font-poppins dark:bg-gray-900">
     
-    <!-- Inventory Overview -->
     <div class="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
       <div class="flex flex-row gap-3 items-center mb-6">
         <div class="w-2 h-8 bg-emerald-500 rounded-full"></div>
@@ -54,7 +53,6 @@
       </div>
     </div>
 
-    <!-- Device Registration -->
     <div class="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
       <div class="flex flex-row gap-3 items-center mb-6">
         <div class="w-2 h-8 bg-blue-500 rounded-full"></div>
@@ -118,10 +116,20 @@
           class="w-full p-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {{ isRegistering ? 'Registering...' : 'Register Device' }}
         </button>
-        
-        <p v-if="regError" class="text-rose-500 text-xs text-center">{{ regError }}</p>
       </form>
     </div>
+
+    <transition name="fade">
+      <div v-if="showPopup" 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-50 flex items-center gap-2', 
+          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popupType === 'success'">✅</span>
+        <span v-else-if="popupType === 'error'">⚠️</span>
+        <span v-else>ℹ️</span>
+        {{ popupMessage }}
+      </div>
+    </transition>
+
   </div>
 </template>
 
@@ -152,16 +160,30 @@ const newDeviceType = ref('');
 const newLocation = ref('');
 const newStatus = ref('Inactive');
 const isRegistering = ref(false);
-const regError = ref('');
+
+// ✅ Notification State
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("success"); 
+
+// ✅ Helper Function for Notifications
+const showNotification = (message, type = 'success') => {
+  popupMessage.value = message;
+  popupType.value = type;
+  showPopup.value = true;
+  // Auto hide after 3 seconds
+  setTimeout(() => {
+    showPopup.value = false;
+  }, 3000);
+};
 
 const registerDevice = async () => {
   if (!newDeviceId.value || !newDeviceType.value) {
-    regError.value = "Device ID and Type are required.";
+    showNotification("Device ID and Type are required.", 'error');
     return;
   }
   
   isRegistering.value = true;
-  regError.value = '';
   
   const deviceRef = doc(db, 'devices', newDeviceId.value.trim());
 
@@ -186,6 +208,9 @@ const registerDevice = async () => {
     // Set the new document
     await setDoc(deviceRef, newDeviceData);
     
+    // ✅ Show Success Notification
+    showNotification(`Device ${newDeviceId.value} registered successfully!`, 'success');
+
     // Clear the form
     newDeviceId.value = '';
     newDeviceType.value = '';
@@ -194,9 +219,23 @@ const registerDevice = async () => {
     
   } catch (error) {
     console.error("Error registering device:", error);
-    regError.value = error.message;
+    // ✅ Show Error Notification
+    showNotification(error.message, 'error');
   } finally {
     isRegistering.value = false;
   }
 };
 </script>
+
+<style scoped>
+/* ✅ Transition Styles for the popup */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
