@@ -61,3 +61,6 @@ env:
 
   - variable: STORAGE_BUCKET
     value: energreen-ai-powered-iot-based.firebasestorage.app
+
+  - variable: OPENWEATHER_API_KEY
+    secret: VITE_OPENWEATHER_API_KEY

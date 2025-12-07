@@ -114,7 +114,17 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     // Add a system instruction to guide the model's behavior
-    systemInstruction: "You are Christine, a helpful and friendly AI assistant for EnerGreen. Your primary goal is to assist users with their energy-related questions and feedback. When a user asks for information that can be retrieved by one of your available tools, you must use the tool. Do not ask for permission; just use the tool. If the user's query is conversational, respond naturally."
+    systemInstruction: `You are Christine, a helpful and friendly AI assistant for EnerGreen. 
+    
+    Your primary goal is to assist users with their energy-related questions and feedback.
+    
+    SPECIAL INSTRUCTION FOR ISSUE REPORTS:
+    If a user says they are reporting an issue (especially about a device stopping data), you must:
+    1. Be empathetic (e.g., "Oh, I see. I'm sorry to hear that...").
+    2. Acknowledge the specific device ID and issue mentioned in their message. DO NOT ask for the device ID if they already provided it.
+    3. Immediately ask if they want you to submit this as a formal complaint or support ticket.
+    
+    When a user asks for information that can be retrieved by one of your available tools, you must use the tool. Do not ask for permission; just use the tool. If the user's query is conversational, respond naturally.`
 });
 
 // --- CORRECTED TOOL DEFINITIONS ---
@@ -289,35 +299,50 @@ const getUserProfileData = async (uid) => {
 router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     console.log('AI Agent endpoint hit!');
 
-    if (!req.body || req.body.length === 0) {
-        return res.status(400).json({ error: 'No audio data received.' });
+    // Handle text-based input (JSON)
+    if (req.is('application/json')) {
+        if (!req.body || (!req.body.text && !req.body.content)) {
+             return res.status(400).json({ error: 'No text data received.' });
+        }
+        var transcription = req.body.text || req.body.content;
+        console.log(`Text Input: "${transcription}"`);
+    } else {
+        // Handle Audio input
+        if (!req.body || req.body.length === 0) {
+            return res.status(400).json({ error: 'No audio data received.' });
+        }
+
+        try {
+            // 1. Speech-to-Text
+            const audioBytes = req.body.toString('base64');
+            const speechRequest = {
+                audio: { content: audioBytes },
+                config: {
+                    encoding: 'WEBM_OPUS',
+                    sampleRateHertz: 48000,
+                    languageCode: 'en-US',
+                },
+            };
+
+            console.log("Sending to Cloud STT...");
+            const [speechResponse] = await speechClient.recognize(speechRequest);
+            var transcription = speechResponse.results
+                .map(result => result.alternatives[0].transcript)
+                .join('\n');
+            console.log(`Transcription: "${transcription}"`);
+
+            if (!transcription) {
+                const fallbackAudio = await generateSpeech("I didn't catch that. Could you please repeat?");
+                res.set('Content-Type', 'audio/wav');
+                return res.send(fallbackAudio);
+            }
+        } catch (sttError) {
+             console.error("STT Error:", sttError);
+             return res.status(500).json({ error: "Speech recognition failed." });
+        }
     }
 
     try {
-        // 1. Speech-to-Text
-        const audioBytes = req.body.toString('base64');
-        const speechRequest = {
-            audio: { content: audioBytes },
-            config: {
-                encoding: 'WEBM_OPUS',
-                sampleRateHertz: 48000,
-                languageCode: 'en-US',
-            },
-        };
-
-        console.log("Sending to Cloud STT...");
-        const [speechResponse] = await speechClient.recognize(speechRequest);
-        const transcription = speechResponse.results
-            .map(result => result.alternatives[0].transcript)
-            .join('\n');
-        console.log(`Transcription: "${transcription}"`);
-
-        if (!transcription) {
-            const fallbackAudio = await generateSpeech("I didn't catch that. Could you please repeat?");
-            res.set('Content-Type', 'audio/wav');
-            return res.send(fallbackAudio);
-        }
-
         // 2. Tool and Session Management
         const availableTools = {
             getEnergySummary: async ({ uid }) => {
