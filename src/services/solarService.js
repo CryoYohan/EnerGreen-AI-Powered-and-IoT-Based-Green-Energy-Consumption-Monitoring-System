@@ -83,8 +83,8 @@ export function calculateImpact(data, isDaily, currentRate, carbonRate) {
 
     return {
         savingsValue: savings.toFixed(2),
-        co2Avoided: co2Avoided.toFixed(1),
-        treesPlanted: treesPlanted.toFixed(1)
+        co2Avoided: co2Avoided.toFixed(4),
+        treesPlanted: treesPlanted.toFixed(4)
     };
 }
 

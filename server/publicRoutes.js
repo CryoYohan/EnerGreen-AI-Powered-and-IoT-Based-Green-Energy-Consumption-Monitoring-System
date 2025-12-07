@@ -1,7 +1,35 @@
 import express from 'express';
+import axios from 'axios';
 import { db } from './firebaseAdmin.js';
 
 const publicRouter = express.Router();
+
+// --- WEATHER PROXY (SECURE) ---
+// Proxies requests to OpenWeatherMap so the API Key remains on the server.
+publicRouter.get('/weather', async (req, res) => {
+    const { lat, lon } = req.query;
+    const apiKey = process.env.OPENWEATHER_API_KEY || process.env.VITE_OPENWEATHER_API_KEY;
+
+    if (!apiKey) {
+        console.error("Server: Missing OPENWEATHER_API_KEY");
+        return res.status(500).json({ error: "Weather service not configured." });
+    }
+
+    try {
+        const weatherRes = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
+            params: {
+                lat: lat || 10.3157, // Default Cebu
+                lon: lon || 123.8854,
+                units: 'metric',
+                appid: apiKey
+            }
+        });
+        res.json(weatherRes.data);
+    } catch (error) {
+        console.error("Weather Proxy Error:", error.message);
+        res.status(502).json({ error: "Failed to fetch weather data" });
+    }
+});
 
 // Public endpoint to check if a device ID is valid
 publicRouter.post('/check-device', async (req, res) => {
