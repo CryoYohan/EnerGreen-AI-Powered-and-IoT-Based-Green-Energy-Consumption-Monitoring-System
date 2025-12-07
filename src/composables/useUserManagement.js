@@ -42,24 +42,28 @@ export function useUserManagement() {
         if (!unsubscribeUsers) {
           const qUsers = query(collectionGroup(db, 'userProfile'));
           unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
-            users.value = snapshot.docs.map(docSnap => {
-              const data = docSnap.data();
-              const uid = docSnap.ref.parent.parent ? docSnap.ref.parent.parent.id : docSnap.id; 
-              return {
-                userId: uid,
-                docPath: docSnap.ref.path,
-                name: data.fullName || data.name || "Unnamed",
-                email: data.email || "No Email",
-                location: data.address || data.location || "Unknown",
-                smartMeterID: data.deviceId || "None",
-                status: data.status || "Active",
-                role: data.role || "user",
-                photoURL: data.photoURL,
-                electricityProvider: data.electricityProvider || 'veco',
-                subscriptionTier: data.subscriptionTier || 'Free',
-                createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
-              };
-            });
+            users.value = snapshot.docs
+              .filter(docSnap => docSnap.id === 'profile') // Fix: Only get the main 'profile' doc
+              .map(docSnap => {
+                const data = docSnap.data();
+                const uid = docSnap.ref.parent.parent ? docSnap.ref.parent.parent.id : docSnap.id; 
+                return {
+                  userId: uid,
+                  docPath: docSnap.ref.path,
+                  name: data.fullName || data.name || "Unnamed",
+                  email: data.email || "No Email",
+                  location: data.address || data.location || "Unknown",
+                  smartMeterID: data.deviceId || "None",
+                  status: data.status || "Active",
+                  role: data.role || "user",
+                  photoURL: data.photoURL,
+                  electricityProvider: data.electricityProvider || 'veco',
+                  subscriptionTier: data.subscriptionTier || 'Free',
+                  createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
+                };
+              })
+              // Double check: Remove any still-invalid entries
+              .filter(u => u.email !== "No Email" && u.name !== "Unnamed");
           });
         }
 
