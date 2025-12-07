@@ -145,8 +145,19 @@ const adminToolFunctions = [
     },
     {
         name: "getWeeklySummaryReport",
-        description: "Generates a summary of the past week's performance, including new users, hardware/software revenue, energy stats, and feedback counts.",
-        parameters: { type: "OBJECT", properties: {} }
+        description: "Generates a summary of performance including new users, revenue, energy stats, and feedback counts for a specified period.",
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                period: {
+                    type: "STRING",
+                    description: "The time period for which to generate the report.",
+                    enum: ["last_7_days", "last_30_days", "last_year"],
+                    default: "last_7_days"
+                }
+            },
+            required: ["period"]
+        }
     },
     {
         name: "summarizeFeedback",
@@ -235,24 +246,50 @@ const getUserProfileData = async (uid) => {
 
 router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     console.log('AI Agent endpoint hit!');
-    if (!req.body || req.body.length === 0) return res.status(400).json({ error: 'No audio data received.' });
 
-    try {
-        console.log("Sending to Cloud STT...");
-        const audioBytes = req.body.toString('base64');
-        const speechRequest = {
-            audio: { content: audioBytes },
-            config: { encoding: 'WEBM_OPUS', sampleRateHertz: 48000, languageCode: 'en-US' },
-        };
-        const [speechResponse] = await speechClient.recognize(speechRequest);
-        const transcription = speechResponse.results.map(result => result.alternatives[0].transcript).join('\n');
-        console.log(`Transcription: "${transcription}"`);
+    // Handle text-based input (JSON)
+    if (req.is('application/json')) {
+        // Note: express.json() middleware is usually applied globally in index.js, 
+        // but here we are inside a router that might handle raw body.
+        // We need to ensure we can parse JSON if the global middleware hasn't consumed it 
+        // or if we are mixed with raw body parser.
+        // Given the setup in index.js: app.use(express.json()); happens BEFORE mounting this router.
+        // However, this router has router.use(express.raw(...)).
+        // If the content-type is application/json, the global express.json() likely parsed it into req.body.
 
-        if (!transcription) {
-            const fallbackAudio = await generateSpeech("I didn't catch that. Could you please repeat?");
-            return res.set('Content-Type', 'audio/wav').send(fallbackAudio);
+        if (!req.body || (!req.body.text && !req.body.content)) {
+            return res.status(400).json({ error: 'No text data received.' });
         }
 
+        // We can process this directly
+        var transcription = req.body.text || req.body.content;
+        console.log(`Text Input: "${transcription}"`);
+    } else {
+        // Handle Audio input
+        if (!req.body || req.body.length === 0) return res.status(400).json({ error: 'No audio data received.' });
+
+        try {
+            console.log("Sending to Cloud STT...");
+            const audioBytes = req.body.toString('base64');
+            const speechRequest = {
+                audio: { content: audioBytes },
+                config: { encoding: 'WEBM_OPUS', sampleRateHertz: 48000, languageCode: 'en-US' },
+            };
+            const [speechResponse] = await speechClient.recognize(speechRequest);
+            var transcription = speechResponse.results.map(result => result.alternatives[0].transcript).join('\n');
+            console.log(`Transcription: "${transcription}"`);
+
+            if (!transcription) {
+                const fallbackAudio = await generateSpeech("I didn't catch that. Could you please repeat?");
+                return res.set('Content-Type', 'audio/wav').send(fallbackAudio);
+            }
+        } catch (sttError) {
+            console.error("STT Error:", sttError);
+            return res.status(500).json({ error: "Speech recognition failed." });
+        }
+    }
+
+    try {
         const availableTools = {
             getSystemStatus: async () => {
                 console.log(`TOOL EXECUTED: getSystemStatus`);
@@ -379,7 +416,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
 
                     // Fetch a larger batch to account for filtering resolved items in memory
                     // (Since 'status' might be undefined for new items, we can't easily query != 'resolved')
-                    const fetchLimit = Math.max(limit * 4, 20); 
+                    const fetchLimit = Math.max(limit * 4, 20);
                     const snapshot = await feedbackQuery.orderBy('createdAt', 'desc').limit(fetchLimit).get();
 
                     // Filter: Exclude 'resolved' status. Keeps 'new', null, undefined, etc.
@@ -416,12 +453,23 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                 }
             },
 
-            getWeeklySummaryReport: async () => {
-                console.log(`TOOL EXECUTED: getWeeklySummaryReport`);
+            getWeeklySummaryReport: async ({ period = 'last_7_days' }) => {
+                console.log(`TOOL EXECUTED: getWeeklySummaryReport (period: ${period})`);
                 try {
                     const now = new Date();
+                    let daysAgo = 7;
+                    let periodText = "Last 7 Days";
+    
+                    if (period === 'last_30_days') {
+                        daysAgo = 30;
+                        periodText = "Last 30 Days";
+                    } else if (period === 'last_year') {
+                        daysAgo = 365;
+                        periodText = "Last Year";
+                    }
+    
                     const startDate = new Date();
-                    startDate.setDate(now.getDate() - 7);
+                    startDate.setDate(now.getDate() - daysAgo);
                     startDate.setHours(0, 0, 0, 0);
 
                     // 1. New Users
@@ -431,7 +479,12 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     const newUsersCount = newUsersSnapshot.size;
 
                     // 2. Revenue (Simplified)
-                    const premiumUsersSnapshot = await usersRef.where('userProfile.profile.subscriptionTier', '==', 'Premium').get();
+                    // FIX: Use collectionGroup to query subcollections across all users
+                    const premiumUsersSnapshot = await dbAgent.collectionGroup('userProfile')
+                        .where('subscriptionTier', '==', 'Premium')
+                        .where('role', '!=', 'admin')
+                        .get();
+                        
                     const premiumUsersCount = premiumUsersSnapshot.size;
                     const monthlyRecurringRevenue = premiumUsersCount * 599;
 
@@ -439,13 +492,24 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     const soldDevicesCount = soldDevicesSnapshot.size;
                     const totalHardwareRevenue = soldDevicesCount * 4999;
 
-                    // 3. Energy Stats (Mocked)
-                    const totalUsersSnapshot = await usersRef.get();
-                    const totalUsers = totalUsersSnapshot.size;
-                    const totalKwh = totalUsers * (Math.random() * 15 + 5) * 7;
-                    const solarKwh = totalKwh * (Math.random() * 0.4 + 0.3);
+                    // 4. Energy Stats (Real Aggregation)
+                    // Format startDate to YYYY-MM-DD for string comparison in Firestore
+                    const startDateStr = startDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+                    
+                    const energySnapshot = await dbAgent.collectionGroup('daily_summaries')
+                        .where('date', '>=', startDateStr)
+                        .get();
 
-                    // 4. Feedback Counts
+                    let realTotalKwh = 0;
+                    let realSolarKwh = 0;
+
+                    energySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        realTotalKwh += (data.gridKwhTotal || 0) + (data.solarKwhTotal || 0);
+                        realSolarKwh += (data.solarKwhTotal || 0);
+                    });
+
+                    // 5. Feedback Counts
                     const feedbackRef = dbAgent.collection('feedback');
                     const feedbackQuery = feedbackRef.where('createdAt', '>=', startDate);
                     const feedbackSnapshot = await feedbackQuery.get();
@@ -461,7 +525,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     });
 
                     return {
-                        period: "Last 7 Days",
+                        period: periodText,
                         newUsers: newUsersCount,
                         revenue: {
                             currentMRR: `₱${monthlyRecurringRevenue.toLocaleString()}`,
@@ -469,8 +533,8 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                             note: "Weekly revenue tracking is still in development."
                         },
                         energy: {
-                            totalConsumptionKwh: totalKwh.toFixed(2),
-                            solarGenerationKwh: solarKwh.toFixed(2),
+                            totalConsumptionKwh: realTotalKwh.toFixed(2),
+                            solarGenerationKwh: realSolarKwh.toFixed(2),
                         },
                         feedback: {
                             totalReceived: totalFeedback,
