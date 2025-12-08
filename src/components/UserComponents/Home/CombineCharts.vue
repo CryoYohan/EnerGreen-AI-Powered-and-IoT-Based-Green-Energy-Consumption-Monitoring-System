@@ -140,16 +140,19 @@ const createChart = () => {
   if (energyChart) energyChart.destroy();
   
 
-    const reversedData = currentData.value.slice().reverse();
-    const reversedCost = currentCostData.value.slice().reverse();
-    const reversedSavings = currentSavingsData.value.slice().reverse();
+    // Check if we need to reverse data (Only for Monthly as requested)
+    const shouldReverse = props.activePeriod === 'Monthly';
 
-    // Map the REVERSED data to the chart variables
-    const labels = reversedData.map(item => item.label);
-    const gridKwhValues = reversedData.map(item => item.grid || 0);
-    const solarKwhValues = reversedData.map(item => item.solar || 0);
-    const costValues = reversedCost.map(item => item.value);
-    const savingsValues = reversedSavings.map(item => item.value);
+    const displayData = shouldReverse ? currentData.value.slice().reverse() : currentData.value.slice();
+    const displayCost = shouldReverse ? currentCostData.value.slice().reverse() : currentCostData.value.slice();
+    const displaySavings = shouldReverse ? currentSavingsData.value.slice().reverse() : currentSavingsData.value.slice();
+
+    // Map the data to the chart variables
+    const labels = displayData.map(item => item.label);
+    const gridKwhValues = displayData.map(item => item.grid || 0);
+    const solarKwhValues = displayData.map(item => item.solar || 0);
+    const costValues = displayCost.map(item => item.value);
+    const savingsValues = displaySavings.map(item => item.value);
 
   const baseColors = {
     grid: isDarkMode.value ? '#4A5568' : '#E2E8F0',
