@@ -17,11 +17,14 @@
           class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
         >
              <div class="flex items-start justify-between mb-4 ">
-               <h3 class="text-base font-medium text-gray-600 dark:text-gray-300">{{ metric.title }}</h3>
+               <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ metric.title }}</h3>
+               <div class="p-2 rounded-lg" :class="metric.bgClass">
+                 <component :is="metric.icon" class="w-6 h-6" :class="metric.textClass" />
                </div>
+             </div>
              <div>
-                <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ metric.cost }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-300 mt-1">{{ metric.definition }}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ metric.cost }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ metric.definition }}</p>
              </div>
         </div>
       </div>
@@ -72,6 +75,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useAuth } from "@/composables/useAuth"; 
+import { GlobeAmericasIcon, SparklesIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline';
 
 // Import all service functions
 import * as carbonService from "@/services/carbonService.js";
@@ -100,12 +104,14 @@ const weeklyChartData = ref([]);
 const monthlyChartData = ref([]);
 const yearlyChartData = ref([]);
 
-// --- STATIC DATA ---
-const sources = [
-  { id: 1, name: 'Air Conditioning', percentage: 40 },
-  { id: 2, name: 'Lighting', percentage: 30 },
-  { id: 3, name: 'Computers', percentage: 30 }
-];
+// --- DYNAMIC SOURCES DATA ---
+const sources = computed(() => {
+    // Since we don't have individual appliance tracking yet, we show a single source
+    // representing the total energy consumption for the day/period.
+    return [
+        { id: 1, name: 'Total Energy Consumption', percentage: 100 }
+    ];
+});
 const smartTips = computed(() => {
   if (dynamicMetrics.value.length === 0) return [{ id: 1, title: 'No Data', description: 'Waiting for energy data to generate tips.' }];
   return [{ id: 1, title: 'Reduce Phantom Load', description: 'Your lowest consumption is still high. Unplug devices when not in use.' }];
@@ -119,57 +125,81 @@ const isCarbonFree = computed(() => {
     else if (activePeriod.value === 'Monthly') currentData = monthlyChartData.value;
     else if (activePeriod.value === 'Yearly') currentData = yearlyChartData.value;
 
-    if (!currentData || currentData.length === 0) return true;
+    if (!currentData || currentData.length === 0) return false;
     
     // Sum up ONLY Grid Emissions (Actual Emissions)
     const gridEmissions = currentData
         .filter(item => item.source === 'Grid' || !item.source) // Assume Grid if source undefined
         .reduce((acc, item) => acc + (item.value || 0), 0);
     
-    return gridEmissions <= 0;
+    // Strict check: strictly 0 or negligible floating point error
+    return gridEmissions < 0.0001;
 });
 
 // --- HELPER: Process Hourly Data Locally for Solar/Grid logic ---
 const processHourlyDataWithSource = (readings, carbonRate) => {
-    // Group by hour
-    const grouped = {};
+    // 1. Separate readings by source to calculate deltas correctly
+    const readingsBySource = { 'Grid': [], 'Solar': [] };
     
     readings.forEach(r => {
-        const date = new Date(r.timestamp?.seconds * 1000 || r.timestamp);
-        const hour = date.getHours();
-        const label = date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-        
-        if (!grouped[hour]) {
-            grouped[hour] = { label, kwh: 0, source: r.energySource || 'Grid' };
-        }
-        
-        // Sum kWh
-        grouped[hour].kwh += (r.kwhDelta || 0);
-        
-        // If ANY record in this hour is Grid, we treat the hour as Grid (conservative approach)
-        // Or if your data is perfectly clean, this overwrites correctly.
-        if (r.energySource === 'Grid') {
-            grouped[hour].source = 'Grid';
+        const source = r.energySource || 'Grid';
+        if (!readingsBySource[source]) readingsBySource[source] = [];
+        readingsBySource[source].push(r);
+    });
+
+    const grouped = {};
+
+    // 2. Process each source independently
+    Object.keys(readingsBySource).forEach(source => {
+        const sourceReadings = readingsBySource[source];
+        // Ensure sorted by timestamp (though likely already sorted from query)
+        sourceReadings.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+
+        for (let i = 1; i < sourceReadings.length; i++) {
+            const prev = sourceReadings[i - 1];
+            const curr = sourceReadings[i];
+            
+            // Calculate Delta
+            const delta = (curr.kwhConsumed || 0) - (prev.kwhConsumed || 0);
+
+            // Filter out invalid/negative deltas or massive outliers if necessary
+            if (delta > 0) {
+                const date = new Date(curr.timestamp?.seconds * 1000 || curr.timestamp);
+                const hour = date.getHours();
+                const label = date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+
+                if (!grouped[hour]) {
+                    // Initialize if not exists. Default source for the group is the first one found, 
+                    // but we handle mixed sources below.
+                    grouped[hour] = { label, kwh: 0, source: source, hasGrid: false };
+                }
+
+                grouped[hour].kwh += delta;
+                
+                // Track if this hour has any Grid usage (for color logic)
+                if (source === 'Grid') {
+                    grouped[hour].hasGrid = true;
+                    grouped[hour].source = 'Grid'; // Force source to Grid if mixed
+                }
+            }
         }
     });
 
-    return Object.values(grouped).map(item => {
+    return Object.keys(grouped).sort((a, b) => Number(a) - Number(b)).map(hourKey => {
+        const item = grouped[hourKey];
         const co2 = item.kwh * carbonRate;
-        const isSolar = item.source === 'Solar';
+        // If hour has ANY Grid usage, treat as Grid (Red). Else Solar (Green).
+        const isSolar = !item.hasGrid && item.source === 'Solar';
         
         return {
             label: item.label,
-            value: parseFloat(co2.toFixed(3)),
-            source: item.source, 
-            // COLOR LOGIC: Green for Solar (Prevented), Red/Gray for Grid (Emission)
-            color: isSolar ? '#10B981' : '#EF4444' 
+            value: parseFloat(co2.toFixed(4)), // Higher precision
+            source: isSolar ? 'Solar' : 'Grid',
+            color: isSolar ? '#10B981' : '#F43F5E' 
         };
-    }).sort((a, b) => {
-        // Simple sort by time label parsing or index if available
-        // For simplicity, relying on reading order or adding an index field is better
-        return 0; 
     });
 };
+
 
 // --- DATA FETCHING ---
 let hourlyUnsubscribe = null;
@@ -191,11 +221,35 @@ const fetchAllData = async (id) => {
     ]);
     
     const chartData = carbonService.processCo2SummariesForCharts(summaries, carbonRate);
-    weeklyChartData.value = chartData.weeklyChartData;
-    monthlyChartData.value = chartData.monthlyChartData;
-    yearlyChartData.value = chartData.yearlyChartData;
+    
+    // Apply the "Grid" color (#F43F5E) to all historical bars for consistency
+    const applyColor = (data) => data.map(item => ({ ...item, color: '#F43F5E' }));
 
-    dynamicMetrics.value = carbonService.calculateDynamicMetrics(summaries, carbonRate);
+    weeklyChartData.value = applyColor(chartData.weeklyChartData);
+    monthlyChartData.value = applyColor(chartData.monthlyChartData);
+    yearlyChartData.value = applyColor(chartData.yearlyChartData);
+
+    const rawMetrics = carbonService.calculateDynamicMetrics(summaries, carbonRate);
+    dynamicMetrics.value = [
+      { 
+        ...rawMetrics[0], 
+        icon: GlobeAmericasIcon, 
+        bgClass: 'bg-red-100 dark:bg-red-900/30', 
+        textClass: 'text-red-600 dark:text-red-400' 
+      },
+      { 
+        ...rawMetrics[1], 
+        icon: SparklesIcon, 
+        bgClass: 'bg-green-100 dark:bg-green-900/30', 
+        textClass: 'text-green-600 dark:text-green-400' 
+      },
+      { 
+        ...rawMetrics[2], 
+        icon: CalendarDaysIcon, 
+        bgClass: 'bg-blue-100 dark:bg-blue-900/30', 
+        textClass: 'text-blue-600 dark:text-blue-400' 
+      }
+    ];
 
     if (hourlyUnsubscribe) hourlyUnsubscribe();
     
