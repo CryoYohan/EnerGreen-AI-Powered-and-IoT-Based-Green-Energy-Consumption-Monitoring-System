@@ -27,7 +27,8 @@ export const exportService = {
     doc.setTextColor(0, 0, 0);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
     doc.text(`View: ${title}`, 14, 36);
-    doc.text(`Total Consumption: ${totalKwh.toFixed(2)} kWh`, 14, 42);
+    const safeTotal = Number(totalKwh) || 0;
+    doc.text(`Total Consumption: ${safeTotal.toFixed(2)} kWh`, 14, 42);
 
     const tableData = data.map(r => [r.label, r.value + ' kWh']);
     autoTable(doc, {
@@ -66,7 +67,7 @@ export const exportService = {
           new Paragraph({ text: "EnerGreen Analytics Report", heading: HeadingLevel.HEADING_1 }),
           new Paragraph({ text: `Generated: ${new Date().toLocaleString()}` }),
           new Paragraph({ text: `View: ${title}` }),
-          new Paragraph({ text: `Total: ${totalKwh.toFixed(2)} kWh` }),
+          new Paragraph({ text: `Total: ${(Number(totalKwh) || 0).toFixed(2)} kWh` }),
           new Paragraph({ text: "" }), 
           new Table({
             rows: tableRows,

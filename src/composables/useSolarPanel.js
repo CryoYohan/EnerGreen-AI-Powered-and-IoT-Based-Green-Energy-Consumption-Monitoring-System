@@ -152,7 +152,6 @@ export function useSolarPanel() {
         const headers = "Date,Grid Usage (kWh),Solar Gen (kWh),Savings (PHP)\n";
         const rows = exportData.map(r => `${r.label},${r.grid},${r.solar},${r.savings}`).join("\n");
         const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
-        const { saveAs } = require("file-saver"); // Dynamic require if needed or import at top
         import("file-saver").then(m => m.saveAs(blob, `${filename}.csv`));
     }
     
