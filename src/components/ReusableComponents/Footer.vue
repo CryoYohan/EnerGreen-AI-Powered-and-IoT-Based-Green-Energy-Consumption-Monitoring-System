@@ -25,7 +25,7 @@
 
       <!-- Social Media Section -->
       <div class="flex justify-center w-full gap-3 md:gap-4 sm:w-auto">
-        <a href="#" class="text-gray-500 hover:text-[#059669] transition">
+        <a href="https://www.facebook.com/profile.php?id=61581946924693" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-[#059669] transition">
           <img class="w-6 h-6 md:w-8 md:h-8 dark:filter dark:invert" src="/src/Images/icons/Facebook.svg" alt="Facebook">
         </a>
         <a href="#" class="text-gray-500 hover:text-[#059669] transition">

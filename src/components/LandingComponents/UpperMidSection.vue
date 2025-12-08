@@ -28,15 +28,15 @@
             <div class="mt-6 flex flex-wrap gap-6 justify-center sm:justify-start">
               <div class="flex items-center gap-2 opacity-0 animate-fade-in delay-1200">
                 <div class="w-2 h-2 bg-green-300 rounded-full"></div>
-                <span class="text-green-100 text-sm font-medium">Real-time Monitoring</span>
+                <span class="text-green-100 text-sm font-medium">AI-Powered Analytics</span>
               </div>
               <div class="flex items-center gap-2 opacity-0 animate-fade-in delay-1400">
                 <div class="w-2 h-2 bg-green-300 rounded-full"></div>
-                <span class="text-green-100 text-sm font-medium">Cost Prediction</span>
+                <span class="text-green-100 text-sm font-medium">Carbon Emission Tracking</span>
               </div>
               <div class="flex items-center gap-2 opacity-0 animate-fade-in delay-1600">
                 <div class="w-2 h-2 bg-green-300 rounded-full"></div>
-                <span class="text-green-100 text-sm font-medium">Eco-Friendly</span>
+                <span class="text-green-100 text-sm font-medium">AI-Agent</span>
               </div>
             </div>
           </div>
