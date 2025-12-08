@@ -43,6 +43,7 @@ export function useAuth(appId) {
 
   let profileUnsubscribe = null;
 
+  console.log('useAuth: onAuthStateChanged is:', onAuthStateChanged); // DEBUG LOG
   const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
     // If there's an existing profile listener, unsubscribe first (e.g., user switch)
     if (profileUnsubscribe) {

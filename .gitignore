@@ -42,3 +42,8 @@ env.txt
                                                                                                                                    
 # Service account                                                                                                                  
 server/serviceAccountKey.json
+
+# Testing artifacts
+test-results/
+playwright-report/
+coverage/

@@ -1,23 +1,41 @@
-Error fetching carbon rate: ReferenceError: limit is not defined
-    at fetchCarbonRate (Home.vue:215:7)
-    at Home.vue:336:5
-    at chunk-JWJ3HAGN.js?v=cdd00bce:5049:40
-    at callWithErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2342:19)
-    at callWithAsyncErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2349:17)
-    at hook.__weh.hook.__weh (chunk-JWJ3HAGN.js?v=cdd00bce:5029:19)
-    at flushPostFlushCbs (chunk-JWJ3HAGN.js?v=cdd00bce:2527:28)
-    at flushJobs (chunk-JWJ3HAGN.js?v=cdd00bce:2569:5)
-fetchCarbonRate @ Home.vue:223
-predictionService.js:35 Error fetching global rates: ReferenceError: getDoc is not defined
-    at Module.loadGlobalRates (predictionService.js:19:26)
-    at Forecast.vue:320:27
-    at chunk-JWJ3HAGN.js?v=cdd00bce:5049:40
-    at callWithErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2342:19)
-    at callWithAsyncErrorHandling (chunk-JWJ3HAGN.js?v=cdd00bce:2349:17)
-    at hook.__weh.hook.__weh (chunk-JWJ3HAGN.js?v=cdd00bce:5029:19)
-    at flushPostFlushCbs (chunk-JWJ3HAGN.js?v=cdd00bce:2527:28)
-    at flushJobs (chunk-JWJ3HAGN.js?v=cdd00bce:2569:5)
-loadGlobalRates @ predictionService.js:35
-2plotly.min.js:8 Uncaught Error: No DOM element with id 'voltageChart' exists on the page.
-PredictionSummaryCard.vue:216 Uncaught ReferenceError: currentTime is not defined
-    at PredictionSummaryCard.vue:216:5
+Transcription: "hello what is my weekly summary report"
+Gemini wants to call: getWeeklySummaryReport
+TOOL EXECUTED: getWeeklySummaryReport (period: last_7_days)
+Error generating weekly summary: Error: 9 FAILED_PRECONDITION: 
+    at callErrorFromStatus (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@grpc\grpc-js\build\src\call.js:32:19)
+    at Object.onReceiveStatus (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@grpc\grpc-js\build\src\client.js:359:73)
+    at Object.onReceiveStatus (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@grpc\grpc-js\build\src\client-interceptors.js:327:181)
+    at D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@grpc\grpc-js\build\src\resolving-call.js:135:78
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+for call at
+    at ServiceClientImpl.makeServerStreamRequest (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@grpc\grpc-js\build\src\client.js:342:32)
+    at ServiceClientImpl.<anonymous> (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@grpc\grpc-js\build\src\make-client.js:105:19)
+    at D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\v1\firestore_client.js:242:33
+    at D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\google-gax\build\src\streamingCalls\streamingApiCaller.js:38:28
+    at D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\google-gax\build\src\normalCalls\timeout.js:44:16
+    at Object.request (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\google-gax\build\src\streamingCalls\streaming.js:234:40)
+    at makeRequest (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\retry-request\index.js:159:28)
+    at retryRequest (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\retry-request\index.js:119:5)
+    at StreamProxy.setStream (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\google-gax\build\src\streamingCalls\streaming.js:225:37)
+    at StreamingApiCaller.call (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\google-gax\build\src\streamingCalls\streamingApiCaller.js:54:16)
+Caused by: Error
+    at QueryUtil._getResponse (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\reference\query-util.js:44:23)
+    at Query._getResponse (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\reference\query.js:784:32)
+    at Query._get (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\reference\query.js:777:35)
+    at D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\reference\query.js:745:43
+    at D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:110:30
+    at NoopContextManager.with (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js:25:19)
+    at ContextAPI.with (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@opentelemetry\api\build\src\api\context.js:60:46)
+    at NoopTracer.startActiveSpan (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js:65:31)
+    at ProxyTracer.startActiveSpan (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js:36:24)
+    at EnabledTraceUtil.startActiveSpan (D:\Information System Projects\EnerGreen-Capstone\energreen-frontend\server\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:102:28) {
+  code: 9,
+  details: '',
+  metadata: Metadata {
+    internalRepr: Map(1) { 'x-debug-tracking-id' => [Array] },
+    opaqueData: Map(0) {},
+    options: {}
+  }
+}
+Tool Result: { error: 'Failed to generate the weekly summary report.' }
+Gemini Text: "I'm sorry, I am currently unable to retrieve the weekly summary report. There seems to be an issue generating it at the moment. Please try again later.
