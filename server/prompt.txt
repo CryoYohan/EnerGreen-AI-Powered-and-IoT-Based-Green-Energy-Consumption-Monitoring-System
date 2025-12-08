@@ -1,17 +1,83 @@
-Act as a Senior Software Architect and Code Refactoring Expert. Your primary directive is to enforce strict Separation of Concerns (SoC) and Clean Architecture principles.
+Context: I am building "EnerGreen," a Web-based Green Energy Monitoring System. Stack: Vue.js (Vite), Node/Express Backend, and Firebase (Auth/Firestore). Goal: I want to implement the "Gold Standard" automated testing suite you recommended, specifically focusing on Playwright for E2E and Vitest for Unit testing.
 
-Whenever I submit code or a feature request, do not just write a single file. Instead, structure your response by breaking the solution down into distinct architectural layers:
+Please act as a Senior QA Engineer and provide a step-by-step guide to implement this. Do not give generic advice; provide the actual code and terminal commands.
 
-1. **The UI Layer (View):** "Dumb" components that only handle display and user events. No business logic allowed here.
-2. **The Logic Layer (Composables/Hooks/State):** Where the state management and interaction logic live.
-3. **The Service/Data Layer:** Pure functions or classes responsible for API calls, Firebase interactions, or data parsing. Independent of the framework if possible.
-4. **The Types/Interfaces:** Strict definitions of the data structures being used.
+Step 1: Vitest (Unit Testing Logic)
 
-**Your Constraints:**
-- Identify "God Components" (files doing too much) and ruthlessly split them.
-- If a component calls an API directly, refactor it into a Service.
-- If a component performs complex calculations, refactor it into a Utility or Composable.
-- Always use specific filenames (e.g., `services/authService.js`, `composables/useEnergyData.js`).
-- Explain *why* you separated the concerns the way you did.
+Give me the npm install command to add Vitest to a Vue/Vite project.
 
-I am ready. Please wait for my code input.
+Show me how to configure vite.config.js to support Vitest.
+
+Create a sample unit test file costCalculator.test.js that tests a function (mock one up) that converts kWh to Peso/Dollar cost.
+
+Step 2: Playwright (E2E Testing)
+
+Give me the command to install Playwright.
+
+Write a complete E2E test file auth.spec.js. It should:
+
+Go to my local login URL (e.g., http://localhost:5173/login).
+
+Fill in a test email and password.
+
+Click the "Login" button.
+
+Wait for the URL to change to /dashboard.
+
+Verify that a specific element (like "Total Energy Consumption") is visible on the page.
+
+Step 3: The "Run" Script
+
+Update my package.json "scripts" section so I can run npm run test:unit and npm run test:e2e easily.
+
+Step 4: Context Integration
+
+IMPORTANT: I am pasting my current package.json below. Please do NOT give me a generic file. Instead, show me exactly how to modify my existing scripts object to include the new test commands without deleting my current dev or build commands.
+
+My Current package.json:
+{
+  "name": "energreen",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "@heroicons/vue": "^2.1.1",
+    "aos": "^2.3.4",
+    "axios": "^1.13.2",
+    "chart.js": "^4.5.0",
+    "cors": "^2.8.5",
+    "docx": "^9.5.1",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
+    "file-saver": "^2.0.5",
+    "firebase": "^12.1.0",
+    "firebase-admin": "13.6.0",
+    "helmet": "^8.1.0",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
+    "lodash-es": "^4.17.21",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^2.7.0",
+    "plotly.js-dist-min": "^3.1.0",
+    "pulltorefreshjs": "^0.1.22",
+    "sweetalert2": "^11.26.3",
+    "vue": "^3.5.13",
+    "vue-chartjs": "^5.3.2",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.1",
+    "vite": "^6.4.1",
+    "vite-plugin-vue-devtools": "^7.7.2"
+  }
+}
