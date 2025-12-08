@@ -148,38 +148,28 @@ async function generateSpeech(text) {
 
 // --- TTS Endpoint for Frontend UI ---
 router.post('/tts', queryRateLimiter, verifyToken, async (req, res) => {
-    const { text } = req.body; // Expecting JSON body { text: "..." } (parsed by express.json() in index.js)
-    
-    // NOTE: index.js uses express.json(), but this router uses express.raw for the /query endpoint.
-    // We need to handle the body parsing manually if this specific router overrides body parsing,
-    // OR rely on the fact that express.raw is only on /query if mounted specifically.
-    // Let's check the router setup.
-    // The router has `router.use(express.raw(...))`. This applies to ALL routes in this router if placed at top.
-    // FIX: Move the `express.raw` middleware to be specific to the `/query` route OR handle parsing here.
-    
-    // Actually, since we defined router.use(express.raw...) at the top, it intercepts everything.
-    // We should parse the raw body if it's JSON.
-    
-    try {
-        let messageText = text;
+    // Handle text-based input (JSON)
+    let messageText = null;
 
-        // Fallback manual parsing if body is a Buffer (due to express.raw)
-        if (Buffer.isBuffer(req.body)) {
-             try {
-                const jsonBody = JSON.parse(req.body.toString());
-                messageText = jsonBody.text;
-             } catch (e) {
-                // If not JSON, maybe it's just raw text? Unlikely for this endpoint.
-                console.error("TTS parsing error:", e);
-             }
-        } else if (req.body && req.body.text) {
+    if (req.is('application/json')) {
+        if (req.body && req.body.text) {
             messageText = req.body.text;
         }
-        
-        if (!messageText) {
-             return res.status(400).json({ error: "No text provided for TTS." });
+    } else if (Buffer.isBuffer(req.body)) {
+        // Fallback manual parsing if body is a Buffer (due to express.raw being used on this router)
+        try {
+            const jsonBody = JSON.parse(req.body.toString());
+            messageText = jsonBody.text;
+        } catch (e) {
+            console.error("TTS parsing error (Buffer):", e);
         }
+    }
 
+    if (!messageText) {
+         return res.status(400).json({ error: "No text provided for TTS. Ensure Content-Type is application/json" });
+    }
+    
+    try {
         console.log(`Generating TTS (Fenrir) for: "${messageText.substring(0, 50)}..."`);
         const audioBuffer = await generateSpeech(messageText);
         res.set('Content-Type', 'audio/wav').send(audioBuffer);

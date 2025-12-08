@@ -69,8 +69,8 @@ const shouldShowAgent = computed(() => {
   // 1. Admins always see their agent (AdminAgentButton)
   if (isAdmin.value) return true;
 
-  // 2. Regular users must be Premium to see Kobe/Christine
-  return isPremium.value;
+  // 2. Regular users (Free OR Premium) can see Kobe/Christine
+  return true;
 });
 </script>
 

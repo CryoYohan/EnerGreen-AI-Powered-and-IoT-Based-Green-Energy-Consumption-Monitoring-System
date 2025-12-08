@@ -28,7 +28,7 @@
           </div>
         </div>
 
-        <!-- Export Buttons (Matching Costs Page Style) -->
+        <!-- Export Buttons -->
         <div class="flex gap-2">
           <button @click="handleExport('csv')" class="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
             CSV
@@ -65,21 +65,66 @@
         </div>
       </div>
 
-      <!-- Main Chart -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 print:shadow-none print:border-gray-200">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Energy Source Mix ({{ activeFilter }})</h3>
-          <div class="flex gap-4 text-xs font-medium">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-yellow-500"></span> Solar
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Main Chart (2/3 Width) -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 print:shadow-none print:border-gray-200">
+            <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Energy Source Mix ({{ activeFilter }})</h3>
+            <div class="flex gap-4 text-xs font-medium">
+                <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-yellow-500"></span> Solar
+                </div>
+                <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-gray-400"></span> Grid
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-gray-400"></span> Grid
             </div>
-          </div>
+            <div class="h-80 w-full relative">
+            <div id="solar-mix-chart" class="w-full h-full"></div>
+            </div>
         </div>
-        <div class="h-80 w-full relative">
-          <div id="solar-mix-chart" class="w-full h-full"></div>
+
+        <!-- Weather & Efficiency Card (1/3 Width) -->
+        <div class="lg:col-span-1 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-700 dark:to-blue-900 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+             <!-- Background Decoration -->
+             <div class="absolute -top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
+             
+             <h3 class="text-lg font-bold mb-4 flex items-center gap-2 relative z-10">
+                 <span v-if="weather" class="text-2xl">{{ weather.temp }}°C</span>
+                 <span v-else>--°C</span>
+                 Current Conditions
+             </h3>
+
+             <div v-if="weather" class="flex items-center gap-4 mb-6 relative z-10">
+                 <img :src="weather.icon" alt="Weather Icon" class="w-16 h-16 bg-white/20 rounded-full shadow-sm p-1" />
+                 <div>
+                     <p class="text-xl font-semibold capitalize">{{ weather.description }}</p>
+                     <p class="text-xs text-blue-100">Humidity: {{ weather.humidity }}% | Wind: {{ weather.windSpeed }} m/s</p>
+                 </div>
+             </div>
+             <div v-else class="h-20 flex items-center justify-center text-blue-100 italic">
+                 Loading weather...
+             </div>
+
+             <div class="border-t border-white/20 pt-4 relative z-10">
+                 <div class="flex justify-between items-end mb-2">
+                     <span class="text-sm font-medium text-blue-100">Solar Efficiency Forecast</span>
+                     <span class="text-2xl font-bold">{{ solarEfficiency }}%</span>
+                 </div>
+                 <div class="w-full bg-black/20 rounded-full h-2.5">
+                    <div class="bg-yellow-400 h-2.5 rounded-full transition-all duration-1000" :style="{ width: solarEfficiency + '%' }"></div>
+                 </div>
+                 
+                 <!-- Dynamic Message for Night vs Day -->
+                 <p v-if="weather && weather.isDaytime === false" class="text-[10px] text-blue-200 mt-2 flex items-center gap-1">
+                    <span class="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></span>
+                    It is currently night time. Efficiency is 0%.
+                 </p>
+                 <p v-else class="text-[10px] text-blue-200 mt-2">
+                    Based on cloud cover ({{ weather?.clouds || 0 }}%) and temperature.
+                 </p>
+             </div>
         </div>
       </div>
 
@@ -89,7 +134,7 @@
           <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
              <CurrencyDollarIcon class="w-6 h-6" /> Total Savings
           </h3>
-          <p class="text-4xl font-extrabold mb-1">₱{{ savingsValue }}</p>
+          <p class="text-4xl font-extrabold mb-1">₱{{ impactStats.savingsValue }}</p>
           <p class="text-sm opacity-90">Money saved by using your own power this period.</p>
         </div>
 
@@ -99,11 +144,11 @@
              <p class="text-sm text-gray-500">Your solar panels have reduced carbon footprint significantly.</p>
              <div class="mt-4 flex gap-6">
                <div>
-                 <p class="text-2xl font-bold text-emerald-600">{{ co2Avoided }} kg</p>
+                 <p class="text-2xl font-bold text-emerald-600">{{ impactStats.co2Avoided }} kg</p>
                  <p class="text-xs text-gray-500 uppercase font-bold">CO2 Avoided</p>
                </div>
                <div>
-                 <p class="text-2xl font-bold text-emerald-600">{{ treesPlanted }}</p>
+                 <p class="text-2xl font-bold text-emerald-600">{{ impactStats.treesPlanted }}</p>
                  <p class="text-xs text-gray-500 uppercase font-bold">Trees Equivalent</p>
                </div>
              </div>
@@ -121,218 +166,33 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
-import { useAuth } from '@/composables/useAuth';
-import * as solarService from '@/services/solarService.js';
-import Plotly from 'plotly.js-dist-min';
-import { SunIcon, BoltIcon, Battery50Icon, CurrencyDollarIcon } from '@heroicons/vue/24/outline';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { saveAs } from "file-saver";
-// Added imports for Word export
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, HeadingLevel, WidthType } from "docx";
+import { useSolarPanel } from '@/composables/useSolarPanel.js';
+import { CurrencyDollarIcon } from '@heroicons/vue/24/outline';
 
 // Components
 import UserHeader from "@/components/ReusableComponents/UserHeader.vue";
 import Heading from "@/components/ReusableComponents/Heading.vue";
 import Footer from "@/components/ReusableComponents/Footer.vue";
 
-// --- STATE ---
-const timeFilters = ['Daily', 'Weekly', 'Monthly', 'Yearly']; 
-const activeFilter = ref('Weekly');
-const loading = ref(true);
-const error = ref(null);
-
-const rawData = ref([]); 
-const hourlyData = ref([]);
-const currentRate = ref(12.0); 
-const carbonRate = ref(0.71);
-const chartPlotData = ref({ xValues: [], ySolar: [], yGrid: [] });
-
-const { userProfile, waitForAuthReady } = useAuth('default-app-id');
-let hourlyUnsubscribe = null;
-
-// --- COMPUTED PROPERTIES ---
-const currentViewData = computed(() => {
-  if (activeFilter.value === 'Daily') return hourlyData.value;
-  let days = 7;
-  if (activeFilter.value === 'Monthly') days = 30;
-  if (activeFilter.value === 'Yearly') days = 365;
-  return rawData.value.slice(0, days);
-});
-
-const calculatedMetrics = computed(() => {
-    if (!currentViewData.value.length && activeFilter.value !== 'Daily') return [];
-    
-    const metrics = solarService.calculateMetrics(currentViewData.value, activeFilter.value === 'Daily');
-    return [
-        { ...metrics[0], icon: SunIcon, iconColor: 'text-yellow-500' },
-        { ...metrics[1], icon: BoltIcon, iconColor: 'text-gray-500' },
-        { ...metrics[2], icon: Battery50Icon, iconColor: 'text-emerald-500' },
-        { ...metrics[3], icon: SunIcon, iconColor: 'text-orange-500' }
-    ];
-});
-
-const impactStats = computed(() => {
-  return solarService.calculateImpact(currentViewData.value, activeFilter.value === 'Daily', currentRate.value, carbonRate.value);
-});
-
-const savingsValue = computed(() => impactStats.value.savingsValue);
-const co2Avoided = computed(() => impactStats.value.co2Avoided);
-const treesPlanted = computed(() => impactStats.value.treesPlanted);
-
-
-// --- DATA FETCHING ---
-const fetchAllData = async () => {
-    const profile = userProfile.value;
-    
-    if (!profile || !profile.deviceId) {
-        console.warn("Waiting for Device ID...");
-        return;
-    }
-
-    loading.value = true;
-    error.value = null;
-
-    try {
-        const [rate, carbon, summaries] = await Promise.all([
-            solarService.getUtilityRate(profile.electricityProvider),
-            solarService.getCarbonRate(),
-            solarService.getDailySummaries(profile.deviceId)
-        ]);
-        
-        currentRate.value = rate;
-        carbonRate.value = carbon;
-        rawData.value = summaries;
-
-        if (hourlyUnsubscribe) hourlyUnsubscribe();
-        hourlyUnsubscribe = solarService.listenToHourlyReadings(profile.deviceId, (readings) => {
-            hourlyData.value = solarService.processHourlyDeltas(readings);
-        });
-
-        loading.value = false;
-        await nextTick();
-        updateCharts();
-
-    } catch (e) {
-        console.error("Failed to fetch solar data:", e);
-        error.value = "Could not load solar panel data.";
-        loading.value = false;
-    } 
-};
-
-// --- CHARTING ---
-const updateCharts = () => {
-    const chartDiv = document.getElementById('solar-mix-chart');
-    if (!chartDiv) return;
-
-    chartPlotData.value = solarService.processDataForChart(rawData.value, hourlyData.value, activeFilter.value);
-    const { xValues, ySolar, yGrid } = chartPlotData.value;
-    
-    if (!xValues || xValues.length === 0) {
-        Plotly.purge(chartDiv);
-        return;
-    }
-    
-    const traceSolar = { x: xValues, y: ySolar, name: 'Solar', type: 'bar', marker: { color: '#EAB308' } };
-    const traceGrid = { x: xValues, y: yGrid, name: 'Grid', type: 'bar', marker: { color: '#9CA3AF' } };
-    const layout = { barmode: 'stack', margin: { l: 40, r: 20, t: 20, b: 40 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', showlegend: false, xaxis: { gridcolor: '#e5e7eb', showgrid: false }, yaxis: { gridcolor: '#e5e7eb', title: 'Energy (kWh)' }, font: { family: 'Poppins, sans-serif' } };
-    
-    Plotly.newPlot('solar-mix-chart', [traceGrid, traceSolar], layout, { displayModeBar: false, responsive: true });
-};
-
-// --- EXPORT LOGIC (ADAPTED FOR SOLAR PAGE) ---
-const handleExport = (format) => {
-  // Use .value because these are local refs, not props
-  if (!rawData.value || !rawData.value.length) {
-      alert("No data available to export.");
-      return;
-  }
-
-  const filename = `EnerGreen_Solar_Report_${new Date().toISOString().split('T')[0]}`;
-  
-  const exportData = [...rawData.value].reverse().map(d => ({
-    date: d.date,
-    grid: (d.gridKwhTotal || 0).toFixed(2),
-    solar: (d.solarKwhTotal || 0).toFixed(2),
-    // Calculated Savings (Solar * Rate) instead of Cost
-    savings: ((d.solarKwhTotal || 0) * currentRate.value).toFixed(2)
-  }));
-
-  if (format === 'csv') exportCSV(exportData, filename);
-  if (format === 'pdf') exportPDF(exportData, filename);
-  if (format === 'word') exportWord(exportData, filename);
-};
-
-const exportCSV = (data, filename) => {
-  const headers = "Date,Grid Usage (kWh),Solar Gen (kWh),Savings (PHP)\n";
-  const rows = data.map(r => `${r.date},${r.grid},${r.solar},${r.savings}`).join("\n");
-  saveAs(new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
-};
-
-const exportPDF = (data, filename) => {
-  const doc = new jsPDF();
-  doc.setFontSize(18); doc.setTextColor(234, 179, 8); // Yellow for Solar
-  doc.text("EnerGreen Solar Report", 14, 20);
-  
-  autoTable(doc, {
-    startY: 30,
-    head: [['Date', 'Grid (kWh)', 'Solar (kWh)', 'Savings (PHP)']],
-    body: data.map(r => [r.date, r.grid, r.solar, r.savings]),
-    theme: 'grid',
-    headStyles: { fillColor: [234, 179, 8] } // Yellow header
-  });
-  doc.save(`${filename}.pdf`);
-};
-
-const exportWord = async (data, filename) => {
-  const tableRows = [
-    new TableRow({ children: ["Date", "Grid (kWh)", "Solar (kWh)", "Savings (PHP)"].map(t => new TableCell({ children: [new Paragraph({ text: t, bold: true })] })) }),
-    ...data.map(r => new TableRow({ children: [r.date, r.grid, r.solar, r.savings].map(t => new TableCell({ children: [new Paragraph(t)] })) }))
-  ];
-  
-  const doc = new Document({ 
-      sections: [{ 
-          children: [
-              new Paragraph({ text: "EnerGreen Solar Report", heading: HeadingLevel.HEADING_1 }), 
-              new Table({ 
-                  rows: tableRows, 
-                  width: { size: 100, type: WidthType.PERCENTAGE }
-              })
-          ] 
-      }] 
-  });
-  
-  saveAs(await Packer.toBlob(doc), `${filename}.docx`);
-};
-
-// --- WATCHERS ---
-watch(() => userProfile.value?.deviceId, (newDeviceId) => {
-    if (newDeviceId) {
-        fetchAllData();
-    }
-}, { immediate: true });
-
-onUnmounted(() => {
-  if (hourlyUnsubscribe) hourlyUnsubscribe();
-});
-
-watch(activeFilter, updateCharts);
-watch(hourlyData, () => {
-    if (activeFilter.value === 'Daily') {
-        updateCharts();
-    }
-});
+const {
+  timeFilters,
+  activeFilter,
+  loading,
+  error,
+  weather,
+  solarEfficiency,
+  calculatedMetrics,
+  impactStats,
+  handleExport
+} = useSolarPanel();
 </script>
 
 <style scoped>
 @media print {
-  /* Hide non-essential elements for printing */
   button, nav, footer, .print\:hidden {
     display: none !important;
   }
   
-  /* Ensure charts are visible */
   .bg-white, .dark\:bg-gray-800 {
     background-color: white !important;
     color: black !important;
