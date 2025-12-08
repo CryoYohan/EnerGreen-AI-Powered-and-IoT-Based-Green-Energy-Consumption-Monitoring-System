@@ -109,8 +109,8 @@ userRouter.post('/generate-tips', tipsLimiter, verifyToken, async (req, res) => 
         prompt += `- Total Energy Consumed Today: ${energyData.totalKwh.toFixed(2)} kWh\n\n`;
         prompt += `Each tip must be an object with a "description" field in valid JSON format (array of objects). Do not include greetings, explanations, or extra commentary.`;
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) throw new Error("Server missing GEMINI_API_KEY");
+        const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY; // Fallback for local dev
+        if (!apiKey) throw new Error("Server missing GEMINI_API_KEY or VITE_GEMINI_API_KEY");
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 

@@ -15,7 +15,19 @@
             </div>
 
             <Transition name="tip-bubble" mode="out-in">
-              <div v-if="currentTip" :key="currentTipIndex"
+              <div v-if="loading"
+                class="relative bg-gray-800 dark:bg-gray-700 mb-10 text-white p-4 rounded-2xl shadow-lg max-w-xs flex items-center justify-center h-24"
+                style="border-bottom-left-radius: 4px;">
+                <p class="text-sm dark:text-gray-100 flex items-center">
+                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating Smart Tips...
+                </p>
+                <div class="absolute -left-2 bottom-2 w-4 h-4 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
+              </div>
+              <div v-else-if="currentTip" :key="currentTipIndex"
                 class="relative bg-gray-800 dark:bg-gray-700 mb-10 text-white p-4 rounded-2xl shadow-lg max-w-xs"
                 style="border-bottom-left-radius: 4px;">
                 <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
@@ -26,7 +38,18 @@
           </div>
 
           <Transition name="tip-bubble" mode="out-in">
-            <div v-if="currentTip" :key="currentTipIndex"
+            <div v-if="loading"
+              class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md hidden lg:block flex items-center justify-center h-24">
+              <p class="text-sm dark:text-gray-100 flex items-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating Smart Tips...
+              </p>
+              <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
+            </div>
+            <div v-else-if="currentTip" :key="currentTipIndex"
               class="relative bg-gray-800 dark:bg-gray-700 text-white p-5 rounded-lg shadow-lg mb-8 w-full max-w-md hidden lg:block">
               <p class="text-sm dark:text-gray-100">{{ currentTip.description }}</p>
               <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-800 dark:bg-gray-700 transform rotate-45 -z-10"></div>
