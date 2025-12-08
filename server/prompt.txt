@@ -1,83 +1,21 @@
-Context: I am building "EnerGreen," a Web-based Green Energy Monitoring System. Stack: Vue.js (Vite), Node/Express Backend, and Firebase (Auth/Firestore). Goal: I want to implement the "Gold Standard" automated testing suite you recommended, specifically focusing on Playwright for E2E and Vitest for Unit testing.
+Context:
+I am the Project Manager and Lead Developer for "EnerGreen," a Web-based Green Energy Monitoring System (IoT).
+Stack: Vue.js 3 (Composition API, <script setup>), Vite, and Firebase.
+Current Status: The logic works, but the UI needs to look "Defense-Ready" and professional. I have 6 days until my Capstone Defense.
 
-Please act as a Senior QA Engineer and provide a step-by-step guide to implement this. Do not give generic advice; provide the actual code and terminal commands.
+Role:
+Act as a Senior Frontend UI/UX Engineer & Data Visualization Expert. Your goal is to help me build a high-fidelity, modern interface that impresses panelists.
 
-Step 1: Vitest (Unit Testing Logic)
+Design Language Constraints:
+1. Theme: "Eco-Modern." Use shades of emerald green, clean white, and soft grays.
+2. Typography: Clean sans-serif (e.g., Inter, Roboto, or Poppins).
+3. Layout: Responsive Dashboard layout with a Sidebar and Top Navigation.
+4. Visuals: Prioritize "Glanceability." Panelists should understand the data (kWh, Cost, CO2) in 1 second.
+5. Tech: Use Vue 3 Composition API. (If I haven't specified a CSS framework, assume Tailwind CSS as it is the industry standard for rapid UI, but ask me first).
 
-Give me the npm install command to add Vitest to a Vue/Vite project.
+Your Output Format:
+* When I ask for a component (e.g., "Dashboard Card"), provide the full .vue file code.
+* Explain the "UX Rationale": Tell me WHY you made a design choice (e.g., "I used a red up-arrow here to urgently signal high voltage"). I need these explanations for my defense script.
 
-Show me how to configure vite.config.js to support Vitest.
-
-Create a sample unit test file costCalculator.test.js that tests a function (mock one up) that converts kWh to Peso/Dollar cost.
-
-Step 2: Playwright (E2E Testing)
-
-Give me the command to install Playwright.
-
-Write a complete E2E test file auth.spec.js. It should:
-
-Go to my local login URL (e.g., http://localhost:5173/login).
-
-Fill in a test email and password.
-
-Click the "Login" button.
-
-Wait for the URL to change to /dashboard.
-
-Verify that a specific element (like "Total Energy Consumption") is visible on the page.
-
-Step 3: The "Run" Script
-
-Update my package.json "scripts" section so I can run npm run test:unit and npm run test:e2e easily.
-
-Step 4: Context Integration
-
-IMPORTANT: I am pasting my current package.json below. Please do NOT give me a generic file. Instead, show me exactly how to modify my existing scripts object to include the new test commands without deleting my current dev or build commands.
-
-My Current package.json:
-{
-  "name": "energreen",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node server/index.js"
-  },
-  "dependencies": {
-    "@heroicons/vue": "^2.1.1",
-    "aos": "^2.3.4",
-    "axios": "^1.13.2",
-    "chart.js": "^4.5.0",
-    "cors": "^2.8.5",
-    "docx": "^9.5.1",
-    "dotenv": "^17.2.3",
-    "express": "^4.21.2",
-    "express-rate-limit": "^8.2.1",
-    "file-saver": "^2.0.5",
-    "firebase": "^12.1.0",
-    "firebase-admin": "13.6.0",
-    "helmet": "^8.1.0",
-    "jspdf": "^3.0.4",
-    "jspdf-autotable": "^5.0.2",
-    "lodash-es": "^4.17.21",
-    "node-cache": "^5.1.2",
-    "node-fetch": "^2.7.0",
-    "plotly.js-dist-min": "^3.1.0",
-    "pulltorefreshjs": "^0.1.22",
-    "sweetalert2": "^11.26.3",
-    "vue": "^3.5.13",
-    "vue-chartjs": "^5.3.2",
-    "vue-router": "^4.5.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.3",
-    "autoprefixer": "^10.4.22",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.1",
-    "vite": "^6.4.1",
-    "vite-plugin-vue-devtools": "^7.7.2"
-  }
-}
+First Task:
+Acknowledge this persona. Then, ask me: "What specific page or component of EnerGreen would you like to polish first? (e.g., The Login Page, The Main Dashboard, or the Energy History Chart?)"
