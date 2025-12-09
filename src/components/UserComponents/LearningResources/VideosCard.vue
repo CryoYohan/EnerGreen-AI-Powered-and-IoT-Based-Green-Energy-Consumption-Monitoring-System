@@ -1,199 +1,110 @@
 <template>
   <div class="container max-w-full p-10 mx-auto font-poppins space-y-4 bg-[#F9FAFB] dark:bg-gray-900">
     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Featured Videos</h1>
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 relative" id="video-container">
+    
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 relative grid-flow-dense" id="video-container">
+      
+      <div 
+        v-for="(video, index) in videos" 
+        :key="index"
+        class="video-item rounded-lg overflow-hidden shadow-md transition-all duration-300 bg-white dark:bg-gray-800"
+        
+        :class="{ 
+          'col-span-1 sm:col-span-2 lg:col-span-3': expandedVideo === index,
+          'hover:-translate-y-1 hover:shadow-xl': expandedVideo !== index
+        }"
+        
+        :style="{ order: expandedVideo === index ? -1 : 0 }"
+        
+        @click="activateVideo(index)"
+      >
+        <div 
+          class="video-wrapper w-full relative bg-black transition-all duration-500"
+          :class="expandedVideo === index ? 'aspect-video h-[500px]' : 'aspect-video'"
+        >
+          <iframe 
+            v-if="expandedVideo === index"
+            class="w-full h-full"
+            :src="getEmbedUrl(video.id)" 
+            title="YouTube video player" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            allowfullscreen
+          ></iframe>
+
+          <div v-else class="relative w-full h-full cursor-pointer group">
+            <img 
+              :src="`https://img.youtube.com/vi/${video.id}/hqdefault.jpg`" 
+              class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+              alt="Video thumbnail"
+            />
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ video.title }}</h3>
+          <p class="text-gray-600 dark:text-gray-400 text-sm">{{ video.subtitle }}</p>
+        </div>
       </div>
+
+    </div>
   </div>
 </template>
 
 <script>
-// NOTE: You must import the useDarkMode composable to make this work
 import { useDarkMode } from "@/composables/useDarkMode.js";
 
 export default {
-  data() {
-    return {
-      expandedVideo: null,
-      currentlyPlaying: null,
-      videos: [
-        {
-          src: "./src/Videos/Energreen Explainer Video.mp4",
-          title: "EnerGreen Explainer Video 1",
-          subtitle: "Take a moment to look and listen to what EnerGreen has to offer."
-        },
-        {
-          src: "./src/Videos/SolarPanel.mp4",
-          title: "Solar Panel Demo",
-          subtitle: "Take a moment to look and listen to what EnerGreen has to offer."
-        },
-        {
-          src: "./src/Videos/windmill.mp4",
-          title: "Windmill Demo",
-          subtitle: "Every month my electricity bill goes up, and I don't even know why!"
-        }
-      ],
-      originalOrder: [], // store order
-      isDarkMode: false
-    }
-  },
   setup() {
     const { isDarkMode } = useDarkMode();
     return { isDarkMode };
   },
-  mounted() {
-    this.createVideoElements();
-  },
-  watch: {
-    isDarkMode() {
-      // Re-render or update classes when dark mode changes
-      this.updateVideoClasses();
-    }
+  data() {
+    return {
+      expandedVideo: null,
+      videos: [
+        {
+          id: "4HcGYfdZOr4", 
+          title: "EnerGreen Explainer Video",
+          subtitle: "Take a moment to look and listen to what EnerGreen has to offer."
+        },
+        {
+          id: "4b8x4rKiAhE", 
+          title: "Energy Saving Tips",
+          subtitle: "Take a moment to look and listen to Energy Saving Tips."
+        },
+        {
+          id: "z7yDjWqAW2w", 
+          title: "Top 10 Energy Saving Tips for the Office",
+          subtitle: "We just love saving our customers money on their energy bills. That’s why we’ve compiled this checklist of our top 10 energy saving tips for your office. "
+        }
+      ]
+    };
   },
   methods: {
-    createVideoElements() {
-      const container = document.getElementById('video-container');
-      container.innerHTML = ''; // Clear container before adding new elements
-
-      this.videos.forEach((video, index) => {
-        const videoDiv = document.createElement('div');
-        videoDiv.className = 'video-item rounded-lg overflow-hidden shadow-md transition-all';
-        videoDiv.dataset.index = index;
-
-        videoDiv.innerHTML = `
-          <div class="video-wrapper aspect-video">
-            <video class="w-full h-full" controls>
-              <source src="${video.src}" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${video.title}</h3>
-            <p class="text-gray-600 dark:text-gray-400 text-sm">${video.subtitle}</p>
-          </div>
-        `;
-
-        const videoElement = videoDiv.querySelector('video');
-
-        videoElement.addEventListener('play', () => this.handleVideoPlay(index, videoElement));
-        videoElement.addEventListener('pause', () => this.handleVideoPause(index));
-        videoElement.addEventListener('ended', () => this.handleVideoEnd(index));
-
-        videoDiv.addEventListener('click', (e) => {
-          if (e.target.tagName === 'VIDEO' || e.target.tagName === 'SOURCE') return;
-          this.expandedVideo = this.expandedVideo === index ? null : index;
-          this.updateVideoLayout();
+    getEmbedUrl(videoId) {
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    },
+    activateVideo(index) {
+      if (this.expandedVideo === index) {
+        this.expandedVideo = null; // Close if clicking again
+      } else {
+        this.expandedVideo = index; // Set as active
+        
+        // Optional: Scroll the top of the container into view so the user sees the video move to top
+        this.$nextTick(() => {
+          document.getElementById('video-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
-
-        container.appendChild(videoDiv);
-        this.originalOrder.push(videoDiv);
-      });
-      // Set initial dark mode classes
-      this.updateVideoClasses();
-    },
-
-    updateVideoClasses() {
-      const videoItems = document.querySelectorAll('.video-item');
-      videoItems.forEach(item => {
-        if (this.isDarkMode) {
-          item.classList.add('dark:bg-gray-800', 'dark:shadow-md', 'dark:shadow-gray-700');
-          item.querySelector('h3').classList.add('dark:text-white');
-          item.querySelector('p').classList.add('dark:text-gray-400');
-        } else {
-          item.classList.remove('dark:bg-gray-800', 'dark:shadow-md', 'dark:shadow-gray-700');
-          item.querySelector('h3').classList.remove('dark:text-white');
-          item.querySelector('p').classList.remove('dark:text-gray-400');
-        }
-      });
-    },
-
-    handleVideoPlay(index, videoElement) {
-      document.querySelectorAll('video').forEach((vid, i) => {
-        if (i !== index) vid.pause();
-      });
-
-      this.currentlyPlaying = index;
-      this.expandedVideo = index;
-      this.updateVideoLayout();
-      const videoItem = document.querySelector(`.video-item[data-index="${index}"]`);
-      if (videoItem) {
-        videoItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
-    },
-
-    handleVideoPause(index) {
-      if (this.currentlyPlaying === index) {
-        const videoItem = document.querySelector(`.video-item[data-index="${index}"]`);
-        if (videoItem) {
-          videoItem.style.zIndex = '';
-          videoItem.style.position = '';
-        }
-        this.currentlyPlaying = null;
-        this.resetVideoOrder();
-      }
-    },
-
-    handleVideoEnd(index) {
-      this.handleVideoPause(index);
-      this.expandedVideo = null;
-      this.updateVideoLayout();
-    },
-
-    updateVideoLayout() {
-      const videoItems = document.querySelectorAll('.video-item');
-      const videoWrappers = document.querySelectorAll('.video-wrapper');
-
-      videoItems.forEach((item, index) => {
-        item.style.order = '0';
-
-        if (this.expandedVideo === index) {
-          item.classList.add('col-span-1', 'sm:col-span-2', 'lg:col-span-3');
-          videoWrappers[index].classList.add('expanded');
-          item.style.order = '-1';
-        } else {
-          item.classList.remove('col-span-1', 'sm:col-span-2', 'lg:col-span-3');
-          videoWrappers[index].classList.remove('expanded');
-        }
-      });
-    },
-
-    resetVideoOrder() {
-      const container = document.getElementById('video-container');
-      this.originalOrder.forEach((el) => container.appendChild(el));
     }
   }
 };
 </script>
-
-<style scoped>
-.video-item {
-  transition: all 0.3s ease;
-  cursor: pointer;
-  background-color: #fff;
-}
-.video-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-}
-.dark .video-item {
-  background-color: #1f2937;
-}
-.dark .video-item:hover {
-  box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.1);
-}
-.video-wrapper {
-  position: relative;
-  transition: all 0.3s ease;
-}
-.video-wrapper.expanded {
-  max-height: 70vh;
-  min-height: 400px;
-}
-.video-wrapper:not(.expanded) {
-  max-height: 300px;
-}
-.video-wrapper video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-</style>

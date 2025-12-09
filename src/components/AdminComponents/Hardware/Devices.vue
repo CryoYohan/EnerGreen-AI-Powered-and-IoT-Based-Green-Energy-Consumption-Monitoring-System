@@ -98,6 +98,39 @@
       </div>
     </div>
 
+    <transition name="fade">
+      <div v-if="showConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="closeConfirmModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+          <h3 class="text-xl font-semibold mb-4" 
+              :class="confirmActionVerb === 'Activate' ? 'text-green-600' : 'text-amber-600'">
+            Confirm {{ confirmActionVerb }}
+          </h3>
+          <p class="mb-6 text-gray-700 dark:text-gray-300">
+            Are you sure you want to <strong>{{ confirmActionVerb.toLowerCase() }}</strong> device <strong>{{ confirmDevice.deviceId }}</strong>?
+          </p>
+          <div class="flex justify-center gap-4">
+            <button @click="closeConfirmModal" class="px-4 py-2 bg-gray-200 rounded-md text-gray-800 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancel</button>
+            <button @click="executeToggleStatus" 
+                    :class="confirmActionVerb === 'Activate' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'"
+                    class="px-4 py-2 text-white rounded-md transition-colors">
+              Yes, {{ confirmActionVerb }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="showPopup" 
+        :class="['fixed top-5 right-5 px-5 py-3 rounded-lg shadow-lg text-white font-semibold z-[100] flex items-center gap-2', 
+          popupType === 'info' ? 'bg-blue-500' : popupType === 'success' ? 'bg-green-500' : 'bg-red-500']">
+        <span v-if="popupType === 'success'">✅</span>
+        <span v-else-if="popupType === 'error'">⚠️</span>
+        <span v-else>ℹ️</span>
+        {{ popupMessage }}
+      </div>
+    </transition>
+
   </div>
 </template>
 
