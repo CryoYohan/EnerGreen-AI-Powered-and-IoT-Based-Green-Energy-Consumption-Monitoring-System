@@ -5,6 +5,7 @@ import { app } from '@/firebase.js';
 
 // --- Pages ---
 import LandingPage from '@/pages/LandingPage/LandingPage.vue';
+import AboutUs from '@/pages/LandingPage/AboutUs.vue'; // Added Import
 import Unauthorized from '@/pages/Unauthorized.vue';
 import UpgradePage from '@/pages/Subscription/UpgradePage.vue';
 import FutureUpgradePage from '@/pages/Subscription/FutureUpgradePage.vue'; // Import FutureUpgradePage // Import Upgrade Page
@@ -39,6 +40,11 @@ const routes = [
     path: '/',
     name: 'Landing',
     component: LandingPage,
+  },
+  {
+    path: '/about-us', // New Route
+    name: 'AboutUs',
+    component: AboutUs,
   },
   {
     path: '/401',

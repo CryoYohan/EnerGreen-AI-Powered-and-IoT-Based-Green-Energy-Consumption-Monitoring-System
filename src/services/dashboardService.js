@@ -57,9 +57,9 @@ function processDailySummariesForCharts(summaries) {
     const d = new Date();
     d.setDate(today.getDate() - i);
     const dateKey = d.toISOString().slice(0, 10);
-    const dayData = weeklyTotals[dateKey] || { grid: 0, solar: 0, label: weekday[d.getDay()] };
+    const dayData = weeklyTotals[dateKey] || { grid: 0, solar: 0 };
     lastSevenDays.push({
-      label: dayData.label,
+      label: weekday[d.getDay()], // Force correct label from loop date
       grid: dayData.grid,
       solar: dayData.solar,
       value: dayData.grid + dayData.solar

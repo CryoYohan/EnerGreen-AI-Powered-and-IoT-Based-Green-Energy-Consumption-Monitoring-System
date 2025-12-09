@@ -6,34 +6,40 @@
           Energy Source Breakdown
         </h2>
         <div class="flex flex-col items-center md:flex-row">
-          <div class="w-64 h-64 mx-auto md:mr-8 lg:w-72 lg:h-72">
-            <DoughnutChart 
-              :chartData="energySourceData" 
-              :chartOptions="doughnutOptions" 
-            />
-          </div>
-          <div class="flex-1 mt-6 md:mt-0">
-            <div class="space-y-3">
-              <div class="flex items-center">
-                <div class="w-4 h-4 mr-3 bg-green-500 rounded-full"></div>
-                <span class="text-gray-700 dark:text-gray-300">Solar ({{ solarPercentage.toFixed(0) }}%)</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-4 h-4 mr-3 bg-blue-500 rounded-full"></div>
-                <span class="text-gray-700 dark:text-gray-300">Grid ({{ gridPercentage.toFixed(0) }}%)</span>
-              </div>
+          <div v-if="totalKwh > 0" class="flex flex-col items-center md:flex-row w-full">
+            <div class="w-64 h-64 mx-auto md:mr-8 lg:w-72 lg:h-72">
+              <DoughnutChart 
+                :chartData="energySourceData" 
+                :chartOptions="doughnutOptions" 
+              />
             </div>
+            <div class="flex-1 mt-6 md:mt-0">
+              <div class="space-y-3">
+                <div class="flex items-center">
+                  <div class="w-4 h-4 mr-3 bg-green-500 rounded-full"></div>
+                  <span class="text-gray-700 dark:text-gray-300">Solar ({{ solarPercentage.toFixed(0) }}%)</span>
+                </div>
+                <div class="flex items-center">
+                  <div class="w-4 h-4 mr-3 bg-blue-500 rounded-full"></div>
+                  <span class="text-gray-700 dark:text-gray-300">Grid ({{ gridPercentage.toFixed(0) }}%)</span>
+                </div>
+              </div>
 
-            <div class="p-4 mt-6 rounded-lg bg-gray-50 dark:bg-gray-900">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-gray-600 dark:text-gray-400">Energy consumed today:</span>
-                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ totalKwh.toFixed(4) }} kWh</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Estimated Savings:</span>
-                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ pesoFormatter.format(estimatedSavings) }}</span>
+              <div class="p-4 mt-6 rounded-lg bg-gray-50 dark:bg-gray-900">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-gray-600 dark:text-gray-400">Energy consumed today:</span>
+                  <span class="font-semibold text-gray-800 dark:text-gray-100">{{ totalKwh.toFixed(4) }} kWh</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Estimated Savings:</span>
+                  <span class="font-semibold text-gray-800 dark:text-gray-100">{{ pesoFormatter.format(estimatedSavings) }}</span>
+                </div>
               </div>
             </div>
+          </div>
+          <div v-else class="flex flex-col items-center justify-center text-center w-full h-64">
+            <p class="text-gray-500 mb-2 dark:text-gray-400 text-lg font-semibold">No energy readings for today.</p>
+            <p class="text-gray-700 dark:text-gray-300 text-sm">Please check your device connection or come back later.</p>
           </div>
         </div>
       </div>

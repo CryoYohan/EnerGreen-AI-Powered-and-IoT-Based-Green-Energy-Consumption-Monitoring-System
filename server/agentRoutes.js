@@ -299,21 +299,55 @@ const getUserProfileData = async (uid) => {
 router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
     console.log('AI Agent endpoint hit!');
 
-    // Handle text-based input (JSON)
+    let transcription = "";
+    let imagePart = null;
+
+    // Handle JSON input (Unified Text, Audio, and Image)
     if (req.is('application/json')) {
-        if (!req.body || (!req.body.text && !req.body.content)) {
-             return res.status(400).json({ error: 'No text data received.' });
+        // 1. Handle Audio (Base64)
+        if (req.body.audio) {
+            try {
+                const speechRequest = {
+                    audio: { content: req.body.audio },
+                    config: {
+                        encoding: 'WEBM_OPUS',
+                        sampleRateHertz: 48000,
+                        languageCode: 'en-US',
+                    },
+                };
+                console.log("Sending to Cloud STT...");
+                const [speechResponse] = await speechClient.recognize(speechRequest);
+                transcription = speechResponse.results
+                    .map(result => result.alternatives[0].transcript)
+                    .join('\n');
+                console.log(`Audio Transcription: "${transcription}"`);
+            } catch (sttError) {
+                console.error("STT Error:", sttError);
+                return res.status(500).json({ error: "Speech recognition failed." });
+            }
+        } 
+        // 2. Handle Text
+        else if (req.body.text || req.body.content) {
+            transcription = req.body.text || req.body.content;
+            console.log(`Text Input: "${transcription}"`);
         }
-        var transcription = req.body.text || req.body.content;
-        console.log(`Text Input: "${transcription}"`);
+
+        // 3. Handle Image
+        if (req.body.image && req.body.mimeType) {
+            console.log("Image received.");
+            imagePart = {
+                inlineData: {
+                    data: req.body.image,
+                    mimeType: req.body.mimeType
+                }
+            };
+        }
     } else {
-        // Handle Audio input
+        // Fallback: Raw Audio Blob (Legacy support)
         if (!req.body || req.body.length === 0) {
             return res.status(400).json({ error: 'No audio data received.' });
         }
-
         try {
-            // 1. Speech-to-Text
             const audioBytes = req.body.toString('base64');
             const speechRequest = {
                 audio: { content: audioBytes },
@@ -323,23 +357,28 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     languageCode: 'en-US',
                 },
             };
-
-            console.log("Sending to Cloud STT...");
+            console.log("Sending to Cloud STT (Raw Blob)...");
             const [speechResponse] = await speechClient.recognize(speechRequest);
-            var transcription = speechResponse.results
+            transcription = speechResponse.results
                 .map(result => result.alternatives[0].transcript)
                 .join('\n');
-            console.log(`Transcription: "${transcription}"`);
-
-            if (!transcription) {
-                const fallbackAudio = await generateSpeech("I didn't catch that. Could you please repeat?");
-                res.set('Content-Type', 'audio/wav');
-                return res.send(fallbackAudio);
-            }
         } catch (sttError) {
              console.error("STT Error:", sttError);
              return res.status(500).json({ error: "Speech recognition failed." });
         }
+    }
+
+    // Fail if no intelligible input (text or audio) is found, UNLESS there is an image (users might just send an image).
+    // If just an image, we can default the text to "What is this?".
+    if (!transcription && !imagePart) {
+        // Try to generate a polite "I didn't catch that" response audio
+        const fallbackAudio = await generateSpeech("I didn't catch that. Could you please repeat?");
+        res.set('Content-Type', 'audio/wav');
+        return res.send(fallbackAudio);
+    }
+
+    if (!transcription && imagePart) {
+        transcription = "What is this image about?";
     }
 
     try {
@@ -638,8 +677,11 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
             tools: [{ functionDeclarations: energyToolFunctions }],
         });
 
-        // Send the new message
-        const result = await chat.sendMessage(transcription);
+        // Send the new message (supporting text + image)
+        const messageParts = imagePart ? [{ text: transcription }, imagePart] : transcription;
+        console.log(`Sending to Gemini (Image attached: ${!!imagePart})...`);
+        
+        const result = await chat.sendMessage(messageParts);
         const response = result.response;
 
         // Check for function call
