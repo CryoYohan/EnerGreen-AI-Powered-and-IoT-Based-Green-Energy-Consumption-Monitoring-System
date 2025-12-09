@@ -114,12 +114,12 @@ export function calculateDynamicMetrics(summaries, carbonRateKg) {
     }
     
     const latestSummary = summaries[0];
-    const latestKwh = (latestSummary.gridKwhTotal || 0) + (latestSummary.solarKwhTotal || 0);
-    const latestCo2 = latestKwh * carbonRateKg;
+    const latestGridKwh = (latestSummary.gridKwhTotal || 0); // Only grid for CO2
+    const latestCo2 = latestGridKwh * carbonRateKg;
 
     const last30Days = summaries.slice(0, 30);
-    const last30DaysKwh = last30Days.reduce((acc, s) => acc + (s.gridKwhTotal || 0) + (s.solarKwhTotal || 0), 0);
-    const last30DaysCo2 = last30DaysKwh * carbonRateKg;
+    const last30DaysGridKwh = last30Days.reduce((acc, s) => acc + (s.gridKwhTotal || 0), 0); // Only grid for CO2
+    const last30DaysCo2 = last30DaysGridKwh * carbonRateKg;
     
     // An average mature tree absorbs about 20.4 kg of CO2 per year, or ~1.7 kg per month.
     const treesEquivalent = (last30DaysCo2 / 1.7).toFixed(0); 
@@ -127,7 +127,7 @@ export function calculateDynamicMetrics(summaries, carbonRateKg) {
     return [
         {
             title: 'Current CO₂ Emissions (Today)',
-            cost: `${latestCo2.toFixed(2)} kg CO₂`,
+            cost: `${latestCo2.toFixed(4)} kg CO₂`, // Increased precision
             definition: 'Based on the last daily summary'
         },
         {
@@ -137,7 +137,7 @@ export function calculateDynamicMetrics(summaries, carbonRateKg) {
         },
         {
             title: 'Monthly Total',
-            cost: `${last30DaysCo2.toFixed(2)} kg CO₂`,
+            cost: `${last30DaysCo2.toFixed(4)} kg CO₂`, // Increased precision
             definition: 'Total for the last 30 days'
         },
     ];
