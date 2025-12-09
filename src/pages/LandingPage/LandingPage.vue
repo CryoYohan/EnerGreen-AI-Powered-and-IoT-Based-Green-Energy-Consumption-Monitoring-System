@@ -11,6 +11,7 @@
     <LowerMidSection class="w-full" data-aos="fade-up" data-aos-delay="400" />
     <BottomSection class="w-full" data-aos="fade-up" data-aos-delay="400" />
     <UpperFooter @open-login-modal="showLoginModal = true" data-aos="fade-up" />
+    <AboutUs  data-aos="fade-up" data-aos-delay="400"/>
     <Footer data-aos="fade-up" />
     <AuthModal 
       :isOpen="showLoginModal" 
@@ -30,7 +31,7 @@ import Header from '@/components/LandingComponents/Header.vue'
 import UpperFooter from '@/components/LandingComponents/UpperFooter.vue';
 import Footer from '@/components/ReusableComponents/Footer.vue';
 import AuthModal from '@/auth/AuthModal.vue';
-
+import AboutUs from '@/components/LandingComponents/AboutUs.vue';
 export default {
   components: { 
     Header, 
@@ -42,7 +43,8 @@ export default {
     BottomSection, 
     UpperFooter, 
     Footer, 
-    AuthModal 
+    AuthModal,
+    AboutUs
   },
   data() {
     return {

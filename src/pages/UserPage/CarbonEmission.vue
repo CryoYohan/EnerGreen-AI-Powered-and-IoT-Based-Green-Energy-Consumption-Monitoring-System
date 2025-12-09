@@ -32,12 +32,12 @@
     
     <EmissionDashboard :emissionSources="sources" :tips="smartTips" />
 
-    <div v-if="!loading && !error" class="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+    <div v-if="!loading && !error" class="w-full mx-auto px-4 sm:px-6 pb-10">
         
         <div class="flex justify-end mb-4">
              </div>
 
-        <div v-if="isCarbonFree" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-10 text-center border border-green-100 dark:border-green-900">
+        <div v-if="isCarbonFree" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg text-center border border-green-100 dark:border-green-900">
              <div class="mb-6 relative inline-block">
                  <div class="absolute inset-0 bg-green-400 blur-xl opacity-20 rounded-full animate-pulse"></div>
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-green-500 relative z-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">

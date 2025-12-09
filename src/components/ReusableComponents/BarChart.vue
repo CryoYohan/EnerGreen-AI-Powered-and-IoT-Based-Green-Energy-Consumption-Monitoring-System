@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 bg-white rounded-lg shadow lg:m-12 font-poppins dark:bg-gray-800 dark:shadow-gray-700">
+  <div class="p-6 bg-white rounded-lg shadow font-poppins dark:bg-gray-800 dark:shadow-gray-700">
     <div class="flex items-center justify-center mb-6 sm:justify-between">
       <h2 class="hidden font-bold text-gray-800 sm:text-sm sm:block lg:text-lg dark:text-gray-100">
         {{ title }} <span v-if="activePeriod">- {{ activePeriod }}</span>

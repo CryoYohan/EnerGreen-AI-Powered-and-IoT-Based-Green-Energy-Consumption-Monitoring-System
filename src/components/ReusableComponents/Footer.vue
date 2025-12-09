@@ -13,14 +13,14 @@
       <!-- Address Section -->
       <div class="w-full text-center md:text-left sm:w-auto">
         <p class="mb-1 text-sm font-semibold dark:text-[#F8F8FF] text-gray-600 md:text-base">Address</p>
-        <p class="text-sm text-gray-500 dark:text-[#F8F8FF] md:text-base">Level 12, Sample St<br>Syne NSW 2000</p>
+        <p class="text-sm text-gray-500 dark:text-[#F8F8FF] md:text-base">Metropolis<br>Talamban</p>
       </div>
 
       <!-- Contact Section -->
       <div class="w-full text-center md:text-left sm:w-auto">
         <p class="mb-1 text-sm dark:text-[#F8F8FF] font-semibold text-gray-600 md:text-base">Contact</p>
-        <p class="text-sm dark:text-[#F8F8FF] text-gray-500 md:text-base">+61 2 7345 6789</p>
-        <p class="text-sm dark:text-[#F8F8FF] text-gray-500 md:text-base">sample@gmail.com</p>
+        <p class="text-sm dark:text-[#F8F8FF] text-gray-500 md:text-base">+63 992 251 8273</p>
+        <p class="text-sm dark:text-[#F8F8FF] text-gray-500 md:text-base">energreen@gmail.com</p>
       </div>
 
       <!-- Social Media Section -->
