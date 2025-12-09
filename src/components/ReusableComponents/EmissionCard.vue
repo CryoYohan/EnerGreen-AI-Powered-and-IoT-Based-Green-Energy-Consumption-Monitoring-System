@@ -1,5 +1,5 @@
 <template>
-  <div class="container max-w-full p-4 mx-auto lg:pr-12 lg:pl-12 font-poppins bg-[#F9FAFB] dark:bg-gray-900">
+  <div class="container max-w-full p-4 mx-auto lg:p-7 font-poppins bg-[#F9FAFB] dark:bg-gray-900">
     <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">{{ title }}</h1>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
