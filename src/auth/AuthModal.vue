@@ -153,12 +153,7 @@
                   </select>
                 </div>
 
-                <div class="mb-2">
-                  <label class="block text-white">Device ID (optional)</label>
-                  <input type="text" v-model="deviceId"
-                    class="w-full px-4 py-1 placeholder-white bg-transparent border border-white rounded-lg focus:outline-none focus:bg-white focus:text-black">
-                  <p v-if="deviceError" class="text-sm text-yellow-300 mt-1">{{ deviceError }}</p>
-                </div>
+
               </div>
 
               <div class="mb-4 relative">
@@ -273,7 +268,6 @@ const fullName = ref('');
 const email = ref('');
 const phoneNumber = ref('');
 const address = ref('');
-const deviceId = ref('');
 const electricityProvider = ref('');
 const password = ref('');
 const confirmPassword = ref('');
@@ -428,7 +422,6 @@ const resetForm = () => {
   fullName.value = '';
   phoneNumber.value = '';
   address.value = '';
-  deviceId.value = '';
   electricityProvider.value = ''; 
   isVerifyingEmail.value = false;
   isEmailVerifiedSuccess.value = false;
@@ -541,20 +534,8 @@ const handleRegister = async () => {
     return;
   }
 
-  // Device ID Check (Async - via Server)
-  const trimmedDeviceId = deviceId.value.trim();
-  
   try {
     isLoading.value = true;
-
-    if (trimmedDeviceId) {
-        const deviceCheck = await checkDeviceIDWithServer(trimmedDeviceId);
-        if (!deviceCheck.valid) {
-            isLoading.value = false;
-            deviceError.value = deviceCheck.message;
-            return;
-        }
-    }
 
     // 1. Create Authentication
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
@@ -566,18 +547,14 @@ const handleRegister = async () => {
       email: email.value,
       phoneNumber: phoneNumber.value,
       address: address.value,
-      deviceId: trimmedDeviceId, 
       electricityProvider: electricityProvider.value,
       role: "user",
       status: "active",
+      subscriptionStatus: "Active", // Added
+      subscriptionTier: "Free",     // Added
     });
 
-    // 3. NEW: Claim the Device in the Devices Collection
-    if (trimmedDeviceId) {
-        await claimDeviceOnServer(trimmedDeviceId, userId, fullName.value);
-    }
-
-    // 4. Send Verification
+    // 3. Send Verification
     await sendEmailVerification(userCredential.user);
 
     isLoading.value = false;
