@@ -94,7 +94,7 @@
       :estimatedSavings="estimatedSavings"
     />
     <Footer />
-    
+
     <div v-if="showOnboarding" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full text-center">
         <h2 class="text-xl font-semibold mb-4 text-green-600">Welcome, {{ userFirstName }}!</h2>
@@ -131,6 +131,7 @@ const userName = computed(() => userProfile.value?.fullName || 'Guest');
 const userFirstName = computed(() => userName.value.split(' ')[0] || 'Guest');
 const activePeriod = ref("Weekly");
 const deviceId = ref(null);
+const hasDeviceId = computed(() => !!deviceId.value);
 
 // --- Data for Child Components ---
 const dailyData = ref([]); 
