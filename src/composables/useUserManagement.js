@@ -1,4 +1,4 @@
-import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { initializeApp } from "firebase/app"; 
 import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { collectionGroup, collection, query, onSnapshot, doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -25,6 +25,11 @@ export function useUserManagement() {
   const users = ref([]);
   const devices = ref([]);
   
+  // Computed property for unassigned devices
+  const unassignedDevices = computed(() => {
+    return devices.value.filter(device => !device.userId || device.userId === '');
+  });
+
   // Loading States
   const isAddingUser = ref(false);
   const isEditingUser = ref(false);
@@ -186,6 +191,8 @@ export function useUserManagement() {
     createUser,
     updateUserStatus,
     removeUser,
-    updateUserProfile
+    updateUserProfile,
+
+    unassignedDevices // Added
   };
 }

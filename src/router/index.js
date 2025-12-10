@@ -5,10 +5,11 @@ import { app } from '@/firebase.js';
 
 // --- Pages ---
 import LandingPage from '@/pages/LandingPage/LandingPage.vue';
-import AboutUs from '@/components/LandingComponents/AboutUs.vue'; // Added Import
+import AboutUs from '@/components/LandingComponents/AboutUs.vue';
+import DevicePending from '@/pages/DevicePending.vue'; // Added
 import Unauthorized from '@/pages/Unauthorized.vue';
 import UpgradePage from '@/pages/Subscription/UpgradePage.vue';
-import FutureUpgradePage from '@/pages/Subscription/FutureUpgradePage.vue'; // Import FutureUpgradePage // Import Upgrade Page
+import FutureUpgradePage from '@/pages/Subscription/FutureUpgradePage.vue';
 
 // User Pages
 import Home from '@/pages/UserPage/Home.vue';
@@ -42,9 +43,15 @@ const routes = [
     component: LandingPage,
   },
   {
-    path: '/about-us', // New Route
+    path: '/about-us',
     name: 'AboutUs',
     component: AboutUs,
+  },
+  {
+    path: '/device-pending',
+    name: 'DevicePending',
+    component: DevicePending,
+    meta: { requiresAuth: true, role: 'user' }
   },
   {
     path: '/401',
@@ -55,13 +62,13 @@ const routes = [
     path: '/upgrade',
     name: 'Upgrade',
     component: UpgradePage,
-    meta: { requiresAuth: true } // This page requires auth to know who to upgrade
+    meta: { requiresAuth: true }
   },
   {
     path: '/future-upgrade',
     name: 'FutureUpgrade',
     component: FutureUpgradePage,
-    meta: { requiresAuth: false } // No auth required for this informational page
+    meta: { requiresAuth: false }
   },
 
   // --- USER ROUTES (Role: 'user') ---
@@ -69,43 +76,43 @@ const routes = [
     path: '/home',
     name: 'Home',
     component: Home,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
   {
     path: '/appliances',
     name: 'Appliances',
     component: Appliances,
-    meta: { requiresAuth: true, role: 'user', requiresPremium: true } // Mark as premium
+    meta: { requiresAuth: true, role: 'user', requiresPremium: true, requiresDeviceId: true }
   },
   {
     path: '/forecast',
     name: 'Forecast',
     component: Forecast,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
   {
     path: '/solarpanel',
     name: 'SolarPanel',
     component: SolarPanel,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
   {
     path: '/simulation',
     name: 'Simulation',
     component: Simulation,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
   {
     path: '/carbonemission',
     name: 'CarbonEmission',
     component: CarbonEmission,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
   {
     path: '/resources',
     name: 'Resources',
     component: Resources,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
   {
     path: '/profile',
@@ -117,7 +124,7 @@ const routes = [
     path: '/cost',
     name: 'Cost',
     component: Cost,
-    meta: { requiresAuth: true, role: 'user' }
+    meta: { requiresAuth: true, role: 'user', requiresDeviceId: true }
   },
 
   // --- ADMIN ROUTES (Role: 'admin') ---
@@ -219,6 +226,7 @@ router.beforeEach(async (to, from, next) => {
     const profile = await getUserProfile(currentUser.uid);
     const role = profile?.role || 'user';
     const subscription = profile?.subscriptionTier || 'Free';
+    const deviceId = profile?.deviceId;
 
     // Role mismatch (e.g. User trying to access Admin page) -> Redirect to 401
     if (to.meta.role && to.meta.role !== role) {
@@ -229,7 +237,12 @@ router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresPremium && subscription !== 'Premium') {
       return next({ name: 'Upgrade' });
     }
-    
+
+    // Device Check: If route requires deviceId but user doesn't have one
+    if (to.meta.requiresDeviceId && !deviceId) {
+      return next('/device-pending');
+    }
+
     // All checks passed
     return next();
   }

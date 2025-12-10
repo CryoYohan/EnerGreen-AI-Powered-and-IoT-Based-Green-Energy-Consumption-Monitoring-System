@@ -12,7 +12,6 @@
     <BottomSection class="w-full" data-aos="fade-up" data-aos-delay="400" />
     <AboutUs  data-aos="fade-up" data-aos-delay="400"/>
     <UpperFooter @open-login-modal="showLoginModal = true" data-aos="fade-up" />
-    <AboutUs  data-aos="fade-up" data-aos-delay="400"/>
     <Footer data-aos="fade-up" />
     <AuthModal 
       :isOpen="showLoginModal" 
