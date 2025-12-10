@@ -140,11 +140,11 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Assign Smart Meter</label>
               <select v-model="newUserForm.deviceId" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="None">None</option>
-                <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
+                <option v-for="device in unassignedDevices" :key="device.deviceId" :value="device.deviceId">
                   {{ device.deviceId }} ({{ device.location || 'No Loc' }})
                 </option>
               </select>
-              <p class="text-xs text-gray-500 mt-1">Only shows devices registered in Hardware.</p>
+              <p class="text-xs text-gray-500 mt-1">Only shows devices not yet assigned to a user.</p>
             </div>
 
             <div class="flex justify-end gap-3 mt-6">
@@ -223,7 +223,7 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Assign Smart Meter</label>
               <select v-model="editUserForm.smartMeterID" :disabled="isViewOnly" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="None">None</option>
-                <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
+                <option v-for="device in editableDeviceOptions" :key="device.deviceId" :value="device.deviceId">
                   {{ device.deviceId }} ({{ device.location || 'No Loc' }})
                 </option>
               </select>
@@ -257,7 +257,8 @@ import UsersTable from "@/components/AdminComponents/Users/UsersTable.vue";
 
 const {
   users,
-  devices,
+  devices, // Keep devices as it might be needed for other things not related to filtering
+  unassignedDevices, // ADDED
   isAddingUser,
   isEditingUser,
   
@@ -282,6 +283,26 @@ const newUserForm = reactive({
 });
 
 const editUserForm = reactive({});
+
+const editableDeviceOptions = computed(() => {
+    const options = [{ deviceId: 'None', location: '' }]; // Always include None
+
+    // If the user being edited has a device assigned, add it to the options
+    if (editUserForm.smartMeterID && editUserForm.smartMeterID !== 'None') {
+        const assignedDevice = devices.value.find(d => d.deviceId === editUserForm.smartMeterID);
+        if (assignedDevice) {
+            options.push(assignedDevice);
+        }
+    }
+    // Add all currently unassigned devices
+    unassignedDevices.value.forEach(device => {
+        // Avoid adding the same device twice if it's the assigned one
+        if (device.deviceId !== editUserForm.smartMeterID) {
+            options.push(device);
+        }
+    });
+    return options;
+});
 
 const showNotification = (message, type = "info") => {
   popup.message = message;
