@@ -19,7 +19,6 @@
         </button>
 
         <div class="space-y-2">
-          <img :src="device.icon" :alt="device.name" class="w-12 h-12 dark:invert" />
           <h3 class="text-lg dark:text-gray-200 font-bold text-gray-800">{{ device.name }}</h3>
           <div class="flex items-center justify-between gap-2">
             <p class="text-sm text-gray- dark:text-gray-200">{{ device.location }}</p>
