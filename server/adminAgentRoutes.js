@@ -459,7 +459,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     const now = new Date();
                     let daysAgo = 7;
                     let periodText = "Last 7 Days";
-    
+
                     if (period === 'last_30_days') {
                         daysAgo = 30;
                         periodText = "Last 30 Days";
@@ -467,7 +467,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                         daysAgo = 365;
                         periodText = "Last Year";
                     }
-    
+
                     const startDate = new Date();
                     startDate.setDate(now.getDate() - daysAgo);
                     startDate.setHours(0, 0, 0, 0);
@@ -484,7 +484,7 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                         .where('subscriptionTier', '==', 'Premium')
                         .where('role', '!=', 'admin')
                         .get();
-                        
+
                     const premiumUsersCount = premiumUsersSnapshot.size;
                     const monthlyRecurringRevenue = premiumUsersCount * 599;
 
@@ -495,9 +495,9 @@ router.post('/query', queryRateLimiter, verifyToken, async (req, res) => {
                     // 4. Energy Stats (Real Aggregation)
                     // Format startDate to YYYY-MM-DD for string comparison in Firestore
                     const startDateStr = startDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-                    
+
                     const energySnapshot = await dbAgent.collectionGroup('daily_summaries')
-                        .where('date', '>=', startDateStr)
+                        .where('lastUpdated', '>=', startDateStr)
                         .get();
 
                     let realTotalKwh = 0;

@@ -1,4 +1,4 @@
-Transcription: "hello what is my weekly summary report"
+Transcription: "what is my weekly summary report"
 Gemini wants to call: getWeeklySummaryReport
 TOOL EXECUTED: getWeeklySummaryReport (period: last_7_days)
 Error generating weekly summary: Error: 9 FAILED_PRECONDITION: 
@@ -38,4 +38,4 @@ Caused by: Error
   }
 }
 Tool Result: { error: 'Failed to generate the weekly summary report.' }
-Gemini Text: "I'm sorry, I am currently unable to retrieve the weekly summary report. There seems to be an issue generating it at the moment. Please try again later.
+Gemini Text: "I am sorry, I am unable to get the weekly summary report because the report generation failed.

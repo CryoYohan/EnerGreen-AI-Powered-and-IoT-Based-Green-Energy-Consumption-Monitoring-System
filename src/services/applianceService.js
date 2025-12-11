@@ -78,7 +78,7 @@ export async function scanForNewSignatures(deviceId) {
             body: JSON.stringify({ device_id: deviceId, signature: signature.signature || [] }),
         });
         const result = await response.json();
-        
+
         // Update Firestore in the background
         await applianceRepo.updateSignatureLabel(deviceId, signature.id, result.predicted_label);
 
